@@ -31,7 +31,18 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+Before agreeing on this approach, confirm all three passes have been completed:
+- [ ] **Pass 1 — Assumptions**: List every assumption. Challenge each: "What if this is wrong?"
+- [ ] **Pass 2 — Research**: Verify sources, check for contradictions, identify gaps
+- [ ] **Pass 3 — Plan scrutiny**: Identify the riskiest decision; validate it before proceeding
+
+[Gates determined based on constitution file — verify each principle below applies]
+
+- [ ] Principle I: Spec approved and ambiguities resolved before this plan was written
+- [ ] Principle II: No speculative abstractions; complexity justified if present
+- [ ] Principle III: TDD approach confirmed — failing tests precede all implementation tasks
+- [ ] Principle IV: User stories are independently deliverable increments
+- [ ] PR Policy: Feature scoped to ≤ 300 LOC per PR, or split into sequential PRs documented here
 
 ## Project Structure
 

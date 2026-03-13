@@ -5,8 +5,14 @@
 ### I. Specification Before Implementation
 
 All features begin with a written specification reviewed and approved before any code is written.
-Ambiguity must be resolved upfront via `/speckit.clarify` — not during implementation.
+Ambiguity MUST be resolved upfront via `/speckit.clarify` — not during implementation.
 Specs live in `specs/[###-feature-name]/spec.md` and are the source of truth.
+
+Before any plan or approach is agreed upon, take multiple critical passes:
+1. Challenge every assumption — ask "what if this is wrong?"
+2. Stress-test the research — verify sources, look for contradictions
+3. Scrutinize the plan — identify the riskiest decision and validate it first
+An approach is not agreed upon until it has survived at least two independent reviews.
 
 ### II. Simplicity (NON-NEGOTIABLE)
 
@@ -14,12 +20,17 @@ Build only what is explicitly required. No speculative abstractions, no prematur
 - Three similar lines of code is better than a premature abstraction
 - No helpers, utilities, or wrappers for one-time operations
 - No backwards-compatibility shims unless supporting an existing public interface
-- Complexity must be justified in the plan's Complexity Tracking table
+- Every task MUST be single-purpose — one file, one concern, one reason to exist
+- Complexity MUST be justified in the plan's Complexity Tracking table
 
-### III. Test-First Where Tests Are Requested
+### III. Test-Driven Development
 
-When tests are part of the spec, follow Red-Green-Refactor strictly:
-1. Write tests → confirm they fail → implement → confirm they pass
+TDD is the default approach, not an option. Follow Red-Green-Refactor on every unit of work:
+1. Write a failing test that captures the intended behaviour
+2. Confirm it fails for the right reason
+3. Write the minimum implementation to make it pass
+4. Refactor under green
+
 Never write implementation code before a failing test exists for it.
 Test scope: unit tests for pure logic, integration tests for system boundaries.
 
@@ -55,22 +66,35 @@ Commit after each completed task. Branch per feature (`###-feature-name` format)
 
 ### Task Execution
 
+- Every task MUST be single-purpose — one file, one concern, one reason to exist
+- If a task description requires "and", split it into two tasks
 - Work tasks in priority order (P1 → P2 → P3) unless marked `[P]` for parallel execution
 - Mark tasks complete in `specs/[###]/tasks.md` as you finish them
 - Stop at each Phase checkpoint to validate independently before continuing
+
+### PR Policy
+
+- PRs MUST target 300 lines of changed code or fewer
+- If a feature exceeds 300 lines, split it into sequential, independently-mergeable PRs
+  before implementation begins — not after
+- Each PR must be self-contained: tests pass, no broken intermediary state
+- Exceptions require explicit justification in the PR description
 
 ### Definition of Done
 
 A feature is done when:
 1. All tasks in `tasks.md` are checked off
 2. The independent test from `spec.md` passes
-3. `CLAUDE.md` reflects any new commands, dependencies, or structure changes
-4. Branch is merged and deleted
+3. All PRs are ≤ 300 LOC or exceptions are documented
+4. `CLAUDE.md` reflects any new commands, dependencies, or structure changes
+5. Branch is merged and deleted
 
 ## Governance
 
 This constitution supersedes all other practices in this repository.
-Amendments require updating this file, noting the change in git commit message.
-All specs and plans must verify compliance with these principles before implementation begins.
+Amendments require updating this file with a version bump and noting the change in the git commit message.
+All specs and plans MUST verify compliance with these principles before implementation begins.
+Version policy: MAJOR for principle removal/redefinition; MINOR for new or materially expanded guidance;
+PATCH for clarifications, wording, and non-semantic refinements.
 
 **Version**: 1.0.0 | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [RATIFICATION_DATE]

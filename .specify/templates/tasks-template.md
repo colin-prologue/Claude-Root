@@ -17,6 +17,8 @@ description: "Task list template for feature implementation"
 - **[P]**: Can run in parallel (different files, no dependencies)
 - **[Story]**: Which user story this task belongs to (e.g., US1, US2, US3)
 - Include exact file paths in descriptions
+- Every task MUST be single-purpose — one file, one concern, one reason to exist
+- If a task description requires "and", split it into two tasks
 
 ## Path Conventions
 
