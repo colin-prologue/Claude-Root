@@ -1,50 +1,73 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+# Claude Project Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Specification Before Implementation
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+All features begin with a written specification reviewed and approved before any code is written.
+Ambiguity must be resolved upfront via `/speckit.clarify` — not during implementation.
+Specs live in `specs/[###-feature-name]/spec.md` and are the source of truth.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### II. Simplicity (NON-NEGOTIABLE)
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+Build only what is explicitly required. No speculative abstractions, no premature generalization.
+- Three similar lines of code is better than a premature abstraction
+- No helpers, utilities, or wrappers for one-time operations
+- No backwards-compatibility shims unless supporting an existing public interface
+- Complexity must be justified in the plan's Complexity Tracking table
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### III. Test-First Where Tests Are Requested
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+When tests are part of the spec, follow Red-Green-Refactor strictly:
+1. Write tests → confirm they fail → implement → confirm they pass
+Never write implementation code before a failing test exists for it.
+Test scope: unit tests for pure logic, integration tests for system boundaries.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### IV. Incremental & Independent Delivery
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+Each user story is a deployable increment. P1 stories must be functional before P2 begins.
+Features are complete when the independent test in the spec passes — not when all stories are done.
+Commit after each completed task. Branch per feature (`###-feature-name` format).
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### V. Security by Default
+
+- No credentials, tokens, or secrets in source files or commits
+- Validate all external input at system boundaries; trust internal code
+- `.gitignore` must cover all agent/IDE credential paths before first commit
+- Prefer environment variables for all configuration that varies by environment
+
+### VI. Documentation Stays Current
+
+`CLAUDE.md` is the living project context — update it when the tech stack, commands, or structure changes.
+Do not add inline comments to code unless the logic is genuinely non-obvious.
+Specs and plans are the documentation for *why*; code is the documentation for *how*.
+
+## Development Workflow
+
+### Branch Strategy
+
+- `main` — stable, always deployable
+- `###-feature-name` — one branch per feature spec (e.g., `001-user-auth`)
+- Branch from `main`; merge only after independent test passes
+
+### Task Execution
+
+- Work tasks in priority order (P1 → P2 → P3) unless marked `[P]` for parallel execution
+- Mark tasks complete in `specs/[###]/tasks.md` as you finish them
+- Stop at each Phase checkpoint to validate independently before continuing
+
+### Definition of Done
+
+A feature is done when:
+1. All tasks in `tasks.md` are checked off
+2. The independent test from `spec.md` passes
+3. `CLAUDE.md` reflects any new commands, dependencies, or structure changes
+4. Branch is merged and deleted
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This constitution supersedes all other practices in this repository.
+Amendments require updating this file, noting the change in git commit message.
+All specs and plans must verify compliance with these principles before implementation begins.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2026-03-13 | **Last Amended**: 2026-03-13
