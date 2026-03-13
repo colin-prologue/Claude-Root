@@ -1,0 +1,2 @@
+# Spec-Kit - ignore potential credentials/auth tokens stored by Claude agent
+.claude/settings.local.json
