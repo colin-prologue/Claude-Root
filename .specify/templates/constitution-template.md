@@ -56,6 +56,31 @@ Commit after each completed task. Branch per feature (`###-feature-name` format)
 
 [PRINCIPLE_DESCRIPTION]
 
+### VII. Decision Transparency (NON-NEGOTIABLE)
+
+Every architectural decision and every significant challenge, question, or update MUST be recorded
+as a discrete memory file. The goal is a complete history of *why* — not just *what was decided*.
+
+**Architectural Decision Records (ADRs)**
+- Any decision about technology choice, system structure, data model, integration pattern,
+  or cross-cutting constraint MUST produce an `ADR_NNN_title.md` file.
+- ADRs live in `.specify/memory/` and are numbered sequentially (`ADR_001_`, `ADR_002_`, ...).
+- The spec or plan where the decision was made MUST include a reference to the ADR number.
+- Use `.specify/templates/adr-template.md` as the starting point.
+
+**Decision Logs (LOGs)**
+- Any significant challenge encountered, open question raised, or update to an earlier
+  understanding MUST produce a `LOG_NNN_title.md` file.
+- LOGs live in `.specify/memory/` and are numbered sequentially (`LOG_001_`, `LOG_002_`, ...).
+- A LOG may exist before its resolution — open logs are valid and expected during planning.
+- When a LOG leads to a decision, it MUST reference the resulting ADR, and the ADR MUST
+  reference the LOG.
+- The spec, plan, or task where the issue surfaced MUST include a reference to the LOG number.
+- Use `.specify/templates/log-template.md` as the starting point.
+
+**Cross-referencing rule**: a decision or log entry without a back-reference in the relevant
+spec, plan, or task is incomplete. Both ends of the link MUST exist.
+
 ## Development Workflow
 
 ### Branch Strategy
@@ -72,6 +97,24 @@ Commit after each completed task. Branch per feature (`###-feature-name` format)
 - Mark tasks complete in `specs/[###]/tasks.md` as you finish them
 - Stop at each Phase checkpoint to validate independently before continuing
 
+### Decision Records
+
+Naming and storage conventions:
+
+| Type | File prefix | Location | Template |
+|---|---|---|---|
+| Architectural decision | `ADR_NNN_title.md` | `.specify/memory/` | `adr-template.md` |
+| Challenge / Question / Update | `LOG_NNN_title.md` | `.specify/memory/` | `log-template.md` |
+
+NNN is a zero-padded three-digit sequence shared across both types (ADR and LOG use the same
+counter, so `ADR_001`, `LOG_002`, `ADR_003` — no two records share a number).
+
+When to create records:
+- **ADR**: at the moment a significant architectural choice is made, before implementation proceeds
+- **LOG (QUESTION)**: as soon as a significant unknown is identified during planning or research
+- **LOG (CHALLENGE)**: when an obstacle is encountered that requires reconsidering a plan or spec
+- **LOG (UPDATE)**: when an earlier understanding, spec section, or ADR needs revision
+
 ### PR Policy
 
 - PRs MUST target 300 lines of changed code or fewer
@@ -86,8 +129,9 @@ A feature is done when:
 1. All tasks in `tasks.md` are checked off
 2. The independent test from `spec.md` passes
 3. All PRs are ≤ 300 LOC or exceptions are documented
-4. `CLAUDE.md` reflects any new commands, dependencies, or structure changes
-5. Branch is merged and deleted
+4. All ADRs and LOGs raised during the feature are written and cross-referenced
+5. `CLAUDE.md` reflects any new commands, dependencies, or structure changes
+6. Branch is merged and deleted
 
 ## Governance
 

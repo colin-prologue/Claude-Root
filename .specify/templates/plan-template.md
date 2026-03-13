@@ -9,6 +9,24 @@
 
 [Extract from feature spec: primary requirement + technical approach from research]
 
+## Decision Records
+
+<!--
+  Per Principle VII: list every ADR and LOG raised during planning of this feature.
+  Create the files in .specify/memory/ using adr-template.md / log-template.md.
+  Both ends of each link must exist before this plan is considered complete.
+-->
+
+| # | Type | File | Title | Status |
+|---|---|---|---|---|
+| — | — | — | No records yet | — |
+
+<!-- Example rows:
+| ADR-001 | Decision | ADR_001_use-postgres.md | Use PostgreSQL over SQLite | Accepted |
+| LOG-002 | Question | LOG_002_auth-strategy.md | Which auth strategy fits our scale? | Resolved → ADR-003 |
+| LOG-004 | Challenge | LOG_004_migration-blocker.md | Existing schema conflicts with new model | Open |
+-->
+
 ## Technical Context
 
 <!--

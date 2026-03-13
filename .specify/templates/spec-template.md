@@ -1,9 +1,26 @@
 # Feature Specification: [FEATURE NAME]
 
-**Feature Branch**: `[###-feature-name]`  
-**Created**: [DATE]  
-**Status**: Draft  
+**Feature Branch**: `[###-feature-name]`
+**Created**: [DATE]
+**Status**: Draft
 **Input**: User description: "$ARGUMENTS"
+
+## Decision Records
+
+<!--
+  Per Principle VII: list every ADR and LOG raised during specification of this feature.
+  Create the files in .specify/memory/ using adr-template.md / log-template.md.
+  Both ends of each link must exist before this spec is considered complete.
+-->
+
+| # | Type | File | Title | Status |
+|---|---|---|---|---|
+| — | — | — | No records yet | — |
+
+<!-- Example rows:
+| LOG-001 | Question | LOG_001_scope-clarification.md | Is offline support in scope? | Resolved |
+| ADR-002 | Decision | ADR_002_offline-not-in-scope.md | Defer offline support to v2 | Accepted |
+-->
 
 ## User Scenarios & Testing *(mandatory)*
 
