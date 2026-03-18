@@ -111,6 +111,18 @@ Focus on high-signal findings. Limit to 50 findings total; aggregate remainder i
 - Task ordering contradictions (e.g., integration tasks before foundational setup tasks without dependency note)
 - Conflicting requirements (e.g., one requires Next.js while other specifies Vue)
 
+#### G. Decision Record Coverage (Principle VII — NON-NEGOTIABLE)
+
+- List all `ADR_NNN_*.md` and `LOG_NNN_*.md` files present in `.specify/memory/`
+- Scan `plan.md` Technical Context, architecture choices, stack decisions, and Phase 0 research findings for technology choices and architectural decisions
+- Scan `spec.md` Constraints & Tradeoffs section and Decision Records table for declared decisions
+- For each architectural decision identified in the artifacts, verify a corresponding ADR file exists in `.specify/memory/`
+- For each ADR/LOG in `.specify/memory/`, verify a back-reference exists in the relevant spec or plan section
+- Check that cross-references are bidirectional: ADR references the artifact location; artifact references the ADR number
+- Check for LOGs marked RESOLVED that do not link to a resulting ADR (if the resolution was architectural)
+- Flag each missing ADR as **CRITICAL** (Principle VII is NON-NEGOTIABLE)
+- Flag each broken or missing cross-reference as **HIGH**
+
 ### 5. Severity Assignment
 
 Use this heuristic to prioritize findings:
@@ -141,6 +153,11 @@ Output a Markdown report (no file writes) with the following structure:
 
 **Unmapped Tasks:** (if any)
 
+**Decision Record Coverage (Principle VII):**
+
+| Decision / Artifact Reference | ADR/LOG File | Back-reference in Artifact? | Status |
+|-------------------------------|--------------|----------------------------|--------|
+
 **Metrics:**
 
 - Total Requirements
@@ -149,6 +166,7 @@ Output a Markdown report (no file writes) with the following structure:
 - Ambiguity Count
 - Duplication Count
 - Critical Issues Count
+- ADRs present / ADRs required (decisions without ADR = CRITICAL gap)
 
 ### 7. Provide Next Actions
 

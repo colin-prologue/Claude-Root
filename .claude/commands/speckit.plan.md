@@ -58,7 +58,17 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Rationale: [why chosen]
    - Alternatives considered: [what else evaluated]
 
-**Output**: research.md with all NEEDS CLARIFICATION resolved
+4. **Create Decision Records** (Principle VII — NON-NEGOTIABLE):
+   - For each technology choice or architectural decision recorded in research.md:
+     - Determine the next available NNN by scanning `.specify/memory/` for existing `ADR_NNN_*` and `LOG_NNN_*` files (shared counter)
+     - Create `ADR_NNN_title.md` in `.specify/memory/` using `.specify/templates/adr-template.md`
+     - Set `Decision Made In` to the plan.md path and section
+   - For each unresolved question or open challenge surfaced during research:
+     - Create `LOG_NNN_title.md` in `.specify/memory/` using `.specify/templates/log-template.md`
+   - Update the `## Decision Records` table in `plan.md` with all new ADR/LOG entries
+   - **ERROR and stop if any technology choice in research.md lacks a corresponding ADR before Phase 1 begins**
+
+**Output**: research.md with all NEEDS CLARIFICATION resolved; ADR/LOG files written to `.specify/memory/`
 
 ### Phase 1: Design & Contracts
 
@@ -82,7 +92,14 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Add only new technology from current plan
    - Preserve manual additions between markers
 
-**Output**: data-model.md, /contracts/*, quickstart.md, agent-specific file
+4. **Create Decision Records for design choices** (Principle VII):
+   - For any architectural decision made during data modeling or contract definition
+     (e.g., schema design, normalization choices, API versioning, data format selection):
+     - Determine next available NNN from `.specify/memory/` (shared ADR/LOG counter)
+     - Create `ADR_NNN_title.md` in `.specify/memory/` using `.specify/templates/adr-template.md`
+   - Update the `## Decision Records` table in `plan.md` with all new entries
+
+**Output**: data-model.md, /contracts/*, quickstart.md, agent-specific file, ADR files for design decisions
 
 ## Key rules
 
