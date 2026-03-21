@@ -162,16 +162,29 @@ Execution steps:
 
 8. **Create Decision Records for architectural clarifications** (Principle VII — NON-NEGOTIABLE):
    - Review all answers recorded in this session.
+
+   **Architectural Decisions → ADR (direct, no LOG wrapper):**
    - For each answer that falls into any of these categories:
      - Resolves a **Constraints & Tradeoffs** question (technology, storage, hosting, explicit tradeoffs)
      - Defines or constrains a **data model** or **integration pattern**
      - Establishes a **non-functional target** that will constrain architecture (e.g., latency SLA, scale limit)
-   - Then:
+   - Create an `ADR_NNN_title.md` directly in `.specify/memory/` using `.specify/templates/adr-template.md`
      - Determine the next available NNN by scanning `.specify/memory/` for existing `ADR_NNN_*` and `LOG_NNN_*` files (shared counter)
-     - Create a `LOG_NNN_title.md` in `.specify/memory/` using `.specify/templates/log-template.md` with status RESOLVED
-     - If the answer constitutes a definitive architectural decision (not just a scoping note), also create an `ADR_NNN_title.md` using `.specify/templates/adr-template.md`, and cross-link the ADR and LOG to each other
-   - Update the `## Decision Records` table in `spec.md` with all new entries, with back-references to the clarification session
-   - If no answers meet the threshold (all were purely functional/UX clarifications), skip file creation and note: "No architectural decisions recorded."
+     - Set `Decision Made In` to the spec.md path and the relevant section
+   - Do NOT wrap a resolved decision in a LOG — a resolved decision is an ADR. LOGs are for challenges, open questions, and updates (constitution Principle VII).
+
+   **Spec Statement Replacements → LOG (UPDATE):**
+   - For each clarification that caused an earlier spec statement to be replaced (step 5: "If the clarification invalidates an earlier ambiguous statement, replace that statement instead of duplicating"):
+     - Create a `LOG_NNN_title.md` in `.specify/memory/` using `.specify/templates/log-template.md` with type UPDATE
+     - Record: what statement was replaced, what replaced it, and why
+     - If the replacement also constitutes an architectural decision, cross-link this LOG to its ADR (and the ADR back to this LOG)
+
+   **Still-Open Questions → LOG (QUESTION):**
+   - For any ambiguity category still marked Outstanding after the questioning loop (quota reached before resolution, or user deferred):
+     - Create a `LOG_NNN_title.md` with status OPEN to capture the open question for future resolution in `/speckit.plan` or a follow-up `/speckit.clarify`
+
+   - Update the `## Decision Records` table in `spec.md` with all new ADR/LOG entries, with back-references to the clarification session date and question number (e.g., "Q2 — 2026-03-19").
+   - If no answers meet any threshold and no replacements were made, skip file creation and note: "No architectural decisions or spec updates recorded."
 
 9. Report completion (after questioning loop ends or early termination):
    - Number of questions asked & answered.
