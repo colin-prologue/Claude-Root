@@ -113,6 +113,7 @@ Focus on high-signal findings. Limit to 50 findings total; aggregate remainder i
 
 #### G. Decision Record Coverage (Principle VII — NON-NEGOTIABLE)
 
+
 - List all `ADR_NNN_*.md` and `LOG_NNN_*.md` files present in `.specify/memory/`
 - Scan `plan.md` Technical Context, architecture choices, stack decisions, and Phase 0 research findings for technology choices and architectural decisions
 - Scan `spec.md` Constraints & Tradeoffs section and Decision Records table for declared decisions
@@ -122,6 +123,15 @@ Focus on high-signal findings. Limit to 50 findings total; aggregate remainder i
 - Check for LOGs marked RESOLVED that do not link to a resulting ADR (if the resolution was architectural)
 - Flag each missing ADR as **CRITICAL** (Principle VII is NON-NEGOTIABLE)
 - Flag each broken or missing cross-reference as **HIGH**
+
+#### H. TDD Compliance (Principle III — NON-NEGOTIABLE)
+
+- For each user story phase in tasks.md (Phase 3+), identify tasks whose descriptions indicate test work (keywords: "write test", "create test", "unit test", "integration test", "contract test", "failing test", "test for", "spec for")
+- Verify at least one test task exists per user story phase — a phase with zero test tasks is a CRITICAL violation
+- Verify test tasks appear before their corresponding implementation tasks within the phase (by Task ID order) — test tasks appearing after implementation tasks are a CRITICAL violation (Red-Green-Refactor requires a failing test first)
+- Check that contract test tasks precede the implementation of the contracts they test
+- Flag each user story phase with no test tasks as **CRITICAL** (Principle III is NON-NEGOTIABLE)
+- Flag each phase where implementation tasks precede test tasks as **CRITICAL**
 
 ### 5. Severity Assignment
 
@@ -158,6 +168,11 @@ Output a Markdown report (no file writes) with the following structure:
 | Decision / Artifact Reference | ADR/LOG File | Back-reference in Artifact? | Status |
 |-------------------------------|--------------|----------------------------|--------|
 
+**TDD Compliance (Principle III):**
+
+| User Story Phase | Test Tasks Present? | Tests Before Impl? | Status |
+|------------------|--------------------|--------------------|--------|
+
 **Metrics:**
 
 - Total Requirements
@@ -167,6 +182,7 @@ Output a Markdown report (no file writes) with the following structure:
 - Duplication Count
 - Critical Issues Count
 - ADRs present / ADRs required (decisions without ADR = CRITICAL gap)
+- User story phases with test tasks / total user story phases (phases without tests = CRITICAL gap)
 
 ### 7. Provide Next Actions
 
