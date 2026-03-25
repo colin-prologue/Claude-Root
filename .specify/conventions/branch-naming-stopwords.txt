@@ -1,0 +1,46 @@
+# Branch naming stop-words
+# One word per line. These are stripped when auto-generating branch slugs from feature names.
+# Read by: .specify/scripts/bash/create-new-feature.sh
+# To customise: add or remove words here; the script falls back to the hardcoded list if this file is absent.
+
+a
+an
+the
+and
+or
+but
+in
+on
+at
+to
+for
+of
+with
+by
+from
+as
+is
+are
+was
+were
+be
+been
+being
+have
+has
+had
+do
+does
+did
+will
+would
+could
+should
+may
+might
+shall
+can
+need
+dare
+ought
+used

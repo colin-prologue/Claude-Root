@@ -1,0 +1,99 @@
+# Spec-Kit Base — copier template configuration
+#
+# Install a new project:
+#   copier copy git+ssh://git@github.com/YOUR_USERNAME/spec-kit-base.git my-new-project
+#
+# Pull in template updates later (from inside the downstream project):
+#   copier update
+
+_answers_file: .copier-answers.yml
+_templates_suffix: .jinja
+_exclude:
+  - copier.yml
+  - README.md
+  - CLAUDE.md          # replaced by CLAUDE.md.jinja → CLAUDE.md in destination
+  - .git
+
+# ── Project identity ──────────────────────────────────────────────────────────
+
+project_name:
+  type: str
+  help: Project name (e.g. MyApp)
+
+project_description:
+  type: str
+  help: One sentence describing what this project does.
+
+project_status:
+  type: str
+  help: Project status
+  default: Active development
+  choices:
+    - Active development
+    - Prototype
+    - Maintenance
+
+# ── Tech stack ────────────────────────────────────────────────────────────────
+
+language:
+  type: str
+  help: "Primary language (e.g. TypeScript, Python, Go, Swift)"
+
+language_version:
+  type: str
+  help: "Language version (e.g. 5.0, 3.12, 1.22)"
+  default: latest
+
+framework:
+  type: str
+  help: "Framework (e.g. Next.js, FastAPI, Gin) — enter None if not applicable"
+  default: "None"
+
+framework_version:
+  type: str
+  help: Framework version
+  default: "—"
+
+database:
+  type: str
+  help: "Database (e.g. PostgreSQL, SQLite, None)"
+  default: "None"
+
+database_version:
+  type: str
+  help: Database version
+  default: "—"
+
+testing:
+  type: str
+  help: "Testing framework (e.g. pytest, vitest, go test, XCTest)"
+
+package_manager:
+  type: str
+  help: "Package manager (e.g. npm, uv, go mod, None)"
+  default: "None"
+
+# ── Commands ──────────────────────────────────────────────────────────────────
+
+cmd_install:
+  type: str
+  help: Install dependencies command (leave blank if N/A)
+  default: ""
+
+cmd_test:
+  type: str
+  help: Run tests command
+
+cmd_dev:
+  type: str
+  help: Start dev server / run locally command
+
+cmd_lint:
+  type: str
+  help: Lint / format command (leave blank if N/A)
+  default: ""
+
+cmd_build:
+  type: str
+  help: Build / compile command (leave blank if N/A)
+  default: ""

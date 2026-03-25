@@ -5,36 +5,39 @@ Keep it current — update it whenever the stack, commands, or structure changes
 
 ## Project
 
-**Name**: Spec-Kit Base
-**Description**: A reusable project template base built on Spec-Kit for structured, spec-driven feature development with Claude Code.
-**Status**: Active development
+**Name**: {{ project_name }}
+**Description**: {{ project_description }}
+**Status**: {{ project_status }}
 
 ## Stack
 
+<!-- Update this section as you add dependencies -->
+
 | Layer | Technology | Version |
 |---|---|---|
-| Scripting | Bash | 5.x |
-| Templates | Markdown | — |
-| AI integration | Claude Code | 0.3.x |
-| Package manager | None | — |
+| Language | {{ language }} | {{ language_version }} |
+| Framework | {{ framework }} | {{ framework_version }} |
+| Database | {{ database }} | {{ database_version }} |
+| Testing | {{ testing }} | — |
+| Package manager | {{ package_manager }} | — |
 
 ## Commands
 
 ```bash
-# Initialize a new project from this template
-copier copy git+ssh://git@github.com/YOUR_USERNAME/spec-kit-base.git my-new-project
+# Install dependencies
+{{ cmd_install if cmd_install else '# N/A' }}
 
-# Pull template updates into a downstream project (run from inside that project)
-copier update
+# Run tests
+{{ cmd_test }}
 
-# Validate template prerequisites
-.specify/scripts/bash/check-prerequisites.sh
+# Start dev server / run locally
+{{ cmd_dev }}
 
-# Create a new feature branch + spec scaffold
-.specify/scripts/bash/create-new-feature.sh "Feature Name"
+# Lint / format
+{{ cmd_lint if cmd_lint else '# N/A' }}
 
-# Regenerate agent context files after stack changes
-.specify/scripts/bash/update-agent-context.sh
+# Build / compile
+{{ cmd_build if cmd_build else '# N/A' }}
 ```
 
 ## Directory Structure
@@ -46,8 +49,9 @@ copier update
     constitution.md     # Project principles — Claude reads this for every feature
   templates/            # Document templates for specs, plans, tasks
   scripts/              # Helper scripts used by slash commands
+  conventions/          # Project conventions and standards
 specs/                  # Feature specifications (one folder per feature)
-  000-example/
+  ###-feature-name/
     spec.md             # User stories and requirements
     plan.md             # Technical approach and project structure
     tasks.md            # Actionable task checklist
@@ -83,5 +87,4 @@ Feature specs live in `specs/[###-feature-name]/`.
 
 <!-- Update this as features are completed -->
 
-- 2026-03-22: Audit and cleanup — renamed to Spec-Kit Base, filled CLAUDE.md/README placeholders, added .speckit-version, added .specify/conventions/
-- 2026-03-13: Initial project setup with Spec-Kit v0.3.0
+- Initialized from Spec-Kit Base

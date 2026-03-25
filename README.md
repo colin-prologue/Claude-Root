@@ -1,16 +1,32 @@
-# ClaudeTest
+# Spec-Kit Base
 
-This repository is configured for Spec-Driven Development with Claude Code using [GitHub Spec Kit](https://github.com/github/spec-kit).
+A reusable project template for spec-driven development with Claude Code. Copy it into any new project to get a structured workflow for writing specs, plans, tasks, and implementations.
 
 ## Quick Start
 
 ```bash
-# Install Spec-Kit CLI (one-time, global)
-uv tool install specify-cli --from git+https://github.com/github/spec-kit.git
+# One-time: install copier
+pipx install copier
 
-# Start a new feature
-# Open Claude Code and run:
-/speckit.specify
+# Create a new project from this template
+copier copy git+ssh://git@github.com/YOUR_USERNAME/spec-kit-base.git my-new-project
+cd my-new-project
+git init && git add . && git commit -m "chore: initialize from Spec-Kit Base"
+```
+
+Copier will prompt you for your project name, stack, and commands — it writes `CLAUDE.md` for you.
+
+Then open Claude Code and start building:
+
+```
+/speckit.constitution   # optional: customize governing principles
+/speckit.specify        # start your first feature
+```
+
+To pull in template updates later from inside any downstream project:
+
+```bash
+copier update
 ```
 
 ## Directory Structure
@@ -61,13 +77,26 @@ README.md               # This file
   (optional)         (optional)          (optional)
 ```
 
-## Reusing This Template
+## Updating Downstream Projects
 
-To apply this structure to a new project:
+The template version is tracked in `.speckit-version`. When this template is updated, run
+`copier update` from inside any downstream project — copier will apply template-owned changes
+and prompt you to resolve conflicts in project-owned files.
 
-1. Copy `.claude/`, `.specify/`, `CLAUDE.md`, `.gitignore`, and `specs/` into the new repo root
-2. Update `CLAUDE.md` with the new project's name, stack, and commands
-3. Run `/speckit.constitution` to tailor the principles if needed
+### File Ownership
+
+| File / Directory | Owner | On template update |
+|---|---|---|
+| `.claude/commands/` | Template | Safe to overwrite |
+| `.specify/templates/` | Template | Safe to overwrite |
+| `.specify/scripts/` | Template | Safe to overwrite |
+| `.specify/conventions/` | Template | Safe to overwrite |
+| `.speckit-version` | Template | Safe to overwrite |
+| `CLAUDE.md` | Project | Merge manually |
+| `.specify/memory/constitution.md` | Project | Merge manually |
+| `specs/` | Project | Never touch |
+| `.specify/memory/ADR_*.md` | Project | Never touch |
+| `.specify/memory/LOG_*.md` | Project | Never touch |
 
 ## Constitution
 
