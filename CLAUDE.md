@@ -52,6 +52,7 @@ Keep it current — update it whenever the stack, commands, or structure changes
     devils-advocate.md
     delivery-reviewer.md
     synthesis-judge.md
+    consistency-auditor.md
   settings.local.json   # Local settings (Agent Teams enabled)
 .specify/
   memory/
@@ -85,6 +86,7 @@ New features follow this order:
 9. `/speckit.review` *(recommended)* — adversarial review of tasks
 10. `/speckit.analyze` *(optional)* — cross-artifact consistency check
 11. `/speckit.implement` — execute tasks
+12. `/speckit.audit` *(recommended)* — bidirectional doc-code consistency audit
 
 Feature specs live in `specs/[###-feature-name]/`.
 
@@ -104,6 +106,15 @@ Reviews follow a three-phase anti-convergence protocol:
 
 Panel size scales with Principle VIII rigor level (FULL/STANDARD/LIGHTWEIGHT).
 
+### Consistency Audit
+
+`/speckit.audit` performs bidirectional doc-code scanning after implementation:
+- **Docs → Code**: Are ADR decisions followed? Are spec requirements implemented?
+- **Code → Docs**: Are dependencies documented? Do undocumented architectural decisions exist?
+- **Decision Discovery**: Recommends new ADRs/LOGs for decisions hiding in code
+- **Health Score**: Grades consistency across 5 dimensions (A-F scale)
+- Supports focused modes: `decisions`, `freshness`, `compliance`
+
 ## Key Conventions
 
 - Branch naming: `###-feature-name` (e.g., `001-user-auth`)
@@ -115,6 +126,7 @@ Panel size scales with Principle VIII rigor level (FULL/STANDARD/LIGHTWEIGHT).
 
 <!-- Update this as features are completed -->
 
+- 2026-03-28: Added consistency audit system (/speckit.audit + consistency-auditor agent)
 - 2026-03-28: Added adversarial review system (/speckit.review + agent personas)
 - 2026-03-28: Rewrote /speckit.constitution as interactive guided conversation with project context
 - 2026-03-28: Added Agent Teams support (CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1)
