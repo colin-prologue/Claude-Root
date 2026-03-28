@@ -2,6 +2,7 @@
 
 New features follow this order:
 
+0. `/speckit.brainstorm` *(optional)* — explore a vague idea, decompose into features, produce roadmap
 1. `/speckit.constitution` — interactive project setup (context + calibrated governance)
 2. `/speckit.specify` — write user stories and requirements
 3. `/speckit.review` *(recommended)* — adversarial review of spec
