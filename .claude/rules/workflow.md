@@ -15,6 +15,7 @@ New features follow this order:
 10. `/speckit.analyze` *(optional)* — cross-artifact consistency check
 11. `/speckit.implement` — execute tasks
 12. `/speckit.audit` *(recommended)* — bidirectional doc-code consistency audit
+13. `/speckit.retro` *(recommended)* — reassess assumptions, update roadmap, feed learnings back
 
 Feature specs live in `specs/[###-feature-name]/`.
 
