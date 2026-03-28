@@ -43,10 +43,19 @@ Keep it current — update it whenever the stack, commands, or structure changes
 ## Directory Structure
 
 ```
-.claude/commands/       # Spec-Kit slash commands for Claude
+.claude/
+  commands/             # Spec-Kit slash commands for Claude
+  agents/               # Agent persona definitions for /speckit.review
+    security-reviewer.md
+    systems-architect.md
+    product-strategist.md
+    devils-advocate.md
+    delivery-reviewer.md
+    synthesis-judge.md
+  settings.local.json   # Local settings (Agent Teams enabled)
 .specify/
   memory/
-    constitution.md     # Project principles — Claude reads this for every feature
+    constitution.md     # Project principles + context — Claude reads this for every feature
   templates/            # Document templates for specs, plans, tasks
   scripts/              # Helper scripts used by slash commands
 specs/                  # Feature specifications (one folder per feature)
@@ -65,15 +74,35 @@ README.md               # Human-facing project overview
 
 New features follow this order:
 
-1. `/speckit.specify` — write user stories and requirements
-2. `/speckit.clarify` *(optional)* — resolve ambiguities before planning
-3. `/speckit.plan` — technical approach and project structure
-4. `/speckit.checklist` *(optional)* — validate spec quality
-5. `/speckit.tasks` — actionable task list
-6. `/speckit.analyze` *(optional)* — cross-artifact consistency check
-7. `/speckit.implement` — execute tasks
+1. `/speckit.constitution` — interactive project setup (context + calibrated governance)
+2. `/speckit.specify` — write user stories and requirements
+3. `/speckit.review` *(recommended)* — adversarial review of spec
+4. `/speckit.clarify` *(optional)* — resolve ambiguities before planning
+5. `/speckit.plan` — technical approach and project structure
+6. `/speckit.review` *(recommended)* — adversarial review of plan
+7. `/speckit.checklist` *(optional)* — validate spec quality
+8. `/speckit.tasks` — actionable task list
+9. `/speckit.review` *(recommended)* — adversarial review of tasks
+10. `/speckit.analyze` *(optional)* — cross-artifact consistency check
+11. `/speckit.implement` — execute tasks
 
 Feature specs live in `specs/[###-feature-name]/`.
+
+### Adversarial Review System
+
+`/speckit.review` spawns an Agent Team of specialized reviewers calibrated to the project context set in the constitution. Review panels vary by phase:
+
+- **Spec gate**: product-strategist, security-reviewer, devils-advocate
+- **Plan gate**: systems-architect, security-reviewer, delivery-reviewer, devils-advocate
+- **Task gate**: delivery-reviewer, systems-architect, devils-advocate
+- **Pre-implementation**: full panel
+
+Reviews follow a three-phase anti-convergence protocol:
+1. **Phase A** — Independent analysis (parallel, isolated)
+2. **Phase B** — Cross-examination (devil's advocate challenges findings)
+3. **Phase C** — Synthesis (judge integrates with preserved dissent)
+
+Panel size scales with Principle VIII rigor level (FULL/STANDARD/LIGHTWEIGHT).
 
 ## Key Conventions
 
@@ -86,4 +115,7 @@ Feature specs live in `specs/[###-feature-name]/`.
 
 <!-- Update this as features are completed -->
 
+- 2026-03-28: Added adversarial review system (/speckit.review + agent personas)
+- 2026-03-28: Rewrote /speckit.constitution as interactive guided conversation with project context
+- 2026-03-28: Added Agent Teams support (CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1)
 - 2026-03-13: Initial project setup with Spec-Kit v0.3.0
