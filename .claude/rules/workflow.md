@@ -2,6 +2,7 @@
 
 New features follow this order:
 
+0. `/speckit.brainstorm` *(optional)* — explore a vague idea, decompose into features, produce roadmap
 1. `/speckit.constitution` — interactive project setup (context + calibrated governance)
 2. `/speckit.specify` — write user stories and requirements
 3. `/speckit.review` *(recommended)* — adversarial review of spec
@@ -14,6 +15,7 @@ New features follow this order:
 10. `/speckit.analyze` *(optional)* — cross-artifact consistency check
 11. `/speckit.implement` — execute tasks
 12. `/speckit.audit` *(recommended)* — bidirectional doc-code consistency audit
+13. `/speckit.retro` *(recommended)* — reassess assumptions, update roadmap, feed learnings back
 
 Feature specs live in `specs/[###-feature-name]/`.
 

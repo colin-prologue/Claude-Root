@@ -71,6 +71,8 @@ docs/                   # Long-form documentation
 
 <!-- Update this as features are completed -->
 
+- 2026-03-28: Added /speckit.retro for post-implementation retrospectives
+- 2026-03-28: Added /speckit.brainstorm for pre-specify ideation and feature decomposition
 - 2026-03-28: Split CLAUDE.md into modular .claude/rules/ structure
 - 2026-03-28: Added consistency audit system (/speckit.audit + consistency-auditor agent)
 - 2026-03-28: Added adversarial review system (/speckit.review + agent personas)
