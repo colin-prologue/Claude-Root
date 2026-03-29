@@ -197,13 +197,46 @@ The constitution (`.specify/memory/constitution.md`) is created interactively vi
 A solo prototype gets LIGHTWEIGHT governance. A team product handling PII gets FULL.
 The calibration is set once and informs every review panel's intensity.
 
-## Reusing This Template
+## Using This Template
 
-1. Copy the entire repo (or fork it) into your new project
-2. Run `/speckit.brainstorm` if you're starting from a vague idea
-3. Run `/speckit.constitution` to calibrate governance for your context
-4. Update `CLAUDE.md` with your project name, stack, and commands
-5. Start specifying features with `/speckit.specify`
+### New Project (GitHub Template)
+
+Click **"Use this template"** on GitHub to create a new repo with all files and clean history.
+
+### New Project (Setup Script)
+
+```bash
+# From your new project directory
+curl -sL https://raw.githubusercontent.com/colin-prologue/Claude-Root/main/setup.sh | bash
+```
+
+### Existing Project
+
+```bash
+# Option A: Setup script (adds missing files, never overwrites yours)
+curl -sL https://raw.githubusercontent.com/colin-prologue/Claude-Root/main/setup.sh | bash
+
+# Option B: Claude-assisted (smarter merge, handles CLAUDE.md sections)
+# Open Claude Code in your project and run:
+/speckit.init
+```
+
+### Updating to Latest Template
+
+```bash
+# Refresh template files while preserving your customizations
+bash setup.sh --force
+
+# Or let Claude handle the merge intelligently
+/speckit.init update
+```
+
+### After Installation
+
+1. Run `/speckit.constitution` to calibrate governance for your context
+2. Update `CLAUDE.md` with your project name, stack, and commands
+3. Run `/speckit.brainstorm` if you have a vague idea to explore
+4. Run `/speckit.specify` to start your first feature
 
 ## Requirements
 
