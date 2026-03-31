@@ -240,6 +240,35 @@ if [[ "$DRY_RUN" != true ]]; then
   fi
 fi
 
+# --- README (minimal placeholder — real content comes from /speckit.constitution) ---
+if [[ "$DRY_RUN" != true ]]; then
+  if [[ -f "README.md" ]]; then
+    SKIPPED+=("README.md (exists)")
+    info "Skipped README.md (already exists)"
+  else
+    PROJECT_NAME=$(basename "$(pwd)")
+    cat > README.md << READMEEOF
+# $PROJECT_NAME
+
+> Project README will be generated after running \`/speckit.constitution\`.
+> That command has the full project context needed to write a useful README.
+
+## Setup
+
+This project uses [Spec-Kit](https://github.com/colin-prologue/Claude-Root)
+for spec-driven development with Claude Code.
+
+\`\`\`bash
+/speckit.brainstorm      # Explore ideas → feature roadmap
+/speckit.constitution    # Set up project governance (generates README)
+/speckit.specify         # Write feature spec
+\`\`\`
+READMEEOF
+    CREATED+=("README.md (placeholder — run /speckit.constitution to generate full version)")
+    log "Created placeholder README.md"
+  fi
+fi
+
 # --- Summary ---
 echo ""
 echo "  Setup Summary"

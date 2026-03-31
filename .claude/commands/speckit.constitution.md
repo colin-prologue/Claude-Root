@@ -255,14 +255,81 @@ Read these files and verify alignment with updated principles:
 - `.specify/templates/tasks-template.md` — task categorization reflects principle-driven types
 - Agent persona files in `.claude/agents/` — verify they reference calibration correctly
 
-### Step 7: Write and Report
+### Step 7: Generate Project README
+
+After the constitution is written, generate (or update) the project README.md.
+By this point you have all the context needed: project name, purpose, stack,
+team, audience, and governance calibration. If `brainstorm-notes.md` exists,
+incorporate the problem statement and user personas.
+
+**If README.md doesn't exist or contains only the setup placeholder**
+(look for "will be generated after running `/speckit.constitution`"):
+Generate a full project README with:
+
+```markdown
+# [Project Name]
+
+[One-paragraph description from Project Identity]
+
+## Quick Start
+
+\`\`\`bash
+# Install dependencies
+[command — from stack if known, or placeholder]
+
+# Run tests
+[command]
+
+# Start dev server
+[command]
+\`\`\`
+
+## About
+
+[2-3 sentences: what problem this solves, for whom, from Phase 1 / constitution]
+
+## Development
+
+This project uses Spec-Kit for spec-driven development with Claude Code.
+
+### Workflow
+
+\`\`\`
+/speckit.brainstorm   — explore ideas
+/speckit.specify      — write feature spec
+/speckit.review       — adversarial review
+/speckit.plan         — technical design
+/speckit.tasks        — task breakdown
+/speckit.implement    — build it
+/speckit.audit        — verify consistency
+/speckit.retro        — learn and adjust
+\`\`\`
+
+### Project Structure
+
+[Directory tree based on actual project structure]
+
+## Contributing
+
+See \`CLAUDE.md\` for project context and
+\`.specify/memory/constitution.md\` for governing principles.
+```
+
+**If README.md exists with project-specific content** (no placeholder marker):
+Do NOT overwrite. Instead, offer to append a "Development" section with the
+Spec-Kit workflow if it's missing. Present the suggested addition and let the
+user approve.
+
+### Step 8: Write and Report
 
 1. Write the completed constitution to `.specify/memory/constitution.md`
-2. Produce a SYNC IMPACT REPORT as HTML comment at top
-3. Output a final summary:
+2. Write or update README.md (from Step 7)
+3. Produce a SYNC IMPACT REPORT as HTML comment at top of the constitution
+4. Output a final summary:
    - New version and bump rationale
    - Project context summary (1-2 sentences)
    - Calibration summary table (principle → rigor level)
+   - README status (generated / updated / skipped)
    - Files flagged for manual follow-up
    - Suggested commit message
 

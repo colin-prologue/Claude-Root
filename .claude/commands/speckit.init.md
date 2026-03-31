@@ -118,6 +118,18 @@ For each category of files, apply the appropriate merge strategy:
   - Missing "Recent Changes"? Offer to add it
 - Present a merge report, not an automatic overwrite
 
+#### README.md
+**Strategy**: Placeholder now, real content after constitution.
+
+- If no README.md: create a minimal placeholder with project name and a note
+  that `/speckit.constitution` will generate the full version
+- If README.md exists and contains template markers ("Spec-Kit Starter Template"
+  or "Reusing This Template"): warn the user that this is the template README,
+  not a project README. Suggest running `/speckit.constitution` to generate one.
+- If README.md exists with project-specific content: skip
+- The real README generation happens in `/speckit.constitution` Step 7, which has
+  the full project context (name, purpose, stack, team, audience)
+
 #### Constitution (`.specify/memory/constitution.md`)
 **Strategy**: NEVER overwrite. Create from template only if missing.
 
