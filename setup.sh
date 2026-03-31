@@ -205,6 +205,26 @@ if [[ "$DRY_RUN" != true ]]; then
   mkdir -p specs docs src tests .specify/memory
 fi
 
+# --- Git initialization (ensure main branch) ---
+if [[ "$DRY_RUN" != true ]]; then
+  if [[ ! -d ".git" ]]; then
+    log "Initializing git repository with 'main' as default branch..."
+    git init -b main
+    CREATED+=(".git (initialized with main branch)")
+  else
+    # Check current branch — warn if not main
+    CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "")
+    if [[ -z "$CURRENT_BRANCH" ]]; then
+      # Repo exists but no commits yet — rename default branch to main
+      git branch -M main 2>/dev/null || true
+      log "Set default branch to 'main'"
+    elif [[ "$CURRENT_BRANCH" != "main" ]]; then
+      warn "Current branch is '$CURRENT_BRANCH', not 'main'."
+      warn "Consider: git branch -M main (to rename) or git checkout main"
+    fi
+  fi
+fi
+
 # --- Gitignore (append if needed) ---
 if [[ "$DRY_RUN" != true ]]; then
   if [[ -f ".gitignore" ]]; then

@@ -2,6 +2,7 @@
 
 ## Git
 
+- Default branch MUST be `main` — initialize new repos with `git init -b main`
 - Branch per feature: `###-feature-name` (e.g., `001-user-auth`)
 - Commit format: conventional commits (`feat:`, `fix:`, `refactor:`, `docs:`, `chore:`)
 - Commit after each completed task
