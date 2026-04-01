@@ -124,9 +124,11 @@ spec, plan, or task is incomplete. Both ends of the link MUST exist.
 
 ### Branch Strategy
 
-- `main` — stable, always deployable
+- `main` — stable, always deployable, MUST be the default branch
 - `###-feature-name` — one branch per feature spec (e.g., `001-user-auth`)
 - Branch from `main`; merge only after independent test passes
+- New repositories MUST initialize with `main` as the first branch and commit
+  before creating feature branches (ensures GitHub recognizes `main` as default)
 
 ### Task Execution
 

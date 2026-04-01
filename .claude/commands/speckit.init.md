@@ -118,6 +118,18 @@ For each category of files, apply the appropriate merge strategy:
   - Missing "Recent Changes"? Offer to add it
 - Present a merge report, not an automatic overwrite
 
+#### README.md
+**Strategy**: Placeholder now, real content after constitution.
+
+- If no README.md: create a minimal placeholder with project name and a note
+  that `/speckit.constitution` will generate the full version
+- If README.md exists and contains template markers ("Spec-Kit Starter Template"
+  or "Reusing This Template"): warn the user that this is the template README,
+  not a project README. Suggest running `/speckit.constitution` to generate one.
+- If README.md exists with project-specific content: skip
+- The real README generation happens in `/speckit.constitution` Step 7, which has
+  the full project context (name, purpose, stack, team, audience)
+
 #### Constitution (`.specify/memory/constitution.md`)
 **Strategy**: NEVER overwrite. Create from template only if missing.
 
@@ -140,7 +152,36 @@ For each category of files, apply the appropriate merge strategy:
 - If not: append the Spec-Kit entries
 - Never remove existing entries
 
-### 5. Create Missing Directories
+### 5. Git Initialization & Default Branch
+
+Ensure the repository uses `main` as the default branch. This is critical for
+new repos — GitHub sets the default branch based on the first push, so getting
+this right from the start prevents confusion.
+
+**If no `.git` directory exists** (new project):
+```bash
+git init -b main
+```
+
+**If `.git` exists but no commits yet** (freshly initialized):
+```bash
+git branch -M main
+```
+
+**If `.git` exists with commits on a non-main branch**:
+- Warn the user: "Default branch is '[branch]', not 'main'. Consider renaming with `git branch -M main`."
+- Do NOT auto-rename — the user may have a reason for a different default branch.
+
+After setup is complete, suggest an initial commit to establish `main`:
+```bash
+git add .
+git commit -m "chore: initialize project with Spec-Kit template"
+git push -u origin main
+```
+
+This ensures GitHub recognizes `main` as the default branch.
+
+### 6. Create Missing Directories
 
 Ensure these directories exist (create with `.gitkeep` if empty):
 - `specs/`
