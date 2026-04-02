@@ -1,8 +1,52 @@
 # [PROJECT_NAME] Constitution
 
-## Core Principles
+## Project Context
 
-### I. Specification Before Implementation
+### Project Identity
+
+- **Name**: [PROJECT_NAME]
+- **Purpose**: [PROJECT_PURPOSE]
+- **Status**: [PROJECT_STATUS]
+- **Domain**: [PROJECT_DOMAIN]
+
+### Development Team
+
+- **Size**: [TEAM_SIZE]
+- **Expertise**: [TEAM_EXPERTISE]
+- **Turnover**: [TEAM_TURNOVER]
+- **Collaboration style**: [TEAM_COLLABORATION]
+
+### Content & Maintenance
+
+- **Content creators**: [CONTENT_CREATORS]
+- **Update cadence**: [UPDATE_CADENCE]
+- **Operational ownership**: [OPERATIONAL_OWNERSHIP]
+
+### Audience
+
+- **Scale**: [AUDIENCE_SCALE]
+- **Diversity**: [AUDIENCE_DIVERSITY]
+- **Accessibility needs**: [ACCESSIBILITY_NEEDS]
+- **Geography**: [AUDIENCE_GEOGRAPHY]
+- **Trust level**: [AUDIENCE_TRUST]
+
+### Stakes & Constraints
+
+- **Data sensitivity**: [DATA_SENSITIVITY]
+- **Availability needs**: [AVAILABILITY_NEEDS]
+- **Compliance**: [COMPLIANCE_REQUIREMENTS]
+- **Blast radius if broken**: [BLAST_RADIUS]
+
+## Governing Principles
+
+<!-- Each principle is assigned a rigor level based on the Project Context above.
+     FULL = non-negotiable, enforced at every gate
+     STANDARD = apply consistently but proportionally
+     LIGHTWEIGHT = acknowledge, adapt to project scale
+     Rigor levels are set during /speckit.constitution and inform
+     agent review intensity during /speckit.review. -->
+
+### I. Specification Before Implementation [RIGOR: [PRINCIPLE_I_RIGOR]]
 
 All features begin with a written specification reviewed and approved before any code is written.
 Ambiguity MUST be resolved upfront via `/speckit.clarify` — not during implementation.
@@ -14,49 +58,38 @@ Before any plan or approach is agreed upon, take multiple critical passes:
 3. Scrutinize the plan — identify the riskiest decision and validate it first
 An approach is not agreed upon until it has survived at least two independent reviews.
 
-### II. Simplicity (NON-NEGOTIABLE)
+### II. Simplicity [RIGOR: [PRINCIPLE_II_RIGOR]]
 
 Build only what is explicitly required. No speculative abstractions, no premature generalization.
 - Three similar lines of code is better than a premature abstraction
 - No helpers, utilities, or wrappers for one-time operations
 - No backwards-compatibility shims unless supporting an existing public interface
-- Every task MUST be single-purpose — one file, one concern, one reason to exist
+- Every task MUST be single-purpose — one clear, well-scoped change per task
 - Complexity MUST be justified in the plan's Complexity Tracking table
 
-### III. Test-Driven Development
+### III. Test-Driven Development [RIGOR: [PRINCIPLE_III_RIGOR]]
 
-TDD is the default approach, not an option. Follow Red-Green-Refactor on every unit of work:
-1. Write a failing test that captures the intended behaviour
-2. Confirm it fails for the right reason
-3. Write the minimum implementation to make it pass
-4. Refactor under green
+[TDD_DESCRIPTION]
 
-Never write implementation code before a failing test exists for it.
-Test scope: unit tests for pure logic, integration tests for system boundaries.
+### IV. Incremental & Independent Delivery [RIGOR: [PRINCIPLE_IV_RIGOR]]
 
-### IV. Incremental & Independent Delivery
-
-Each user story is a deployable increment. P1 stories must be functional before P2 begins.
+Each user story is a deployable increment. P1 stories MUST be functional before P2 begins.
 Features are complete when the independent test in the spec passes — not when all stories are done.
 Commit after each completed task. Branch per feature (`###-feature-name` format).
 
-### V. Security by Default
+### V. Security by Default [RIGOR: [PRINCIPLE_V_RIGOR]]
 
 - No credentials, tokens, or secrets in source files or commits
 - Validate all external input at system boundaries; trust internal code
-- `.gitignore` must cover all agent/IDE credential paths before first commit
+- `.gitignore` MUST cover all agent/IDE credential paths before first commit
 - Prefer environment variables for all configuration that varies by environment
+[SECURITY_ADDITIONS]
 
-### VI. [PROJECT-SPECIFIC PRINCIPLE]
-<!-- Replace this section with principles specific to your project's domain,
-     stack, or quality requirements. Examples:
-     - VI. API Contracts: All endpoints defined in contracts/ before implementation
-     - VI. Mobile-First: Every UI decision validated on smallest supported screen size
-     - VI. Library-First: Every feature starts as a standalone, independently testable library -->
+### VI. Documentation Stays Current [RIGOR: [PRINCIPLE_VI_RIGOR]]
 
-[PRINCIPLE_DESCRIPTION]
+[DOCUMENTATION_DESCRIPTION]
 
-### VII. Decision Transparency (NON-NEGOTIABLE)
+### VII. Decision Transparency [RIGOR: [PRINCIPLE_VII_RIGOR]]
 
 Every architectural decision and every significant challenge, question, or update MUST be recorded
 as a discrete memory file. The goal is a complete history of *why* — not just *what was decided*.
@@ -81,13 +114,21 @@ as a discrete memory file. The goal is a complete history of *why* — not just 
 **Cross-referencing rule**: a decision or log entry without a back-reference in the relevant
 spec, plan, or task is incomplete. Both ends of the link MUST exist.
 
+### VIII. Adversarial Review [RIGOR: [PRINCIPLE_VIII_RIGOR]]
+
+[ADVERSARIAL_REVIEW_DESCRIPTION]
+
+[ADDITIONAL_PRINCIPLES]
+
 ## Development Workflow
 
 ### Branch Strategy
 
-- `main` — stable, always deployable
+- `main` — stable, always deployable, MUST be the default branch
 - `###-feature-name` — one branch per feature spec (e.g., `001-user-auth`)
 - Branch from `main`; merge only after independent test passes
+- New repositories MUST initialize with `main` as the first branch and commit
+  before creating feature branches (ensures GitHub recognizes `main` as default)
 
 ### Task Execution
 
@@ -107,7 +148,8 @@ Naming and storage conventions:
 | Challenge / Question / Update | `LOG_NNN_title.md` | `.specify/memory/` | `log-template.md` |
 
 NNN is a zero-padded three-digit sequence shared across both types (ADR and LOG use the same
-counter, so `ADR_001`, `LOG_002`, `ADR_003` — no two records share a number).
+counter, so `ADR_001`, `LOG_002`, `ADR_003` — no two records share a number). This keeps the
+timeline unambiguous.
 
 When to create records:
 - **ADR**: at the moment a significant architectural choice is made, before implementation proceeds
@@ -115,10 +157,25 @@ When to create records:
 - **LOG (CHALLENGE)**: when an obstacle is encountered that requires reconsidering a plan or spec
 - **LOG (UPDATE)**: when an earlier understanding, spec section, or ADR needs revision
 
+### Review Gates
+
+Multi-persona adversarial review occurs at phase boundaries via `/speckit.review`.
+Review panels are calibrated by the Project Context and principle rigor levels above.
+
+| Gate | Review Panel | Trigger |
+|---|---|---|
+| Post-specify | Requirements Panel | After `/speckit.specify` completes |
+| Post-plan | Architecture Panel | After `/speckit.plan` completes |
+| Post-tasks | Delivery Panel | After `/speckit.tasks` completes |
+| Pre-implement | Full Panel + Devil's Advocate | Before `/speckit.implement` begins |
+
+Review output preserves majority findings, minority dissents, and unresolved items.
+Unresolved items become LOGs. Architectural dissents may produce ADRs.
+
 ### PR Policy
 
-- PRs MUST target 300 lines of changed code or fewer
-- If a feature exceeds 300 lines, split it into sequential, independently-mergeable PRs
+- PRs MUST target [PR_LOC_LIMIT] lines of changed code or fewer
+- If a feature exceeds the limit, split it into sequential, independently-mergeable PRs
   before implementation begins — not after
 - Each PR must be self-contained: tests pass, no broken intermediary state
 - Exceptions require explicit justification in the PR description
@@ -128,10 +185,11 @@ When to create records:
 A feature is done when:
 1. All tasks in `tasks.md` are checked off
 2. The independent test from `spec.md` passes
-3. All PRs are ≤ 300 LOC or exceptions are documented
+3. All PRs are within LOC limits or exceptions are documented
 4. All ADRs and LOGs raised during the feature are written and cross-referenced
 5. `CLAUDE.md` reflects any new commands, dependencies, or structure changes
-6. Branch is merged and deleted
+6. Adversarial review findings are addressed or documented as accepted risks
+7. Branch is merged and deleted
 
 ## Governance
 

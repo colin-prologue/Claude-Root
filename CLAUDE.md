@@ -1,80 +1,68 @@
 # CLAUDE.md
 
 This file is read automatically by Claude Code at the start of every session.
-Keep it current — update it whenever the stack, commands, or structure changes.
+Keep it lean — detailed rules live in `.claude/rules/`.
 
 ## Project
 
-**Name**: Spec-Kit Base
-**Description**: A reusable project template base built on Spec-Kit for structured, spec-driven feature development with Claude Code.
-**Status**: Active development
+**Name**: ClaudeTest
+**Description**: [One sentence describing what this project does]
+**Status**: [e.g., Active development / Maintenance / Prototype]
 
 ## Stack
 
+<!-- Update this section as you add dependencies -->
+
 | Layer | Technology | Version |
 |---|---|---|
-| Scripting | Bash | 5.x |
-| Templates | Markdown | — |
-| AI integration | Claude Code | 0.3.x |
-| Package manager | None | — |
+| Language | [e.g., Python / TypeScript / Go] | [version] |
+| Framework | [e.g., FastAPI / Next.js / Gin] | [version] |
+| Database | [e.g., PostgreSQL / SQLite / None] | [version] |
+| Testing | [e.g., pytest / vitest / go test] | [version] |
+| Package manager | [e.g., uv / npm / go mod] | [version] |
 
 ## Commands
 
 ```bash
-# Initialize a new project from this template
-copier copy git+ssh://git@github.com/YOUR_USERNAME/spec-kit-base.git my-new-project
+# Install dependencies
+[command]
 
-# Pull template updates into a downstream project (run from inside that project)
-copier update
+# Run tests
+[command]
 
-# Validate template prerequisites
-.specify/scripts/bash/check-prerequisites.sh
+# Start dev server / run locally
+[command]
 
-# Create a new feature branch + spec scaffold
-.specify/scripts/bash/create-new-feature.sh "Feature Name"
+# Lint / format
+[command]
 
-# Regenerate agent context files after stack changes
-.specify/scripts/bash/update-agent-context.sh
+# Build / compile
+[command]
 ```
 
 ## Directory Structure
 
 ```
-.claude/commands/       # Spec-Kit slash commands for Claude
+.claude/
+  commands/             # Spec-Kit slash commands
+  agents/               # Agent personas for /speckit.review and /speckit.audit
+  rules/                # Modular instruction files (loaded automatically)
+  settings.local.json   # Local settings
 .specify/
   memory/
-    constitution.md     # Project principles — Claude reads this for every feature
-  templates/            # Document templates for specs, plans, tasks
-  scripts/              # Helper scripts used by slash commands
+    constitution.md     # Project principles + context
+  templates/            # Document templates
+  scripts/              # Helper scripts
 specs/                  # Feature specifications (one folder per feature)
-  000-example/
-    spec.md             # User stories and requirements
-    plan.md             # Technical approach and project structure
-    tasks.md            # Actionable task checklist
 src/                    # Application source code
 tests/                  # Test suite
 docs/                   # Long-form documentation
-CLAUDE.md               # This file — project context for Claude
-README.md               # Human-facing project overview
 ```
-
-## Spec-Kit Workflow
-
-New features follow this order:
-
-1. `/speckit.specify` — write user stories and requirements
-2. `/speckit.clarify` *(optional)* — resolve ambiguities before planning
-3. `/speckit.plan` — technical approach and project structure
-4. `/speckit.checklist` *(optional)* — validate spec quality
-5. `/speckit.tasks` — actionable task list
-6. `/speckit.analyze` *(optional)* — cross-artifact consistency check
-7. `/speckit.implement` — execute tasks
-
-Feature specs live in `specs/[###-feature-name]/`.
 
 ## Key Conventions
 
 - Branch naming: `###-feature-name` (e.g., `001-user-auth`)
+- Commit format: conventional commits (`feat:`, `fix:`, `refactor:`, `docs:`, `chore:`)
 - Commit after each completed task
 - No credentials or secrets in source — use environment variables
 - See `.specify/memory/constitution.md` for full governing principles
@@ -83,5 +71,12 @@ Feature specs live in `specs/[###-feature-name]/`.
 
 <!-- Update this as features are completed -->
 
+- 2026-03-28: Added /speckit.retro for post-implementation retrospectives
+- 2026-03-28: Added /speckit.brainstorm for pre-specify ideation and feature decomposition
+- 2026-03-28: Split CLAUDE.md into modular .claude/rules/ structure
+- 2026-03-28: Added consistency audit system (/speckit.audit + consistency-auditor agent)
+- 2026-03-28: Added adversarial review system (/speckit.review + agent personas)
+- 2026-03-28: Rewrote /speckit.constitution as interactive guided conversation with project context
+- 2026-03-28: Added Agent Teams support (CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1)
 - 2026-03-22: Audit and cleanup — renamed to Spec-Kit Base, filled CLAUDE.md/README placeholders, added .speckit-version, added .specify/conventions/
 - 2026-03-13: Initial project setup with Spec-Kit v0.3.0
