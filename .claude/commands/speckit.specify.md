@@ -213,6 +213,29 @@ When creating this spec from a user prompt:
 - Authentication method: Standard session-based or OAuth2 for web apps
 - Integration patterns: Use project-appropriate patterns (REST/GraphQL for web services, function calls for libraries, CLI args for tools, etc.)
 
+### Independent Test Guidelines
+
+Each user story's **Independent Test** field must satisfy all four criteria:
+
+1. Deployable to production without any other in-progress story's code
+2. Delivers measurable business value on its own
+3. No hard runtime dependency on another P2 or P3 story's tasks
+4. All acceptance scenarios pass in isolation
+
+**Allowed**: shared foundational components (auth, DB, logging), reliance on already-merged P1 stories, third-party services.
+**Prohibited**: blocking on a sibling story not yet complete, shared mutable state only meaningful when another story is deployed, UI flows that require another story's screens to reach.
+
+**Good examples**:
+
+- "Given a logged-in user, when they enter a query and press Enter, results appear within 2 seconds and each result links to the correct detail page"
+- "Given an unauthenticated visitor, when they submit the signup form with valid data, they receive a confirmation email and can log in immediately"
+
+**Bad examples**:
+
+- "The search feature is complete"
+- "Story 1 is working"
+- "Feature functions as expected"
+
 ### Success Criteria Guidelines
 
 Success criteria must be:

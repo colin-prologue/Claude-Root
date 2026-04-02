@@ -37,13 +37,27 @@
   - Demonstrated to users independently
 -->
 
+<!--
+  INDEPENDENT TEST CRITERIA — a valid independent test passes ALL four:
+  1. Deployable to production without any other in-progress story's code
+  2. Delivers measurable business value on its own
+  3. No hard runtime dependency on another P2 or P3 story's tasks
+  4. All acceptance scenarios pass in isolation
+
+  ALLOWED: shared foundational components (auth, DB, logging), reliance on already-merged P1 stories, third-party services
+  PROHIBITED: blocking on a sibling story not yet complete, shared mutable state only valid when another story is also deployed, UI flows that require another story's screens to reach
+
+  GOOD: "Given a logged-in user, when they submit the form, a confirmation email is sent within 30 seconds"
+  BAD: "The feature is complete" or "Story 1 is working"
+-->
+
 ### User Story 1 - [Brief Title] (Priority: P1)
 
 [Describe this user journey in plain language]
 
 **Why this priority**: [Explain the value and why it has this priority level]
 
-**Independent Test**: [Describe how this can be tested independently - e.g., "Can be fully tested by [specific action] and delivers [specific value]"]
+**Independent Test**: [Concrete runnable description — specific actor, action, and verifiable outcome. Not "the feature works."]
 
 **Acceptance Scenarios**:
 
@@ -58,7 +72,7 @@
 
 **Why this priority**: [Explain the value and why it has this priority level]
 
-**Independent Test**: [Describe how this can be tested independently]
+**Independent Test**: [Concrete runnable description — specific actor, action, and verifiable outcome. Not "the feature works."]
 
 **Acceptance Scenarios**:
 
@@ -72,7 +86,7 @@
 
 **Why this priority**: [Explain the value and why it has this priority level]
 
-**Independent Test**: [Describe how this can be tested independently]
+**Independent Test**: [Concrete runnable description — specific actor, action, and verifiable outcome. Not "the feature works."]
 
 **Acceptance Scenarios**:
 

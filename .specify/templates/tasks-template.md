@@ -79,7 +79,7 @@ Examples of foundational tasks (adjust based on your project):
 
 **Goal**: [Brief description of what this story delivers]
 
-**Independent Test**: [How to verify this story works on its own]
+**Independent Test**: [Concrete runnable description — specific actor, action, and verifiable outcome. Must match the Independent Test in spec.md.]
 
 ### Tests for User Story 1 (OPTIONAL - only if tests requested) ⚠️
 
@@ -105,7 +105,7 @@ Examples of foundational tasks (adjust based on your project):
 
 **Goal**: [Brief description of what this story delivers]
 
-**Independent Test**: [How to verify this story works on its own]
+**Independent Test**: [Concrete runnable description — specific actor, action, and verifiable outcome. Must match the Independent Test in spec.md.]
 
 ### Tests for User Story 2 (OPTIONAL - only if tests requested) ⚠️
 
@@ -127,7 +127,7 @@ Examples of foundational tasks (adjust based on your project):
 
 **Goal**: [Brief description of what this story delivers]
 
-**Independent Test**: [How to verify this story works on its own]
+**Independent Test**: [Concrete runnable description — specific actor, action, and verifiable outcome. Must match the Independent Test in spec.md.]
 
 ### Tests for User Story 3 (OPTIONAL - only if tests requested) ⚠️
 
@@ -177,6 +177,15 @@ Examples of foundational tasks (adjust based on your project):
 - **User Story 1 (P1)**: Can start after Foundational (Phase 2) - No dependencies on other stories
 - **User Story 2 (P2)**: Can start after Foundational (Phase 2) - May integrate with US1 but should be independently testable
 - **User Story 3 (P3)**: Can start after Foundational (Phase 2) - May integrate with US1/US2 but should be independently testable
+
+### Independence Grey Areas
+
+| Situation | Resolution |
+|---|---|
+| Story B reads data that Story A writes | Only independent if Story A is already merged; otherwise Story A's write task moves to Foundational |
+| Story B extends Story A's UI | Split into separate routes/pages; avoid shared component state between stories |
+| Two stories share a database migration | Extract migration to a Foundational task; both stories declare it as a prerequisite |
+| Story B calls Story A's internal service | Extract the service to Foundational if it has no UI of its own |
 
 ### Within Each User Story
 
