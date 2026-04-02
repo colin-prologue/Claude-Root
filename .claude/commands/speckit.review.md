@@ -39,12 +39,14 @@ For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot
 
 ### 2. Load Constitution & Calibration
 
-Read `.specify/memory/constitution.md` and extract:
-- **Project Context** section (team size, audience, stakes, data sensitivity)
-- **Principle rigor levels** (FULL, STANDARD, LIGHTWEIGHT for each principle)
-- **Adversarial Review principle** (Principle VIII) — its rigor level determines panel composition
+Read `.specify/memory/constitution.md` once. Extract and store as `CALIBRATION_BLOCK`:
+- The full **Project Context** section verbatim
+- Each principle's rigor level as a compact list (e.g., "I:FULL II:STANDARD III:FULL …")
+- **Adversarial Review principle** (Principle VIII) rigor level — determines panel composition
 
 If no Project Context section exists, warn the user and recommend running `/speckit.constitution` first. Proceed with STANDARD defaults if the user wants to continue.
+
+**Do NOT instruct agents to re-read constitution.md.** Inject `CALIBRATION_BLOCK` directly into each agent's prompt in Step 4. This avoids redundant file reads across the panel.
 
 ### 3. Compose Review Panel
 
@@ -97,13 +99,14 @@ You are the [PERSONA_NAME] reviewer. Review the following artifacts for [FEATURE
 
 [List artifact paths]
 
-Read the constitution at .specify/memory/constitution.md for project context and calibration.
+Project context and calibration (extracted from constitution — do not re-read the file):
+[CALIBRATION_BLOCK]
 
 IMPORTANT: This is Phase A — independent analysis. You have NOT seen other reviewers' findings.
 Work independently. Produce your findings using your standard output format.
 
-You MUST identify at least 3 areas of concern before concluding. If the artifacts seem
-sound, document the assumptions that make them sound — these are future risk points.
+Quality over quantity. If artifacts are genuinely sound, state that clearly with evidence —
+do not manufacture findings. The synthesis judge handles noise filtering; better not to generate it.
 ```
 
 Wait for ALL reviewers to complete Phase A before proceeding.
@@ -112,17 +115,21 @@ Wait for ALL reviewers to complete Phase A before proceeding.
 
 After all Phase A findings are collected:
 
-1. Share all findings with the devils-advocate reviewer:
+1. Before contacting the devil's advocate, **build a consensus summary**: identify all findings raised by 2+ reviewers (same issue, same or different framing). This is what the DA is specifically tasked to challenge — do not send full reports.
+
+Share the consensus summary with the devils-advocate reviewer:
 
 ```
-Here are the findings from all Phase A reviewers:
+Here is the consensus summary from Phase A (findings raised by 2+ reviewers):
 
-[All reviewer outputs]
+[CONSENSUS_SUMMARY — list of agreed findings with reviewer names, not full reports]
+
+Also note: these topic areas received NO coverage from any reviewer:
+[UNCOVERED_AREAS — gaps you identified while building the summary]
 
 Execute your Consensus Challenge protocol:
-- Challenge areas where multiple reviewers agree
-- Identify findings NO reviewer raised
-- Check for anchoring on the same framing
+- Challenge each consensus finding — is the agreement genuine or groupthink?
+- Investigate the uncovered areas
 - Propose at least one reframe of the problem
 ```
 
