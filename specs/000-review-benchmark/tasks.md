@@ -87,10 +87,10 @@
 
 **Purpose**: Documentation updates and final validation across all deliverables.
 
-- [ ] T014 [P] Update `specs/000-review-benchmark/quickstart.md` §Known Limitations to document the falsification criteria: (1) if any rigor level scores ≥95% catch rate across all HIGH/CRITICAL issues, the fixture may be too obvious from repeated exposure — consider refreshing; (2) if FULL and LIGHTWEIGHT produce identical Miss Rate tables across two consecutive runs, planted issues may be trivially detectable regardless of panel size. Also note any actual vs. expected detection rate differences surfaced by calibration runs.
-- [ ] T015 [P] Verify `specs/000-review-benchmark/plan.md` Decision Records table includes ADR-007 (gate-accurate panel composition) — added during plan gate review; confirm the entry is present and linked correctly
-- [ ] T016 Run `quickstart.md` end-to-end validation: follow all steps in quickstart.md from Prerequisites through Compare three runs and confirm the output matches documented expected behavior
-- [ ] T017 [P] Update `CLAUDE.md` §Recent Changes to document the new `/speckit.review-profile` command and the `specs/000-review-benchmark/fixture/` and `runs/` directory structure
+- [x] T014 [P] Update `specs/000-review-benchmark/quickstart.md` §Known Limitations to document the falsification criteria: (1) if any rigor level scores ≥95% catch rate across all HIGH/CRITICAL issues, the fixture may be too obvious from repeated exposure — consider refreshing; (2) if FULL and LIGHTWEIGHT produce identical Miss Rate tables across two consecutive runs, planted issues may be trivially detectable regardless of panel size. Also note any actual vs. expected detection rate differences surfaced by calibration runs.
+- [x] T015 [P] Verify `specs/000-review-benchmark/plan.md` Decision Records table includes ADR-007 (gate-accurate panel composition) — added during plan gate review; confirm the entry is present and linked correctly
+- [x] T016 Run `quickstart.md` end-to-end validation: follow all steps in quickstart.md from Prerequisites through Compare three runs and confirm the output matches documented expected behavior
+- [x] T017 [P] Update `CLAUDE.md` §Recent Changes to document the new `/speckit.review-profile` command and the `specs/000-review-benchmark/fixture/` and `runs/` directory structure
 
 ---
 
