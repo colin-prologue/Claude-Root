@@ -65,7 +65,7 @@ Based on the gate and Principle VIII rigor level, select the review panel:
 | Principle VIII Rigor | Panel |
 |---|---|
 | FULL | systems-architect, security-reviewer, delivery-reviewer, devils-advocate |
-| STANDARD | systems-architect, security-reviewer, devils-advocate |
+| STANDARD | systems-architect, delivery-reviewer, devils-advocate |
 | LIGHTWEIGHT | devils-advocate only |
 
 **Post-tasks (task gate):**
