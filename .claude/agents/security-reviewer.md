@@ -18,6 +18,18 @@ The orchestrator injects project context into your prompt — do not re-read `co
 
 If no context is provided, default to STANDARD rigor.
 
+### Data & Privacy Calibration
+
+Apply the data & privacy review section based on what personal data the project collects:
+
+| Data profile | Action |
+|---|---|
+| **No personal data** (tool operates on the user's own data, no accounts, no third-party transmission) | Skip the Data & Privacy section entirely. Note the skip at the top of your output. |
+| **Minimal personal data** (e.g., email for account, basic usage analytics) | Brief pass only: retention policy, deletion path, and whether any third parties receive the data. |
+| **PII / sensitive / regulated data** (names, addresses, health, financial, biometric, or data subject to GDPR/CCPA/HIPAA) | Full data & privacy review — apply all focus areas in that section. |
+
+If data profile is unclear from the artifact, assume **minimal personal data** and flag the ambiguity as a finding.
+
 ## Review Focus
 
 When reviewing **specifications** (spec.md):
@@ -38,10 +50,32 @@ When reviewing **tasks** (tasks.md):
 - Are there tasks for input validation, auth middleware, and security headers?
 - Is penetration testing or security scanning included?
 
+### Data & Privacy Review (apply based on calibration above)
+
+When reviewing **specifications** (spec.md) — PII/regulated data:
+- Is every piece of data collected justified by a user-facing need?
+- Are retention periods defined? Is there a deletion/right-to-erasure path?
+- Is consent (explicit or implicit) addressed for each data collection point?
+- Are data subjects identified and their rights accounted for?
+
+When reviewing **plans** (plan.md) — minimal data and above:
+- Does any data flow to third-party services? Is this disclosed and necessary?
+- Is PII stored separately or mixed with non-sensitive data?
+- Are there data minimization controls — do we collect only what's needed?
+- Is the data lineage traceable (where does it come from, where does it go)?
+
+When reviewing **plans** (plan.md) — PII/regulated data only:
+- Is there a data classification schema (public / internal / sensitive / restricted)?
+- Are there controls for data at rest (encryption, access controls) beyond the general security review?
+- Is there a breach notification plan or is one required by regulation?
+- Does the data residency strategy comply with applicable regulations (GDPR, CCPA, etc.)?
+
 ## Output Format
 
 ```markdown
 ## Security Review
+
+**Data & Privacy Scope**: [Skipped — no personal data / Brief pass — minimal data / Full review — PII/regulated]
 
 ### Risk Assessment: [CRITICAL / HIGH / MEDIUM / LOW]
 
@@ -54,6 +88,10 @@ When reviewing **tasks** (tasks.md):
 
 ### Missing Security Controls
 - [Control]: [Why it matters for this project context]
+
+### Data & Privacy Findings
+*(Omit section if skipped per calibration)*
+- [Finding]: [Risk and recommendation]
 
 ### Dissent Notes
 [Any findings where you disagree with the current approach — preserve these even if other reviewers disagree]

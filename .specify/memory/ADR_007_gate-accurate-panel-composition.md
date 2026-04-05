@@ -38,7 +38,7 @@ Panel compositions per gate and rigor (mirroring `/speckit.review`):
 - LIGHTWEIGHT: devils-advocate
 
 **Task gate:**
-- FULL: delivery-reviewer, systems-architect, devils-advocate
+- FULL: delivery-reviewer, systems-architect, operational-reviewer, devils-advocate
 - STANDARD: delivery-reviewer, devils-advocate
 - LIGHTWEIGHT: devils-advocate
 
@@ -92,3 +92,4 @@ retained as historical context but no longer governs command behavior.
 |---|---|---|
 | 2026-04-03 | Initial record — supersedes ADR-001 for benchmark execution | speckit.review plan gate |
 | 2026-04-03 | Dropped SR from plan/STANDARD; replaced with delivery-reviewer. Rationale: SR's 29% unique rate and one false positive at plan/STANDARD vs. DR's 58% unique rate and anchor effect on panel focus. SR retained at plan/FULL where unique rate was 67%. | /speckit.retro post-benchmark |
+| 2026-04-04 | Updated task/FULL panel to include operational-reviewer (DR + SA + OR + DA). Both speckit.review.md and speckit.review-profile.md already reflected this; ADR entry was stale. | benchmark sync pass |

@@ -58,8 +58,8 @@ Select agents based on `gate` and `--rigor`. Panel compositions match production
 | Gate | FULL | STANDARD | LIGHTWEIGHT |
 |---|---|---|---|
 | spec | product-strategist, security-reviewer, devils-advocate | product-strategist, devils-advocate | devils-advocate |
-| plan | systems-architect, security-reviewer, delivery-reviewer, devils-advocate | systems-architect, security-reviewer, devils-advocate | devils-advocate |
-| task | delivery-reviewer, systems-architect, devils-advocate | delivery-reviewer, devils-advocate | devils-advocate |
+| plan | systems-architect, security-reviewer, delivery-reviewer, operational-reviewer, devils-advocate | systems-architect, delivery-reviewer, devils-advocate | devils-advocate |
+| task | delivery-reviewer, systems-architect, operational-reviewer, devils-advocate | delivery-reviewer, devils-advocate | devils-advocate |
 
 synthesis-judge is always added regardless of rigor level.
 
