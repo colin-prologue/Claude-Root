@@ -68,15 +68,12 @@ docs/                   # Long-form documentation
 - See `.specify/memory/constitution.md` for full governing principles
 
 ## Recent Changes
+- 2026-04-03: Added `/speckit.review-profile` command — runs adversarial review against benchmark fixture with Panel Efficiency Report; supports `--compare` mode for FULL/STANDARD/LIGHTWEIGHT comparison
+- 2026-04-03: Added benchmark fixture at `specs/000-review-benchmark/fixture/` (spec.md, plan.md, tasks.md), scoring key at `specs/000-review-benchmark/benchmark-key.md`, and run reports at `specs/000-review-benchmark/runs/`
+- 2026-03-28: Added /speckit.retro for post-implementation retrospectives
+- 2026-03-28: Added /speckit.brainstorm for pre-specify ideation and feature decomposition
 
 <!-- Update this as features are completed -->
 
 - 2026-03-28: Added /speckit.retro for post-implementation retrospectives
 - 2026-03-28: Added /speckit.brainstorm for pre-specify ideation and feature decomposition
-- 2026-03-28: Split CLAUDE.md into modular .claude/rules/ structure
-- 2026-03-28: Added consistency audit system (/speckit.audit + consistency-auditor agent)
-- 2026-03-28: Added adversarial review system (/speckit.review + agent personas)
-- 2026-03-28: Rewrote /speckit.constitution as interactive guided conversation with project context
-- 2026-03-28: Added Agent Teams support (CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1)
-- 2026-03-22: Audit and cleanup — renamed to Spec-Kit Base, filled CLAUDE.md/README placeholders, added .speckit-version, added .specify/conventions/
-- 2026-03-13: Initial project setup with Spec-Kit v0.3.0

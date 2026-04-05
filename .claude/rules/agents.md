@@ -1,6 +1,6 @@
 # Agent Personas
 
-Eleven agent personas live in `.claude/agents/` for use with Agent Teams.
+Twelve agent personas live in `.claude/agents/` for use with Agent Teams.
 
 ## Review Agents (spawned by `/speckit.review`)
 
@@ -8,8 +8,9 @@ Eleven agent personas live in `.claude/agents/` for use with Agent Teams.
 |---|---|---|---|
 | `product-strategist` | Sonnet | User value, requirements completeness, stakeholder coverage | Spec |
 | `systems-architect` | Sonnet | Scalability, modularity, technical design quality | Plan, Tasks |
-| `security-reviewer` | Sonnet | Vulnerabilities, threat vectors, data protection | Spec, Plan |
+| `security-reviewer` | Sonnet | Vulnerabilities, threat vectors, data protection, data & privacy | Spec, Plan |
 | `delivery-reviewer` | Sonnet | Dependencies, risk, test coverage, execution readiness | Tasks, Pre-impl |
+| `operational-reviewer` | Sonnet | Observability, failure modes, rollback, runbooks, on-call burden | Plan, Tasks |
 | `devils-advocate` | Opus | Assumption challenges, hidden risks, anti-convergence | All gates |
 | `synthesis-judge` | Opus | Integrates findings, preserves dissent, produces consensus | All gates |
 
@@ -33,7 +34,10 @@ Ideas are evaluated only after all rounds complete.
 
 ## Calibration
 
-All agents read `.specify/memory/constitution.md` at startup to calibrate review
-intensity based on the Project Context and principle rigor levels (FULL/STANDARD/LIGHTWEIGHT).
+Agents receive injected project context from the orchestrator and calibrate review intensity accordingly (FULL/STANDARD/LIGHTWEIGHT).
 
 The devil's advocate and synthesis judge always run at FULL rigor regardless of project context.
+
+The `operational-reviewer` defaults to LIGHTWEIGHT — it scales up only when the project context signals a production service, on-call rotation, or 24/7 availability requirement.
+
+The `security-reviewer` data & privacy section is skipped entirely for projects with no personal data, and applied in full only for PII/regulated data.
