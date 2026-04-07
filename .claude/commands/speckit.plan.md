@@ -72,7 +72,12 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 ### Phase 1: Design & Contracts
 
-**Prerequisites:** `research.md` complete
+**Prerequisites — ADR GATE (hard stop):**
+Before doing any Phase 1 work, verify:
+1. `research.md` exists and all NEEDS CLARIFICATION items are resolved
+2. Every technology choice listed in `research.md` has a corresponding `ADR_NNN_*.md` in `.specify/memory/`
+
+If any technology choice lacks an ADR: **ERROR and stop**. Do not proceed to design until all ADRs are written. List the missing ADRs explicitly so the user can see what's blocking.
 
 1. **Extract entities from feature spec** → `data-model.md`:
    - Entity name, fields, relationships

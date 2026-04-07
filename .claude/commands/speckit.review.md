@@ -50,7 +50,15 @@ If no Project Context section exists, warn the user and recommend running `/spec
 
 ### 3. Compose Review Panel
 
-Based on the gate and Principle VIII rigor level, select the review panel:
+Based on the gate and Principle VIII rigor level, select the review panel.
+
+**Rigor default by gate** — if the user did not specify `--rigor` and Principle VIII is not set to a specific level in the constitution, apply these benchmark-validated defaults:
+
+| Gate | Default rigor | Rationale |
+|---|---|---|
+| spec | STANDARD | LIGHTWEIGHT misses product and security findings (0% detection without specialists). Use FULL if feature touches auth, PII, payments, or compliance. |
+| plan | STANDARD | Matches FULL for issue detection. Use FULL for production services with on-call/SLA obligations. |
+| task | LIGHTWEIGHT | DA catches TDD ordering violations and [P] marker defects as reliably as STANDARD. Upgrade to STANDARD if delivery-reviewer coverage is needed (rollback posture, PR sizing, repository test gaps). |
 
 **Post-specify (specification gate):**
 
@@ -64,15 +72,15 @@ Based on the gate and Principle VIII rigor level, select the review panel:
 
 | Principle VIII Rigor | Panel |
 |---|---|
-| FULL | systems-architect, security-reviewer, delivery-reviewer, devils-advocate |
-| STANDARD | systems-architect, security-reviewer, devils-advocate |
+| FULL | systems-architect, security-reviewer, delivery-reviewer, operational-reviewer, devils-advocate |
+| STANDARD | systems-architect, delivery-reviewer, devils-advocate |
 | LIGHTWEIGHT | devils-advocate only |
 
 **Post-tasks (task gate):**
 
 | Principle VIII Rigor | Panel |
 |---|---|
-| FULL | delivery-reviewer, systems-architect, devils-advocate |
+| FULL | delivery-reviewer, systems-architect, operational-reviewer, devils-advocate |
 | STANDARD | delivery-reviewer, devils-advocate |
 | LIGHTWEIGHT | devils-advocate only |
 
@@ -80,7 +88,7 @@ Based on the gate and Principle VIII rigor level, select the review panel:
 
 | Principle VIII Rigor | Panel |
 |---|---|
-| FULL | product-strategist, systems-architect, security-reviewer, delivery-reviewer, devils-advocate |
+| FULL | product-strategist, systems-architect, security-reviewer, delivery-reviewer, operational-reviewer, devils-advocate |
 | STANDARD | systems-architect, security-reviewer, delivery-reviewer, devils-advocate |
 | LIGHTWEIGHT | security-reviewer, devils-advocate |
 
@@ -207,6 +215,8 @@ The three-phase protocol (independent → challenge → synthesize) is the prima
 ### Calibration Drives Efficiency
 
 A solo dev's personal project should NOT spawn 5 reviewers for a spec review. The constitution's Project Context and Principle VIII rigor level determine panel size. Respect the calibration — the user set it intentionally.
+
+When no explicit rigor is set, apply the gate-specific defaults from Step 3. The optimal rigor level is not uniform across gates: LIGHTWEIGHT is the right default at the task gate but the wrong default at the spec gate. Do not apply a single project-wide rigor level when per-gate defaults exist.
 
 ### Dissent is Signal
 
