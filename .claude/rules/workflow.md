@@ -14,8 +14,9 @@ New features follow this order:
 9. `/speckit.review` *(recommended)* — adversarial review of tasks
 10. `/speckit.analyze` *(optional)* — cross-artifact consistency check
 11. `/speckit.implement` — execute tasks
-12. `/speckit.audit` *(recommended)* — bidirectional doc-code consistency audit
-13. `/speckit.retro` *(recommended)* — reassess assumptions, update roadmap, feed learnings back
+12. `/speckit.codereview` *(recommended)* — adversarial code review: correctness, test quality, ADR compliance
+13. `/speckit.audit` *(recommended)* — bidirectional doc-code consistency audit
+14. `/speckit.retro` *(recommended)* — reassess assumptions, update roadmap, feed learnings back
 
 Feature specs live in `specs/[###-feature-name]/`.
 
@@ -37,6 +38,18 @@ Reviews follow a three-phase anti-convergence protocol:
 3. **Phase C** — Synthesis (judge integrates with preserved dissent)
 
 Panel size scales with Principle VIII rigor level (FULL/STANDARD/LIGHTWEIGHT).
+
+## Code Review
+
+`/speckit.codereview` reviews the feature's implementation after `/speckit.implement`:
+- **Correctness**: bugs, unhandled errors, boundary conditions, logic vs. spec divergence
+- **Test quality**: coverage gaps, vacuous assertions, untested error paths
+- **ADR compliance**: implementation matches decided technology choices and patterns
+- **Maintainability**: duplication (Rule of Three), dead code, naming
+
+Default panel: `code-reviewer` + `devils-advocate` (LIGHTWEIGHT). Add `security-reviewer` for auth, payments, PII, or cryptography (STANDARD/FULL).
+
+**Relationship to /speckit.audit**: complementary, not redundant. Run codereview first (catches bugs), then audit (catches drift).
 
 ## Consistency Audit
 

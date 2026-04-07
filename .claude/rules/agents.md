@@ -1,6 +1,6 @@
 # Agent Personas
 
-Eleven agent personas live in `.claude/agents/` for use with Agent Teams.
+Twelve agent personas live in `.claude/agents/` for use with Agent Teams.
 
 ## Review Agents (spawned by `/speckit.review`)
 
@@ -12,6 +12,13 @@ Eleven agent personas live in `.claude/agents/` for use with Agent Teams.
 | `delivery-reviewer` | Sonnet | Dependencies, risk, test coverage, execution readiness | Tasks, Pre-impl |
 | `devils-advocate` | Opus | Assumption challenges, hidden risks, anti-convergence | All gates |
 | `synthesis-judge` | Opus | Integrates findings, preserves dissent, produces consensus | All gates |
+
+## Code Review Agents (spawned by `/speckit.codereview`)
+
+| Agent | Model | Focus | Gates |
+|---|---|---|---|
+| `code-reviewer` | Sonnet | Correctness, test quality, ADR compliance, maintainability, conventions | Code |
+| `security-reviewer` | Sonnet | In-code vulnerabilities: injection, secrets, missing auth, unsafe deserialization | Code (STANDARD/FULL) |
 
 ## Audit Agent (spawned by `/speckit.audit`)
 

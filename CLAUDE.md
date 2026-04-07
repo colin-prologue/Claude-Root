@@ -71,6 +71,7 @@ docs/                   # Long-form documentation
 
 <!-- Update this as features are completed -->
 
+- 2026-04-06: Added /speckit.codereview — adversarial code review panel (code-reviewer agent, LIGHTWEIGHT default) at step 12 between implement and audit
 - 2026-03-28: Added /speckit.retro for post-implementation retrospectives
 - 2026-03-28: Added /speckit.brainstorm for pre-specify ideation and feature decomposition
 - 2026-03-28: Split CLAUDE.md into modular .claude/rules/ structure
