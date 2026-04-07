@@ -120,7 +120,23 @@ Record all answers in working memory. Do not write files yet.
 
 ### Step 1: Compute Rigor Levels
 
-Using the collected answers, assign each principle a rigor level:
+**First, derive two named calibration variables from Act 2 answers:**
+
+```
+BLAST_RADIUS = <low | medium | high>
+  low    → "I'm annoyed" impact, personal/internal use, best-effort availability
+  medium → Workflow blocked, small external audience, or revenue impact possible
+  high   → Revenue/safety risk, SLA obligation, compliance required, 10K+ users
+
+DATA_SENSITIVITY = <none | standard | sensitive>
+  none      → Nothing sensitive, internal/trusted users only
+  standard  → User accounts (email/password), authenticated external users
+  sensitive → PII, financial, health, regulated data, or anonymous public users
+```
+
+Record these two values explicitly before proceeding. They are the primary drivers of security, adversarial review, and test rigor. Reference them by name in each principle decision below.
+
+Using the collected answers (and the BLAST_RADIUS / DATA_SENSITIVITY variables), assign each principle a rigor level:
 
 **Principle I: Specification Before Implementation**
 - FULL: Team (6+), or audience 10K+, or revenue/safety impact
@@ -144,9 +160,9 @@ Using the collected answers, assign each principle a rigor level:
 - LIGHTWEIGHT: Solo dev, or rarely updated
 
 **Principle V: Security by Default**
-- FULL: PII/financial/health data, or anonymous public users, or compliance required
-- STANDARD: User accounts, or authenticated external users
-- LIGHTWEIGHT: No sensitive data, internal/trusted users (basics still apply: no secrets in code)
+- FULL: DATA_SENSITIVITY = sensitive, or BLAST_RADIUS = high
+- STANDARD: DATA_SENSITIVITY = standard, or BLAST_RADIUS = medium
+- LIGHTWEIGHT: DATA_SENSITIVITY = none and BLAST_RADIUS = low (basics still apply: no secrets in code)
 - Adapt additions: FULL adds threat modeling requirement; STANDARD adds input validation emphasis
 
 **Principle VI: Documentation Stays Current**
@@ -161,9 +177,9 @@ Using the collected answers, assign each principle a rigor level:
 - LIGHTWEIGHT: Solo dev (ADRs for decisions you'd forget in 6 months)
 
 **Principle VIII: Adversarial Review**
-- FULL: Team (6+), or audience 10K+, or revenue/safety/compliance stakes
-- STANDARD: Small team, or medium audience, or PII data
-- SKIP: Solo dev AND personal use AND no sensitive data AND prototype — offer but don't require
+- FULL: Team (6+), or BLAST_RADIUS = high, or DATA_SENSITIVITY = sensitive
+- STANDARD: Small team, or BLAST_RADIUS = medium, or DATA_SENSITIVITY = standard
+- SKIP: Solo dev AND BLAST_RADIUS = low AND DATA_SENSITIVITY = none AND prototype — offer but don't require
 - Adapt description: FULL runs all panels; STANDARD runs targeted panels; LIGHTWEIGHT runs devil's advocate only
 
 **PR Policy calibration**:
