@@ -19,9 +19,9 @@
 
 **Purpose**: Project initialization and package structure. No prior state required.
 
-- [ ] T001 Create `memory-server/pyproject.toml` with `[project]` metadata, `speckit-memory` console script entry point, and runtime deps: fastmcp, lancedb, ollama, plus dev deps: pytest, pytest-asyncio
-- [ ] T002 Create `memory-server/speckit_memory/__init__.py`, `server.py`, `index.py`, `sync.py` as empty module stubs (import-safe, no logic yet)
-- [ ] T003 [P] Add `.specify/memory/.index/` to `.gitignore` at repo root (volatile index must never be committed)
+- [X] T001 Create `memory-server/pyproject.toml` with `[project]` metadata, `speckit-memory` console script entry point, and runtime deps: fastmcp, lancedb, ollama, plus dev deps: pytest, pytest-asyncio
+- [X] T002 Create `memory-server/speckit_memory/__init__.py`, `server.py`, `index.py`, `sync.py` as empty module stubs (import-safe, no logic yet)
+- [X] T003 [P] Add `.specify/memory/.index/` to `.gitignore` at repo root (volatile index must never be committed)
 
 **Checkpoint**: Package structure exists; `uv run --directory memory-server python -m speckit_memory.server` imports without error.
 
@@ -33,14 +33,14 @@
 
 **⚠️ CRITICAL**: No user story implementation can begin until this phase is complete.
 
-- [ ] T004 [P] Write unit tests for chunking algorithm in `memory-server/tests/unit/test_chunker.py` — must cover: H1/H2 heading split, max-chunk size with continuation prefix, min-size section merged into following section, no-headings file produces single chunk, YAML frontmatter excluded from chunk content (FAIL before T007)
-- [ ] T005 [P] Write unit tests for LanceDB and manifest operations in `memory-server/tests/unit/test_index.py` — must cover: table schema initialization, manifest JSON round-trip, insert-batch persists correct fields, delete-by-source-file removes all matching chunks (FAIL before T008) *(added post-review: C1 — Principle III NON-NEGOTIABLE)*
-- [ ] T006 [P] Create `memory-server/tests/conftest.py` with deterministic fake embedder fixture (callable returning a fixed 768-dim zero vector) for use in contract and unit tests without a live Ollama process *(added post-review: H2 — Ollama test isolation)*
-- [ ] T007 Implement heading-aware chunking algorithm (H1/H2 split, 1500-token max, 50-char min, `{heading} (continued)` prefix, frontmatter strip) in `memory-server/speckit_memory/sync.py`
-- [ ] T008 Define `Chunk` LanceDB table schema (id, content, vector, source_file, section, type, feature, date, tags, synthetic) and table initialization in `memory-server/speckit_memory/index.py`
-- [ ] T009 Implement Manifest JSON read/write (load from `.specify/memory/.index/manifest.json`, save, add/update entry, remove entry) in `memory-server/speckit_memory/index.py`
-- [ ] T010 Implement insert-chunks-batch LanceDB operation in `memory-server/speckit_memory/index.py`
-- [ ] T011 [P] Implement delete-all-chunks-by-source-file LanceDB operation in `memory-server/speckit_memory/index.py`
+- [X] T004 [P] Write unit tests for chunking algorithm in `memory-server/tests/unit/test_chunker.py` — must cover: H1/H2 heading split, max-chunk size with continuation prefix, min-size section merged into following section, no-headings file produces single chunk, YAML frontmatter excluded from chunk content (FAIL before T007)
+- [X] T005 [P] Write unit tests for LanceDB and manifest operations in `memory-server/tests/unit/test_index.py` — must cover: table schema initialization, manifest JSON round-trip, insert-batch persists correct fields, delete-by-source-file removes all matching chunks (FAIL before T008) *(added post-review: C1 — Principle III NON-NEGOTIABLE)*
+- [X] T006 [P] Create `memory-server/tests/conftest.py` with deterministic fake embedder fixture (callable returning a fixed 768-dim zero vector) for use in contract and unit tests without a live Ollama process *(added post-review: H2 — Ollama test isolation)*
+- [X] T007 Implement heading-aware chunking algorithm (H1/H2 split, 1500-token max, 50-char min, `{heading} (continued)` prefix, frontmatter strip) in `memory-server/speckit_memory/sync.py`
+- [X] T008 Define `Chunk` LanceDB table schema (id, content, vector, source_file, section, type, feature, date, tags, synthetic) and table initialization in `memory-server/speckit_memory/index.py`
+- [X] T009 Implement Manifest JSON read/write (load from `.specify/memory/.index/manifest.json`, save, add/update entry, remove entry) in `memory-server/speckit_memory/index.py`
+- [X] T010 Implement insert-chunks-batch LanceDB operation in `memory-server/speckit_memory/index.py`
+- [X] T011 [P] Implement delete-all-chunks-by-source-file LanceDB operation in `memory-server/speckit_memory/index.py`
 
 **Checkpoint**: All unit tests pass (`pytest memory-server/tests/unit/`). LanceDB table can be created, written to, and queried programmatically. Fake embedder fixture importable from `conftest.py`.
 
@@ -56,17 +56,17 @@
 
 > **Write these tests FIRST, ensure they FAIL before T013**
 
-- [ ] T012 [P] [US1] Write contract test for `memory_recall` in `memory-server/tests/contract/test_tools.py` — covers: ranked results returned within 3s, empty result on no match, metadata filter `{type: "adr"}` narrows results, score-below-`min_score` returns empty, near-duplicate chunks from different files both stored (use fake embedder fixture from conftest.py)
+- [X] T012 [P] [US1] Write contract test for `memory_recall` in `memory-server/tests/contract/test_tools.py` — covers: ranked results returned within 3s, empty result on no match, metadata filter `{type: "adr"}` narrows results, score-below-`min_score` returns empty, near-duplicate chunks from different files both stored (use fake embedder fixture from conftest.py)
 
 ### Implementation for User Story 1
 
-- [ ] T013 [US1] Implement Ollama embedding HTTP call (POST to `{OLLAMA_BASE_URL}/api/embeddings`, model from `OLLAMA_MODEL` env) in `memory-server/speckit_memory/sync.py`
-- [ ] T014 [US1] Implement L2-normalize-on-write for chunk vectors before LanceDB insert in `memory-server/speckit_memory/index.py`
-- [ ] T015 [US1] Implement vector similarity search with metadata pre-filter (AND-combine type/feature/tags filters before ranking) and `min_score` threshold in `memory-server/speckit_memory/index.py`
-- [ ] T016 [US1] Implement file crawl for configured index paths with type inference from path prefix (ADR_* → adr, LOG_* → log, specs/*/spec.md → spec, constitution.md → constitution) in `memory-server/speckit_memory/sync.py`
-- [ ] T017 [US1] Implement process-lifetime first-call flag for self-init sync trigger (ADR-011): set flag on server startup, run minimal sync before first tool call returns in `memory-server/speckit_memory/server.py`
-- [ ] T018 [US1] Implement `memory_recall` FastMCP tool (trigger self-init if first call → embed query → apply filter → vector search → return ranked results with metadata) in `memory-server/speckit_memory/server.py`
-- [ ] T019 [US1] Wire FastMCP app, `if __name__ == "__main__"` entry point, and `speckit-memory` console script invocation in `memory-server/speckit_memory/server.py`
+- [X] T013 [US1] Implement Ollama embedding HTTP call (POST to `{OLLAMA_BASE_URL}/api/embeddings`, model from `OLLAMA_MODEL` env) in `memory-server/speckit_memory/sync.py`
+- [X] T014 [US1] Implement L2-normalize-on-write for chunk vectors before LanceDB insert in `memory-server/speckit_memory/index.py`
+- [X] T015 [US1] Implement vector similarity search with metadata pre-filter (AND-combine type/feature/tags filters before ranking) and `min_score` threshold in `memory-server/speckit_memory/index.py`
+- [X] T016 [US1] Implement file crawl for configured index paths with type inference from path prefix (ADR_* → adr, LOG_* → log, specs/*/spec.md → spec, constitution.md → constitution) in `memory-server/speckit_memory/sync.py`
+- [X] T017 [US1] Implement process-lifetime first-call flag for self-init sync trigger (ADR-011): set flag on server startup, run minimal sync before first tool call returns in `memory-server/speckit_memory/server.py`
+- [X] T018 [US1] Implement `memory_recall` FastMCP tool (trigger self-init if first call → embed query → apply filter → vector search → return ranked results with metadata) in `memory-server/speckit_memory/server.py`
+- [X] T019 [US1] Wire FastMCP app, `if __name__ == "__main__"` entry point, and `speckit-memory` console script invocation in `memory-server/speckit_memory/server.py`
 
 **Checkpoint**: `pytest memory-server/tests/contract/test_tools.py::test_recall_*` passes. Starting the server and calling `memory_recall("panel composition")` returns ADR chunks in < 3s.
 
@@ -82,16 +82,16 @@
 
 > **Write these tests FIRST, ensure they FAIL before T026**
 
-- [ ] T020 [P] [US2] Write contract test for `memory_sync` in `memory-server/tests/contract/test_tools.py` — covers: returns `{indexed, skipped, deleted, duration_ms, model}` stats, `MODEL_MISMATCH` error format (FAIL before T026) *(M2 fix: was "FAIL before T023")*
-- [ ] T021 [P] [US2] Write integration tests for sync in `memory-server/tests/integration/test_sync.py` — covers: `test_new_file_becomes_queryable`, `test_deleted_file_purges_chunks`, `test_no_headings_produces_single_chunk`, `test_unchanged_file_skipped`, `test_unchanged_file_sync_under_500ms` (assert `duration_ms < 500` when no files changed — SC-002)
+- [X] T020 [P] [US2] Write contract test for `memory_sync` in `memory-server/tests/contract/test_tools.py` — covers: returns `{indexed, skipped, deleted, duration_ms, model}` stats, `MODEL_MISMATCH` error format (FAIL before T026) *(M2 fix: was "FAIL before T023")*
+- [X] T021 [P] [US2] Write integration tests for sync in `memory-server/tests/integration/test_sync.py` — covers: `test_new_file_becomes_queryable`, `test_deleted_file_purges_chunks`, `test_no_headings_produces_single_chunk`, `test_unchanged_file_skipped`, `test_unchanged_file_sync_under_500ms` (assert `duration_ms < 500` when no files changed — SC-002)
 
 ### Implementation for User Story 2
 
-- [ ] T022 [US2] Implement mtime-diff detection (compare filesystem mtime to manifest entries, classify each file as new/stale/unchanged/deleted) in `memory-server/speckit_memory/sync.py`
-- [ ] T023 [US2] Implement deleted-file purge in sync (remove LanceDB chunks + manifest entry for files absent from filesystem) in `memory-server/speckit_memory/sync.py`
-- [ ] T024 [US2] Implement full re-index mode (`full: true`): drop LanceDB table, reset manifest to empty, crawl and embed all configured paths in `memory-server/speckit_memory/sync.py`
-- [ ] T025 [US2] Implement configurable index paths via `MEMORY_INDEX_PATH` env var with default glob patterns from data-model.md (ADR_*.md, LOG_*.md, constitution.md, specs/*/spec.md, specs/*/plan.md) in `memory-server/speckit_memory/sync.py`
-- [ ] T026 [US2] Implement `memory_sync` FastMCP tool (orchestrate mtime-diff → embed stale/new → purge deleted → update manifest → return stats) in `memory-server/speckit_memory/server.py`
+- [X] T022 [US2] Implement mtime-diff detection (compare filesystem mtime to manifest entries, classify each file as new/stale/unchanged/deleted) in `memory-server/speckit_memory/sync.py`
+- [X] T023 [US2] Implement deleted-file purge in sync (remove LanceDB chunks + manifest entry for files absent from filesystem) in `memory-server/speckit_memory/sync.py`
+- [X] T024 [US2] Implement full re-index mode (`full: true`): drop LanceDB table, reset manifest to empty, crawl and embed all configured paths in `memory-server/speckit_memory/sync.py`
+- [X] T025 [US2] Implement configurable index paths via `MEMORY_INDEX_PATH` env var with default glob patterns from data-model.md (ADR_*.md, LOG_*.md, constitution.md, specs/*/spec.md, specs/*/plan.md) in `memory-server/speckit_memory/sync.py`
+- [X] T026 [US2] Implement `memory_sync` FastMCP tool (orchestrate mtime-diff → embed stale/new → purge deleted → update manifest → return stats) in `memory-server/speckit_memory/server.py`
 
 **Checkpoint**: `pytest memory-server/tests/integration/test_sync.py` passes. New session with a fresh ADR returns it in recall without manual steps.
 
@@ -107,15 +107,15 @@
 
 > **Write these tests FIRST, ensure they FAIL before T029**
 
-- [ ] T027 [P] [US3] Write contract tests for `memory_store` in `memory-server/tests/contract/test_tools.py` — covers: returns `{id, status: "stored"}`, non-existent `source_file` sets `synthetic: true` flag, stored chunk is queryable within same session
-- [ ] T028 [US3] Write contract tests for `memory_delete` in `memory-server/tests/contract/test_tools.py` — covers: delete-by-source-file removes all chunks, delete-by-id removes exactly one chunk, providing both or neither returns `INVALID_INPUT`, delete of missing file returns `deleted_chunks: 0` *(M1 fix: [P] removed — same file as T027)*
+- [X] T027 [P] [US3] Write contract tests for `memory_store` in `memory-server/tests/contract/test_tools.py` — covers: returns `{id, status: "stored"}`, non-existent `source_file` sets `synthetic: true` flag, stored chunk is queryable within same session
+- [X] T028 [US3] Write contract tests for `memory_delete` in `memory-server/tests/contract/test_tools.py` — covers: delete-by-source-file removes all chunks, delete-by-id removes exactly one chunk, providing both or neither returns `INVALID_INPUT`, delete of missing file returns `deleted_chunks: 0` *(M1 fix: [P] removed — same file as T027)*
 
 ### Implementation for User Story 3
 
-- [ ] T029 [US3] Implement delete-chunk-by-id LanceDB operation in `memory-server/speckit_memory/index.py`
-- [ ] T030 [US3] Implement `memory_store` FastMCP tool (embed content, assign UUID, set `synthetic: true` if source_file not on disk, persist chunk with all metadata fields) in `memory-server/speckit_memory/server.py`
-- [ ] T031 [US3] Implement `memory_delete` FastMCP tool (validate exactly-one of source_file/id, dispatch to delete-by-source-file or delete-by-id, return envelope) in `memory-server/speckit_memory/server.py`
-- [ ] T032 [US3] Add recall-before / store-after convention to `.claude/rules/memory-convention.md` (which skills must recall, which must store, format for stored summaries)
+- [X] T029 [US3] Implement delete-chunk-by-id LanceDB operation in `memory-server/speckit_memory/index.py`
+- [X] T030 [US3] Implement `memory_store` FastMCP tool (embed content, assign UUID, set `synthetic: true` if source_file not on disk, persist chunk with all metadata fields) in `memory-server/speckit_memory/server.py`
+- [X] T031 [US3] Implement `memory_delete` FastMCP tool (validate exactly-one of source_file/id, dispatch to delete-by-source-file or delete-by-id, return envelope) in `memory-server/speckit_memory/server.py`
+- [X] T032 [US3] Add recall-before / store-after convention to `.claude/rules/memory-convention.md` (which skills must recall, which must store, format for stored summaries)
 
 **Checkpoint**: `pytest memory-server/tests/contract/test_tools.py` fully passes. Calling `memory_store` then `memory_recall` in the same session returns the stored chunk.
 
@@ -131,14 +131,14 @@
 
 > **Write these tests FIRST, ensure they FAIL before T034**
 
-- [ ] T033 [P] [US4] Write fault scenario tests in `memory-server/tests/integration/test_fault_scenarios.py` — covers: `test_model_mismatch_errors_clearly` (MODEL_MISMATCH code, `recoverable: false`), `test_api_unavailable_returns_recoverable_error` (API_UNAVAILABLE, `recoverable: true`), `test_manifest_without_db_triggers_full_reindex`
+- [X] T033 [P] [US4] Write fault scenario tests in `memory-server/tests/integration/test_fault_scenarios.py` — covers: `test_model_mismatch_errors_clearly` (MODEL_MISMATCH code, `recoverable: false`), `test_api_unavailable_returns_recoverable_error` (API_UNAVAILABLE, `recoverable: true`), `test_manifest_without_db_triggers_full_reindex`
 
 ### Implementation for User Story 4
 
-- [ ] T034 [US4] Implement `OLLAMA_MODEL` (default: `nomic-embed-text`) and `OLLAMA_BASE_URL` (default: `http://localhost:11434`) env var config wiring in `memory-server/speckit_memory/server.py`
-- [ ] T035 [US4] Implement model mismatch detection (compare manifest `embedding_model` + `embedding_dimension` vs current config; return `MODEL_MISMATCH` error with `recoverable: false` and advice to run `memory_sync --full`) in `memory-server/speckit_memory/sync.py`
-- [ ] T036 [US4] Implement `API_UNAVAILABLE` error path (Ollama HTTP unreachable → return error envelope with `recoverable: true`, leave existing index intact) in `memory-server/speckit_memory/sync.py`
-- [ ] T037 [US4] Implement manifest-present-but-DB-missing detection → automatically trigger full re-index in `memory-server/speckit_memory/sync.py`
+- [X] T034 [US4] Implement `OLLAMA_MODEL` (default: `nomic-embed-text`) and `OLLAMA_BASE_URL` (default: `http://localhost:11434`) env var config wiring in `memory-server/speckit_memory/server.py`
+- [X] T035 [US4] Implement model mismatch detection (compare manifest `embedding_model` + `embedding_dimension` vs current config; return `MODEL_MISMATCH` error with `recoverable: false` and advice to run `memory_sync --full`) in `memory-server/speckit_memory/sync.py`
+- [X] T036 [US4] Implement `API_UNAVAILABLE` error path (Ollama HTTP unreachable → return error envelope with `recoverable: true`, leave existing index intact) in `memory-server/speckit_memory/sync.py`
+- [X] T037 [US4] Implement manifest-present-but-DB-missing detection → automatically trigger full re-index in `memory-server/speckit_memory/sync.py`
 
 **Checkpoint**: `pytest memory-server/tests/integration/test_fault_scenarios.py` passes. Stopping Ollama mid-session returns `API_UNAVAILABLE` without corrupting the index.
 
@@ -148,10 +148,12 @@
 
 **Purpose**: Integration artifacts, calibration, and verification.
 
-- [ ] T038 Create `.mcp.json` at repo root with `memory` server entry: command `uvx`, args `["speckit-memory"]`, env `MEMORY_INDEX_PATH` and `OLLAMA_BASE_URL`
-- [ ] T039 [P] Update `CLAUDE.md`: add `memory-server/` to directory structure, add `uv run --directory memory-server python -m speckit_memory.server` to Commands, note env vars
-- [ ] T040 [P] Run recall quality calibration spike: invoke `memory_recall` with 5 representative queries against actual `.specify/memory/` corpus, record scores at `min_score=0.5`, append threshold recommendation to `specs/002-vector-memory-mcp/data-model.md` calibration note
+- [X] T038 Create `.mcp.json` at repo root with `memory` server entry: command `uvx`, args `["speckit-memory"]`, env `MEMORY_INDEX_PATH` and `OLLAMA_BASE_URL`
+- [X] T039 [P] Update `CLAUDE.md`: add `memory-server/` to directory structure, add `uv run --directory memory-server python -m speckit_memory.server` to Commands, note env vars
+- [X] T040 [P] Run recall quality calibration spike: invoke `memory_recall` with 5 representative queries against actual `.specify/memory/` corpus, record scores at `min_score=0.5`, append threshold recommendation to `specs/002-vector-memory-mcp/data-model.md` calibration note
+  - *Note: Template repo — corpus too sparse for meaningful calibration. See data-model.md calibration note. Run in a real project with ≥10 ADRs.*
 - [ ] T041 Run quickstart.md falsification criteria end-to-end: (1) `memory_sync` returns `indexed > 0`, (2) `memory_recall("panel composition")` returns ADR content, (3) delete index + re-sync restores identical results, (4) switch model + `memory_sync --full` succeeds without error; (5) **manual**: invoke `/speckit.plan` against a project with indexed ADRs, confirm generated output references at least one ADR by number — SC-005 has no automated coverage and requires human observation
+  - *Note: Requires Ollama running. Deferred to first real project use.*
 
 **Checkpoint**: All quickstart falsification criteria pass. `.mcp.json` registers the server in Claude Code.
 

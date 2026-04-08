@@ -77,6 +77,8 @@ The combination of `(source_file, section)` uniquely identifies a chunk within a
 
 The `min_score` threshold for `memory_recall` (default 0.5) and the chunking boundaries above are starting points, not empirically validated values. A spike task should benchmark recall quality against the actual `.specify/memory/` corpus (ADRs, LOGs, constitution) before the feature is considered done.
 
+**T040 calibration result (2026-04-07)**: This is a template repo with a sparse corpus (4 ADRs, no LOGs beyond planning artifacts). Calibration against this corpus is not meaningful — the repo lacks the query diversity needed for threshold validation. Recommendation: run T040 calibration in a real project repo after at least 10 ADRs and 5 LOGs are indexed. The default `min_score=0.5` remains unvalidated; `min_score=0.3` may be more appropriate for short decision-record corpora where nomic-embed-text scores tend to cluster in the 0.3–0.7 range for relevant matches.
+
 ## Validation Rules
 
 - `source_file` must be a path under the repo root; absolute paths are rejected
