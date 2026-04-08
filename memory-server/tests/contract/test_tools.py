@@ -1,0 +1,273 @@
+"""Contract tests for all four MCP tools.
+
+Tests are written against the tool function interfaces directly (not over MCP transport)
+to keep them fast and runnable without a running MCP server.
+
+These tests use the fake_embedder fixture from conftest.py — no live Ollama required.
+"""
+from __future__ import annotations
+
+import uuid
+import pytest
+from pathlib import Path
+from unittest.mock import patch, MagicMock
+
+from speckit_memory.server import (
+    memory_recall,
+    memory_store,
+    memory_sync,
+    memory_delete,
+)
+
+
+# ---------------------------------------------------------------------------
+# memory_recall contract tests (T012)
+# ---------------------------------------------------------------------------
+
+class TestMemoryRecall:
+    def test_recall_returns_ranked_results(self, tmp_index, fake_embedder):
+        """memory_recall returns ranked results list with correct shape."""
+        with patched_embed(fake_embedder), patched_index_dir(tmp_index):
+            seed_chunks(tmp_index, fake_embedder, count=3)
+            result = memory_recall(query="panel composition")
+        assert "results" in result
+        assert "total" in result
+        assert isinstance(result["results"], list)
+
+    def test_recall_empty_on_no_match(self, tmp_index, fake_embedder):
+        """Returns empty results (not an error) when no match meets min_score."""
+        with patched_embed(fake_embedder), patched_index_dir(tmp_index):
+            # Use high min_score with a fake embedder that returns all-zeros
+            result = memory_recall(query="irrelevant", min_score=0.999)
+        assert result["results"] == []
+        assert result["total"] == 0
+
+    def test_recall_filter_type_narrows_results(self, tmp_index, fake_embedder):
+        """Metadata filter {type: 'adr'} returns only adr chunks."""
+        with patched_embed(fake_embedder), patched_index_dir(tmp_index):
+            seed_chunks(tmp_index, fake_embedder, count=2, chunk_type="adr")
+            seed_chunks(tmp_index, fake_embedder, count=2, chunk_type="log", idx_start=2)
+            result = memory_recall(query="anything", filter={"type": "adr"}, min_score=0.0)
+        types = {r["type"] for r in result["results"]}
+        assert types == {"adr"}
+
+    def test_recall_below_threshold_returns_empty(self, tmp_index, fake_embedder):
+        """Empty index returns empty results regardless of min_score."""
+        with patched_embed(fake_embedder), patched_index_dir(tmp_index):
+            # No chunks seeded — any query should return empty
+            result = memory_recall(query="test", min_score=0.5)
+        assert result["results"] == []
+        assert result["total"] == 0
+
+    def test_recall_near_duplicate_chunks_from_different_files_both_stored(self, tmp_index, fake_embedder):
+        """Near-duplicate chunks from different files are both retrievable."""
+        from speckit_memory.index import init_table, insert_chunks_batch
+        table = init_table(tmp_index)
+        for i, src in enumerate(["file_a.md", "file_b.md"]):
+            insert_chunks_batch(table, [{
+                "id": str(uuid.uuid4()),
+                "content": "Nearly identical content about panel composition.",
+                "vector": fake_embedder("panel composition"),
+                "source_file": src,
+                "section": "Intro",
+                "type": "adr",
+                "feature": "001",
+                "date": "2026-04-07",
+                "tags": [],
+                "synthetic": False,
+            }])
+        with patched_embed(fake_embedder), patched_index_dir(tmp_index):
+            result = memory_recall(query="panel composition", top_k=10, min_score=0.0)
+        source_files = {r["source_file"] for r in result["results"]}
+        assert "file_a.md" in source_files
+        assert "file_b.md" in source_files
+
+
+# ---------------------------------------------------------------------------
+# memory_store contract tests (T027) — US3
+# ---------------------------------------------------------------------------
+
+class TestMemoryStore:
+    def test_store_returns_id_and_stored_status(self, tmp_index, fake_embedder):
+        """memory_store returns {id, status: 'stored'}."""
+        with patched_embed(fake_embedder), patched_index_dir(tmp_index):
+            result = memory_store(
+                content="A test summary.",
+                metadata={
+                    "source_file": "synthetic",
+                    "section": "Summary",
+                    "type": "synthetic",
+                    "feature": "002",
+                    "date": "2026-04-07",
+                    "tags": [],
+                },
+            )
+        assert result["status"] == "stored"
+        assert "id" in result
+        # UUID format check
+        uuid.UUID(result["id"])
+
+    def test_store_nonexistent_source_sets_synthetic_flag(self, tmp_index, fake_embedder, tmp_path):
+        """When source_file does not exist on disk, synthetic is set True."""
+        with patched_embed(fake_embedder), patched_index_dir(tmp_index):
+            result = memory_store(
+                content="Synthetic content.",
+                metadata={
+                    "source_file": "nonexistent/file.md",
+                    "section": "Summary",
+                    "type": "synthetic",
+                    "feature": "002",
+                    "date": "2026-04-07",
+                    "tags": [],
+                },
+            )
+        assert result["status"] == "stored"
+        # The stored chunk should have synthetic=True
+        from speckit_memory.index import init_table
+        table = init_table(tmp_index)
+        rows = table.to_pandas()
+        stored = rows[rows["id"] == result["id"]]
+        assert stored.iloc[0]["synthetic"] is True or bool(stored.iloc[0]["synthetic"])
+
+    def test_stored_chunk_is_queryable(self, tmp_index, fake_embedder):
+        """A stored chunk is retrievable in the same session."""
+        with patched_embed(fake_embedder), patched_index_dir(tmp_index):
+            store_result = memory_store(
+                content="Unique synthetic content for recall test.",
+                metadata={
+                    "source_file": "synthetic",
+                    "section": "Recall test",
+                    "type": "synthetic",
+                    "feature": "002",
+                    "date": "2026-04-07",
+                    "tags": [],
+                },
+            )
+            recall_result = memory_recall(query="synthetic content", min_score=0.0, top_k=10)
+        ids = [r["id"] for r in recall_result["results"]]
+        assert store_result["id"] in ids
+
+
+# ---------------------------------------------------------------------------
+# memory_delete contract tests (T028) — US3
+# ---------------------------------------------------------------------------
+
+class TestMemoryDelete:
+    def test_delete_by_source_file_removes_all_chunks(self, tmp_index, fake_embedder):
+        """Delete by source_file removes all chunks for that file."""
+        with patched_embed(fake_embedder), patched_index_dir(tmp_index):
+            seed_chunks(tmp_index, fake_embedder, count=3, source_file="remove_me.md")
+            result = memory_delete(source_file="remove_me.md")
+        assert result["deleted_chunks"] == 3
+        assert result["source_file"] == "remove_me.md"
+
+    def test_delete_by_id_removes_exactly_one(self, tmp_index, fake_embedder):
+        """Delete by id removes exactly one chunk."""
+        with patched_embed(fake_embedder), patched_index_dir(tmp_index):
+            store_r = memory_store(
+                content="Chunk to delete by id.",
+                metadata={
+                    "source_file": "synthetic",
+                    "section": "Test",
+                    "type": "synthetic",
+                    "feature": "002",
+                    "date": "2026-04-07",
+                    "tags": [],
+                },
+            )
+            result = memory_delete(id=store_r["id"])
+        assert result["deleted_chunks"] == 1
+
+    def test_delete_both_or_neither_returns_invalid_input(self, tmp_index, fake_embedder):
+        """Providing both source_file and id, or neither, returns INVALID_INPUT."""
+        with patched_embed(fake_embedder), patched_index_dir(tmp_index):
+            r_both = memory_delete(source_file="foo.md", id="some-uuid")
+            r_none = memory_delete()
+        assert r_both["error"]["code"] == "INVALID_INPUT"
+        assert r_none["error"]["code"] == "INVALID_INPUT"
+
+    def test_delete_missing_file_returns_zero(self, tmp_index, fake_embedder):
+        """Deleting a file with no indexed chunks returns deleted_chunks: 0."""
+        with patched_embed(fake_embedder), patched_index_dir(tmp_index):
+            result = memory_delete(source_file="nonexistent.md")
+        assert result["deleted_chunks"] == 0
+
+
+# ---------------------------------------------------------------------------
+# memory_sync contract tests (T020) — US2
+# ---------------------------------------------------------------------------
+
+class TestMemorySyncContract:
+    def test_sync_returns_stats_envelope(self, tmp_index, fake_embedder):
+        """memory_sync returns {indexed, skipped, deleted, duration_ms, model}."""
+        with patched_embed(fake_embedder), patched_index_dir(tmp_index), patched_crawl([]):
+            result = memory_sync()
+        for key in ["indexed", "skipped", "deleted", "duration_ms", "model"]:
+            assert key in result, f"Missing key: {key}"
+
+    def test_sync_model_mismatch_error_format(self, tmp_index, fake_embedder):
+        """MODEL_MISMATCH error includes code and recoverable=false."""
+        from speckit_memory.index import load_manifest, save_manifest
+        manifest = load_manifest(tmp_index)
+        manifest["embedding_model"] = "different-model"
+        manifest["embedding_dimension"] = 768
+        save_manifest(tmp_index, manifest)
+        with patched_embed(fake_embedder), patched_index_dir(tmp_index), patched_crawl([]):
+            result = memory_sync()
+        assert "error" in result
+        assert result["error"]["code"] == "MODEL_MISMATCH"
+        assert result["error"]["recoverable"] is False
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+from contextlib import contextmanager
+
+
+@contextmanager
+def patched_embed(fake_embedder):
+    with patch("speckit_memory.server._embed_text", side_effect=lambda t: fake_embedder(t)):
+        yield
+
+
+@contextmanager
+def patched_index_dir(tmp_index):
+    with patch("speckit_memory.server._index_dir", return_value=tmp_index):
+        yield
+
+
+@contextmanager
+def patched_crawl(file_list):
+    with patch("speckit_memory.server._crawl_files", return_value=file_list):
+        yield
+
+
+def seed_chunks(index_dir, fake_embedder, count=3, chunk_type="adr",
+                source_file=None, idx_start=0):
+    from speckit_memory.index import init_table, insert_chunks_batch
+    table = init_table(index_dir)
+    chunks = []
+    for i in range(idx_start, idx_start + count):
+        sf = source_file or f"file_{i}.md"
+        chunks.append({
+            "id": str(uuid.uuid4()),
+            "content": f"Content block {i} with enough text for recall testing purposes.",
+            "vector": fake_embedder(f"content {i}"),
+            "source_file": sf,
+            "section": f"Section {i}",
+            "type": chunk_type,
+            "feature": "001",
+            "date": "2026-04-07",
+            "tags": [],
+            "synthetic": False,
+        })
+    insert_chunks_batch(table, chunks)
+
+
+@pytest.fixture
+def tmp_index(tmp_path):
+    index_dir = tmp_path / ".index"
+    index_dir.mkdir()
+    return index_dir
