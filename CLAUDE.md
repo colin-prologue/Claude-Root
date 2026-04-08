@@ -88,5 +88,5 @@ docs/                   # Long-form documentation
 
 
 ## Active Technologies
-- Python 3.10+ + FastMCP (MCP server framework), LanceDB (vector DB), openai (embedding API), ollama (local embedding fallback) (002-vector-memory-mcp)
+- Python 3.10+ + FastMCP (MCP server framework), LanceDB (vector DB), Ollama nomic-embed-text (sole embedding backend — local, no cloud API) (002-vector-memory-mcp)
 - LanceDB embedded (`.specify/memory/.index/chunks.lance/`) + JSON manifest (`.specify/memory/.index/manifest.json`) — both gitignored (002-vector-memory-mcp); embeddings via Ollama nomic-embed-text (768 dims, local, no API key)

@@ -137,16 +137,17 @@ def vector_search(
         q = q.where(" AND ".join(conditions))
 
     q = q.limit(top_k * 4)  # over-fetch to allow score threshold filtering
-    results_df = q.to_pandas()
+    rows = q.to_list()  # list[dict] — no pandas dependency at runtime
 
     output = []
-    for _, row in results_df.iterrows():
-        # LanceDB returns _distance (L2); convert to cosine similarity for
-        # normalised vectors: cosine = 1 - (L2² / 2)
+    for row in rows:
+        # LanceDB returns _distance (L2 squared for normalised vectors).
+        # Cosine similarity = 1 - L2² / 2 (valid only for L2-normalised vectors — ADR-010).
         raw_distance = float(row.get("_distance", 0.0))
         score = max(0.0, 1.0 - raw_distance / 2.0)
         if score < min_score:
             continue
+        tags = row.get("tags") or []
         output.append({
             "id": row["id"],
             "content": row["content"],
@@ -156,7 +157,7 @@ def vector_search(
             "type": row["type"],
             "feature": row["feature"],
             "date": row["date"],
-            "tags": list(row["tags"]) if row["tags"] is not None else [],
+            "tags": list(tags),
             "synthetic": bool(row["synthetic"]),
         })
         if len(output) >= top_k:

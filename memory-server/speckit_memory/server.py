@@ -97,7 +97,7 @@ def memory_recall(
 
     try:
         query_vec = _embed_text(query)
-    except Exception as exc:
+    except (ConnectionError, OSError) as exc:
         return _api_unavailable(str(exc))
 
     query_vec = _l2_normalize(query_vec)
@@ -124,9 +124,10 @@ def memory_store(
     metadata: dict,
 ) -> dict[str, Any]:
     """Embed content and store it as a chunk (for skill-generated summaries)."""
+    _ensure_init()
     try:
         raw_vec = _embed_text(content)
-    except Exception as exc:
+    except (ConnectionError, OSError) as exc:
         return _api_unavailable(str(exc))
 
     vec = _l2_normalize(raw_vec)
@@ -162,6 +163,7 @@ def memory_sync(
     paths: list[str] | None = None,
 ) -> dict[str, Any]:
     """Re-index changed markdown files (or full rebuild if full=True)."""
+    _ensure_init()
     idx_dir = _index_dir()
     idx_dir.mkdir(parents=True, exist_ok=True)
 
@@ -175,9 +177,11 @@ def memory_sync(
             paths=paths,
             index_paths_env=_MEMORY_INDEX_PATH or None,
         )
+    except (ConnectionError, OSError) as exc:
+        return _api_unavailable(str(exc))
     except Exception as exc:
         err_str = str(exc)
-        if "connection" in err_str.lower() or "urlopen" in err_str.lower() or "refused" in err_str.lower():
+        if "connection" in err_str.lower() or "refused" in err_str.lower():
             return _api_unavailable(err_str)
         raise
 
@@ -188,6 +192,7 @@ def memory_delete(
     id: str | None = None,
 ) -> dict[str, Any]:
     """Remove chunks by source_file (all) or by id (single). Exactly one required."""
+    _ensure_init()
     if (source_file is None) == (id is None):
         return {
             "error": {

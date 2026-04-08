@@ -141,20 +141,12 @@ def chunk_markdown(filename: str, text: str) -> list[dict[str, Any]]:
 # ---------------------------------------------------------------------------
 
 def _ollama_embed(text: str, base_url: str, model: str) -> list[float]:
-    """Call Ollama embeddings API and return the raw vector."""
-    import urllib.request
-    import json as _json
+    """Call Ollama embed API via the ollama SDK and return the raw vector."""
+    import ollama
 
-    payload = _json.dumps({"model": model, "prompt": text}).encode()
-    req = urllib.request.Request(
-        f"{base_url}/api/embeddings",
-        data=payload,
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        data = _json.loads(resp.read())
-    return data["embedding"]
+    client = ollama.Client(host=base_url)
+    response = client.embed(model=model, input=text)
+    return response["embeddings"][0]
 
 
 def _l2_normalize(vector: list[float]) -> list[float]:
