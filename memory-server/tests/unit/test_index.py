@@ -1,0 +1,174 @@
+"""Unit tests for LanceDB table operations and manifest I/O.
+
+These tests must FAIL before T008-T011 implement the operations.
+Tests use a temporary directory and a fake embedder to avoid Ollama dependency.
+"""
+import json
+import pytest
+import tempfile
+from pathlib import Path
+
+import math
+
+from speckit_memory.index import (
+    init_table,
+    load_manifest,
+    save_manifest,
+    insert_chunks_batch,
+    delete_chunks_by_source_file,
+    vector_search,
+)
+
+
+@pytest.fixture
+def tmp_index(tmp_path):
+    index_dir = tmp_path / ".index"
+    index_dir.mkdir()
+    return index_dir
+
+
+def make_chunk(source_file="test.md", section="Intro", idx=0, vector=None, fake_embed=None):
+    if vector is None and fake_embed is not None:
+        vector = fake_embed("dummy")
+    elif vector is None:
+        vector = [0.0] * 768
+    return {
+        "id": f"00000000-0000-0000-0000-{idx:012d}",
+        "content": f"Content for {section}",
+        "vector": vector,
+        "source_file": source_file,
+        "section": section,
+        "type": "adr",
+        "feature": "002",
+        "date": "2026-04-07",
+        "tags": [],
+        "synthetic": False,
+    }
+
+
+class TestTableSchema:
+    def test_table_initialization_creates_chunks_table(self, tmp_index):
+        table = init_table(tmp_index)
+        assert table is not None
+
+    def test_table_schema_has_required_fields(self, tmp_index):
+        table = init_table(tmp_index)
+        schema = table.schema
+        field_names = [f.name for f in schema]
+        for required in ["id", "content", "vector", "source_file", "section", "type", "synthetic"]:
+            assert required in field_names, f"Missing field: {required}"
+
+
+class TestManifest:
+    def test_manifest_round_trip(self, tmp_index):
+        manifest = {
+            "version": "1",
+            "embedding_model": "nomic-embed-text",
+            "embedding_dimension": 768,
+            "similarity_metric": "cosine",
+            "entries": {},
+        }
+        save_manifest(tmp_index, manifest)
+        loaded = load_manifest(tmp_index)
+        assert loaded == manifest
+
+    def test_load_manifest_returns_empty_when_missing(self, tmp_index):
+        manifest = load_manifest(tmp_index)
+        assert manifest["entries"] == {}
+        assert manifest["version"] == "2"
+
+    def test_manifest_json_format(self, tmp_index):
+        manifest = {
+            "version": "1",
+            "embedding_model": "nomic-embed-text",
+            "embedding_dimension": 768,
+            "similarity_metric": "cosine",
+            "entries": {"a.md": {"mtime": "2026-04-07T00:00:00", "chunk_ids": ["abc"]}},
+        }
+        save_manifest(tmp_index, manifest)
+        raw = json.loads((tmp_index / "manifest.json").read_text())
+        assert raw["entries"]["a.md"]["chunk_ids"] == ["abc"]
+
+
+class TestInsertBatch:
+    def test_insert_batch_persists_correct_fields(self, tmp_index, fake_embedder):
+        table = init_table(tmp_index)
+        chunk = make_chunk(vector=fake_embedder("hello"))
+        insert_chunks_batch(table, [chunk])
+        rows = table.to_pandas()
+        assert len(rows) == 1
+        assert rows.iloc[0]["source_file"] == "test.md"
+        assert rows.iloc[0]["section"] == "Intro"
+        assert rows.iloc[0]["type"] == "adr"
+
+    def test_insert_batch_multiple_chunks(self, tmp_index, fake_embedder):
+        table = init_table(tmp_index)
+        chunks = [make_chunk(section=f"S{i}", idx=i, vector=fake_embedder(f"s{i}")) for i in range(3)]
+        insert_chunks_batch(table, chunks)
+        rows = table.to_pandas()
+        assert len(rows) == 3
+
+
+class TestDeleteBySourceFile:
+    def test_delete_by_source_file_removes_all_matching(self, tmp_index, fake_embedder):
+        table = init_table(tmp_index)
+        chunks = [
+            make_chunk("file_a.md", "S1", 0, vector=fake_embedder("s1")),
+            make_chunk("file_a.md", "S2", 1, vector=fake_embedder("s2")),
+            make_chunk("file_b.md", "S3", 2, vector=fake_embedder("s3")),
+        ]
+        insert_chunks_batch(table, chunks)
+        deleted = delete_chunks_by_source_file(table, "file_a.md")
+        rows = table.to_pandas()
+        assert len(rows) == 1
+        assert rows.iloc[0]["source_file"] == "file_b.md"
+        assert deleted == 2
+
+    def test_delete_by_source_file_idempotent(self, tmp_index, fake_embedder):
+        table = init_table(tmp_index)
+        chunk = make_chunk(vector=fake_embedder("hello"))
+        insert_chunks_batch(table, [chunk])
+        delete_chunks_by_source_file(table, "test.md")
+        deleted = delete_chunks_by_source_file(table, "test.md")
+        assert deleted == 0
+
+
+class TestScoreFormula:
+    """Verify that LanceDB returns L2-squared (not plain L2) in _distance for brute-force search.
+
+    For L2-normalised vectors, cosine similarity = 1 - L2² / 2.
+    The score formula in vector_search assumes _distance is L2² — this test confirms it.
+
+    Orthogonal unit vectors: cos_sim = 0 → L2² = 2.0, score = 0.
+    If _distance were plain L2, score would be ≈ 0.293 (wrong).
+    """
+
+    def _unit(self, dim: int, idx: int) -> list[float]:
+        """Return a unit vector with 1.0 at position idx, 0.0 elsewhere."""
+        v = [0.0] * dim
+        v[idx] = 1.0
+        return v
+
+    def test_identical_vectors_score_is_one(self, tmp_index):
+        table = init_table(tmp_index)
+        vec = self._unit(768, 0)
+        insert_chunks_batch(table, [make_chunk(vector=vec)])
+        results = vector_search(table, vec, top_k=1, min_score=0.0)
+        assert results, "Expected one result"
+        assert abs(results[0]["score"] - 1.0) < 0.001, f"Expected score≈1.0, got {results[0]['score']}"
+
+    def test_orthogonal_vectors_score_is_zero(self, tmp_index):
+        """Orthogonal unit vectors have cosine similarity 0. Score must be 0, not ~0.293."""
+        table = init_table(tmp_index)
+        vec_a = self._unit(768, 0)
+        vec_b = self._unit(768, 1)
+        insert_chunks_batch(table, [make_chunk(vector=vec_a)])
+        results = vector_search(table, vec_b, top_k=1, min_score=0.0)
+        assert results, "Expected one result"
+        # If _distance is L2 (not L2²), score would be ≈0.293 — formula is wrong.
+        # If _distance is L2², score = 1 - 2.0/2 = 0.0 — formula is correct.
+        assert results[0]["score"] < 0.01, (
+            f"Expected score≈0 for orthogonal vectors, got {results[0]['score']}. "
+            "This may indicate LanceDB returns plain L2 (not L2²) — fix formula to "
+            "1 - (raw_distance ** 2) / 2.0"
+        )

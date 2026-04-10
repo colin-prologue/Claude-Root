@@ -1,2 +1,15 @@
 # Spec-Kit - ignore potential credentials/auth tokens stored by Claude agent
 .claude/settings.local.json
+
+# Git worktrees
+worktrees/
+
+# Vector memory index (volatile cache — never commit)
+.specify/memory/.index/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+dist/
