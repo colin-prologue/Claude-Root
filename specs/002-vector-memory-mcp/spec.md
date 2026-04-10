@@ -42,7 +42,7 @@ A developer writes a new ADR, commits it, and starts a new session. The memory i
 
 **Acceptance Scenarios**:
 
-1. **Given** a committed markdown file not yet in the index, **When** a new session starts, **Then** the file is detected by mtime diff, embedded, and queryable before any command runs
+1. **Given** a committed markdown file not yet in the index, **When** a new session starts, **Then** the file is detected by content hash diff (ADR-012), embedded, and queryable before any command runs
 2. **Given** a file edited mid-session but not yet committed, **When** `memory_sync` is called explicitly, **Then** the updated content is indexed and immediately queryable
 3. **Given** the index is deleted entirely, **When** a new session starts or `memory_sync` is called, **Then** the full index is rebuilt from all markdown files without data loss
 
@@ -97,7 +97,7 @@ A developer can configure which Ollama model is used for embeddings via `OLLAMA_
 - **FR-002**: `memory_recall` MUST accept a natural language query and return semantically ranked chunks, each with source metadata (file, section, type, feature, date, tags)
 - **FR-003**: `memory_recall` MUST support optional metadata filters (type, feature, tags) that narrow the candidate set before semantic ranking
 - **FR-004**: `memory_store` MUST accept content and a metadata object, embed the content, and persist the chunk to the local index
-- **FR-005**: `memory_sync` MUST compare file modification times against a manifest, re-embed only changed or new files, and update the manifest
+- **FR-005**: `memory_sync` MUST compare file content hashes against a manifest, re-embed only changed or new files, and update the manifest (ADR-012; original mtime approach superseded)
 - **FR-006**: `memory_sync` MUST support a full re-index mode that discards all chunks and rebuilds from source markdown files
 - **FR-007**: `memory_delete` MUST remove all chunks associated with a given source file path
 - **FR-008**: The local index and manifest MUST be gitignored and never appear in commits
@@ -110,7 +110,7 @@ A developer can configure which Ollama model is used for embeddings via `OLLAMA_
 ### Key Entities
 
 - **Chunk**: A discrete piece of indexed content — one section of a markdown file, or a summary stored by a command. Carries an embedding vector and metadata. The unit of recall.
-- **Manifest**: A local file mapping `{source_file → last_indexed_mtime}`. Used by sync to detect stale or missing chunks without scanning the full DB.
+- **Manifest**: A local file mapping `{source_file → content_hash}`. Used by sync to detect stale or missing chunks without scanning the full DB (ADR-012).
 - **Memory Index**: The local vector database (volatile, gitignored). Contains all chunks and their embeddings. Always regeneratable from source.
 - **Embedding Model**: The function that converts text to a numeric vector. Configured per project; swapping the model requires a full re-index.
 - **MCP Memory Server**: The local process that owns the index and exposes the four MCP tools to Claude Code and skills.

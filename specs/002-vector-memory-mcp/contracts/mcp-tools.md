@@ -19,9 +19,9 @@ Semantically searches the index and returns the most relevant chunks for a query
 | `query` | string | Yes | Natural language query text |
 | `top_k` | integer | No | Maximum results to return (default: 5, max: 20) |
 | `min_score` | float | No | Minimum similarity score threshold (default: 0.5). Results below this score are excluded. See **Score semantics** below. |
-| `filter` | object | No | Metadata filter (see below) |
+| `filters` | object | No | Metadata filter (see below) |
 
-**Filter schema** (all fields optional, AND-combined):
+**Filter schema** (all fields optional, AND-combined; multiple `tags` values require ALL to match):
 
 ```json
 {
@@ -61,7 +61,7 @@ The default `min_score` of **0.5** is a conservative starting point. Empirical c
 ### Behaviour
 
 - Returns empty `results` array (not an error) when no result meets `min_score`
-- Applies metadata filter before vector ranking (filter narrows the candidate pool)
+- Applies metadata `filters` before vector ranking (filters narrows the candidate pool)
 - Triggers session-start sync on first call per process lifetime (ADR-011)
 
 ---
@@ -133,7 +133,7 @@ Re-indexes changed markdown files by comparing modification times against the ma
 
 ### Behaviour
 
-- `full: false` (default): mtime diff against manifest; re-embeds only stale/new files; purges chunks for deleted files
+- `full: false` (default): content hash diff against manifest (ADR-012); re-embeds only stale/new files; purges chunks for deleted files
 - `full: true`: drops entire LanceDB table and manifest, re-indexes all configured paths
 - Errors clearly if embedding model is unreachable (API down or Ollama not running)
 - Errors with `MODEL_MISMATCH` if manifest records a different embedding model than current config; advises `full: true`
@@ -165,7 +165,7 @@ Removes chunks from the index. Accepts either a `source_file` path (deletes all 
 ### Behaviour
 
 - **By `source_file`**: deletes all chunks for that file; updates manifest to remove the entry; idempotent (returns `deleted_chunks: 0` if file has no chunks)
-- **By `id`**: deletes the single chunk with that UUID; does not touch the manifest (synthetic chunks have no manifest entry)
+- **By `id`**: deletes the single chunk with that UUID; removes the chunk id from any file-synced manifest entry to prevent stale references
 - Does not delete the source markdown file itself
 - Synthetic chunks should always be deleted by `id` (the UUID returned by `memory_store`), not by `source_file = "synthetic"` which would affect all synthetic chunks project-wide
 
@@ -178,7 +178,7 @@ All tools return errors in a consistent envelope:
 ```json
 {
   "error": {
-    "code": "MODEL_MISMATCH | API_UNAVAILABLE | NO_EMBEDDER_CONFIGURED | INVALID_INPUT | INDEX_CORRUPT",
+    "code": "MODEL_MISMATCH | API_UNAVAILABLE | INVALID_INPUT",
     "message": "Human-readable description",
     "recoverable": true
   }

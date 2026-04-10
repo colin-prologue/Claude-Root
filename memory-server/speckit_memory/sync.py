@@ -1,6 +1,7 @@
 """Manifest diff + file crawl + embed + chunking logic."""
 from __future__ import annotations
 
+import hashlib
 import math
 import os
 import re
@@ -90,8 +91,8 @@ def chunk_markdown(filename: str, text: str) -> list[dict[str, Any]]:
         if preamble:
             raw_sections.append((stem, preamble))
         for i, m in enumerate(matches):
-            if len(m.group(1)) > 2:
-                continue
+            # Regex is #{1,2} so only H1/H2 reach here; H3+ body falls
+            # inside the preceding H1/H2 section as plain text (intentional).
             heading_label = m.group(2).strip()
             start = m.end()
             end = matches[i + 1].start() if i + 1 < len(matches) else len(body)
@@ -202,12 +203,23 @@ def crawl_files(repo_root: Path, index_paths_env: str | None = None) -> list[Pat
 
 
 # ---------------------------------------------------------------------------
-# Mtime diff detection (T022)
+# Change detection (T022)
 # ---------------------------------------------------------------------------
 
 def _iso_mtime(path: Path) -> str:
+    """ISO mtime string — used for chunk `date` metadata only, not change detection."""
     ts = path.stat().st_mtime
     return datetime.fromtimestamp(ts, tz=timezone.utc).isoformat()
+
+
+def _content_hash(path: Path) -> str:
+    """SHA-256 hex digest of file content.
+
+    Used for manifest change detection instead of mtime. Unlike mtime, content
+    hashes are stable across git operations (checkout, pull, reset) that reset
+    file timestamps without changing content.
+    """
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def classify_files(
@@ -222,7 +234,7 @@ def classify_files(
         rel = str(f.relative_to(repo_root))
         if rel not in entries:
             classified["new"].append(f)
-        elif _iso_mtime(f) != entries[rel].get("mtime", ""):
+        elif _content_hash(f) != entries[rel].get("hash", ""):
             classified["stale"].append(f)
         else:
             classified["unchanged"].append(f)
@@ -256,13 +268,20 @@ def run_sync(
     from speckit_memory.index import (
         init_table, drop_table, load_manifest, save_manifest,
         insert_chunks_batch, delete_chunks_by_source_file,
+        maybe_create_index, compact_table,
     )
 
     start = time.monotonic()
     index_dir.mkdir(parents=True, exist_ok=True)
     manifest = load_manifest(index_dir)
 
-    # Model mismatch check (T035)
+    # Manifest version migration: v1 used mtime for change detection; v2 uses
+    # content hash. Force full re-index to rebuild with consistent hash-based
+    # entries. This runs once per index and is transparent to the caller.
+    if manifest.get("version", "1") != "2" and not full:
+        full = True
+
+    # Model mismatch check (T035) — only meaningful when not rebuilding
     stored_model = manifest.get("embedding_model", "")
     if stored_model and stored_model != model_name and not full:
         return {
@@ -276,15 +295,24 @@ def run_sync(
             }
         }
 
-    # Manifest-present-but-DB-missing → force full re-index (T037)
+    # DB-manifest divergence → force full re-index (T037).
+    # Covers two cases:
+    #   1. Manifest has model info but chunks.lance directory is gone (clean deletion).
+    #   2. Table exists but is empty while manifest claims indexed files exist —
+    #      happens when chunks.lance is partially cleared (files removed but dir stub
+    #      remains) or when the DB was recreated fresh after a partial index deletion.
     lance_path = index_dir / "chunks.lance"
-    if manifest.get("embedding_model") and not lance_path.exists():
-        full = True
+    if not full:
+        if manifest.get("embedding_model") and not lance_path.exists():
+            full = True
+        elif manifest.get("entries") and lance_path.exists():
+            if init_table(index_dir).count_rows() == 0:
+                full = True
 
     if full:
         drop_table(index_dir)
         manifest = {
-            "version": "1",
+            "version": "2",
             "embedding_model": model_name,
             "embedding_dimension": EMBEDDING_DIMENSION,
             "similarity_metric": "cosine",
@@ -343,14 +371,20 @@ def run_sync(
         if chunk_records:
             insert_chunks_batch(table, chunk_records)
             manifest["entries"][rel] = {
-                "mtime": _iso_mtime(f),
+                "hash": _content_hash(f),
                 "chunk_ids": [c["id"] for c in chunk_records],
             }
             indexed += 1
 
     manifest["embedding_model"] = model_name
     manifest["embedding_dimension"] = EMBEDDING_DIMENSION
+    manifest["version"] = "2"
     save_manifest(index_dir, manifest)
+
+    # Create ANN index when corpus is large enough; compact after full rebuild
+    maybe_create_index(table)
+    if full:
+        compact_table(table)
 
     duration_ms = int((time.monotonic() - start) * 1000)
     return {

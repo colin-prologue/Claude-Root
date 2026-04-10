@@ -24,7 +24,7 @@ Or install in editable mode for faster iteration:
 cd memory-server && uv pip install -e . && speckit-memory
 ```
 
-Once published to PyPI, `uvx speckit-memory` is the standard invocation (used in `.mcp.json`).
+The package is not published to PyPI. The standard invocation for this monorepo is `uv run --directory memory-server speckit-memory`, as configured in `.mcp.json`.
 
 ## Step 1: Configure the MCP server
 
@@ -34,28 +34,31 @@ Add `.mcp.json` to the repo root (already templated):
 {
   "mcpServers": {
     "memory": {
-      "command": "uvx",
-      "args": ["speckit-memory"],
+      "command": "uv",
+      "args": ["run", "--directory", "memory-server", "speckit-memory"],
       "env": {
-        "MEMORY_INDEX_PATH": ".specify/memory/.index",
-        "OLLAMA_BASE_URL": "http://localhost:11434"
+        "MEMORY_INDEX_PATH": "",
+        "OLLAMA_BASE_URL": "http://localhost:11434",
+        "OLLAMA_MODEL": "nomic-embed-text"
       }
     }
   }
 }
 ```
 
-`OLLAMA_BASE_URL` defaults to `http://localhost:11434` — only set it explicitly if you run Ollama on a non-standard port.
+This is the pre-PyPI local development configuration (already in `.mcp.json`). `MEMORY_INDEX_PATH` left empty uses the default glob patterns. `OLLAMA_BASE_URL` and `OLLAMA_MODEL` can be omitted to use the defaults.
 
 ## Step 2: Install Ollama and pull the embedding model
 
 ```bash
 brew install ollama                        # macOS; see ollama.ai for Linux
+brew services start ollama                 # start as persistent background service (survives reboots)
 ollama pull nomic-embed-text              # ~300MB, one-time download per machine
-ollama serve                              # start the Ollama server (runs in background)
 ```
 
 Ollama is a global machine install — you only do this once regardless of how many repos use it.
+
+> **Session-only alternative**: `ollama serve` runs Ollama in the foreground for the current terminal session only. Use this if you prefer not to run it as a background service, but you'll need to restart it each session. The `API_UNAVAILABLE` error in the troubleshooting table below means Ollama isn't running.
 
 ## Step 3: Verify
 

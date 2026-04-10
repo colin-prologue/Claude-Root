@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import sys
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -15,6 +16,7 @@ from speckit_memory.index import (
     init_table,
     insert_chunks_batch,
     load_manifest,
+    maybe_create_index,
     save_manifest,
     vector_search,
 )
@@ -38,8 +40,15 @@ _first_call_done = False
 
 
 def _repo_root() -> Path:
-    """Return the repo root (directory of this package's grandparent)."""
-    # memory-server/speckit_memory/server.py -> memory-server/ -> repo root
+    """Return the repo root. Prefers MEMORY_REPO_ROOT env var when set.
+
+    Falls back to two levels above server.py, which assumes the canonical
+    layout: <repo>/memory-server/speckit_memory/server.py. Set the env var
+    when installing the package outside its original monorepo location.
+    """
+    env = os.environ.get("MEMORY_REPO_ROOT", "")
+    if env:
+        return Path(env)
     return Path(__file__).parent.parent.parent
 
 
@@ -73,9 +82,10 @@ def _ensure_init() -> None:
             full=False,
             index_paths_env=_MEMORY_INDEX_PATH or None,
         )
-    except Exception:
-        # Self-init failure is non-fatal — server continues without a fresh index
-        pass
+    except Exception as exc:
+        # Self-init failure is non-fatal — server continues without a fresh index.
+        # Log to stderr so the issue appears in Claude Code's MCP server output.
+        print(f"[speckit-memory] WARNING: auto-init sync failed: {exc}", file=sys.stderr)
 
 
 # ---------------------------------------------------------------------------
@@ -90,7 +100,7 @@ def memory_recall(
     query: str,
     top_k: int = 5,
     min_score: float = 0.5,
-    filter: dict | None = None,
+    filters: dict | None = None,
 ) -> dict[str, Any]:
     """Semantically search the index and return the most relevant chunks."""
     _ensure_init()
@@ -105,7 +115,7 @@ def memory_recall(
     idx_dir.mkdir(parents=True, exist_ok=True)
     table = init_table(idx_dir)
 
-    f = filter or {}
+    f = filters or {}
     results = vector_search(
         table=table,
         query_vector=query_vec,
@@ -154,6 +164,7 @@ def memory_store(
         "synthetic": is_synthetic,
     }
     insert_chunks_batch(table, [chunk])
+    maybe_create_index(table)
     return {"id": chunk_id, "status": "stored"}
 
 
@@ -208,13 +219,35 @@ def memory_delete(
 
     if source_file is not None:
         count = delete_chunks_by_source_file(table, source_file)
-        # Also remove manifest entry
         manifest = load_manifest(idx_dir)
         manifest["entries"].pop(source_file, None)
         save_manifest(idx_dir, manifest)
         return {"deleted_chunks": count, "source_file": source_file}
     else:
+        # Validate UUID format before touching the DB
+        try:
+            uuid.UUID(id)
+        except ValueError:
+            return {
+                "error": {
+                    "code": "INVALID_INPUT",
+                    "message": f"id must be a valid UUID.",
+                    "recoverable": True,
+                }
+            }
         count = delete_chunk_by_id(table, id)
+        # Remove this chunk id from any file-synced manifest entry so the next
+        # sync doesn't treat the file as unchanged when a chunk was deleted.
+        manifest = load_manifest(idx_dir)
+        changed = False
+        for entry in manifest["entries"].values():
+            chunk_ids = entry.get("chunk_ids", [])
+            if id in chunk_ids:
+                entry["chunk_ids"] = [cid for cid in chunk_ids if cid != id]
+                changed = True
+                break
+        if changed:
+            save_manifest(idx_dir, manifest)
         return {"deleted_chunks": count, "id": id}
 
 

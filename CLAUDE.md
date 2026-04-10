@@ -6,8 +6,8 @@ Keep it lean — detailed rules live in `.claude/rules/`.
 ## Project
 
 **Name**: ClaudeTest
-**Description**: [One sentence describing what this project does]
-**Status**: [e.g., Active development / Maintenance / Prototype]
+**Description**: A spec-driven development template with multi-agent adversarial review, a local vector memory server for semantic search over ADRs and specs, and bidirectional consistency auditing.
+**Status**: Active development
 
 ## Stack
 

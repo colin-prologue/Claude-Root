@@ -5,7 +5,7 @@
 
 ## Summary
 
-Build a local MCP server that exposes four stable tools (`memory_recall`, `memory_store`, `memory_sync`, `memory_delete`) backed by a LanceDB vector index. Markdown source files (ADRs, LOGs, specs, constitution) remain the git-tracked source of truth; the index is a volatile local cache gitignored from the repo. The server is implemented in Python with FastMCP, deployable via `uvx`. Embeddings use Ollama `nomic-embed-text` (768 dims, local, no cloud API account required — ADR-010). Speckit skills adopt a recall-before / store-after convention to surface prior decisions during planning and audit.
+Build a local MCP server that exposes four stable tools (`memory_recall`, `memory_store`, `memory_sync`, `memory_delete`) backed by a LanceDB vector index. Markdown source files (ADRs, LOGs, specs, constitution) remain the git-tracked source of truth; the index is a volatile local cache gitignored from the repo. The server is implemented in Python with FastMCP, invoked via `uv run --directory memory-server speckit-memory` (monorepo local install — not published to PyPI). Embeddings use Ollama `nomic-embed-text` (768 dims, local, no cloud API account required — ADR-010). Speckit skills adopt a recall-before / store-after convention to surface prior decisions during planning and audit.
 
 ## Decision Records
 
@@ -24,14 +24,14 @@ Build a local MCP server that exposes four stable tools (`memory_recall`, `memor
 **Embedding model**: Ollama `nomic-embed-text` (768 dims, global system install, no cloud API account required — ADR-010)
 **Testing**: pytest + pytest-asyncio; contract tests against the MCP tool interface; integration tests against a real LanceDB instance (no mocks)
 **Target Platform**: macOS / Linux local dev machine (Ollama installed globally)
-**Project Type**: Local MCP server (CLI-deployable via `uvx`)
+**Project Type**: Local MCP server (invoked via `uv run --directory memory-server speckit-memory` — monorepo local install, not published to PyPI)
 **Performance Goals**: `memory_recall` < 3s for ≤100 indexed files; session-start sync < 500ms when no files changed
 **Constraints**: No cloud API accounts; no committed artifacts from the index; index must be fully regeneratable from markdown source
 **Scale/Scope**: Solo developer; ≤200 markdown files; no concurrent writers
 
 ## Constitution Check
 
-- [x] **Pass 1 — Assumptions**: Key assumptions challenged: (1) solo dev has Python — mitigated by `uvx` auto-install; (2) Ollama is installed globally — mitigated by one-time `brew install ollama` + model pull, documented in quickstart.md; (3) markdown files are the only knowledge source — scoped explicitly in spec Assumptions section; (4) index volatility is acceptable — confirmed by design (all data in git-tracked markdown)
+- [x] **Pass 1 — Assumptions**: Key assumptions challenged: (1) solo dev has Python — required; uv handles the venv via `uv run`; (2) Ollama is installed globally — mitigated by one-time `brew install ollama` + model pull, documented in quickstart.md; (3) markdown files are the only knowledge source — scoped explicitly in spec Assumptions section; (4) index volatility is acceptable — confirmed by design (all data in git-tracked markdown)
 - [x] **Pass 2 — Research**: All four technology choices researched and ADR'd (ADR-008 through ADR-011). LanceDB, FastMCP, Ollama nomic-embed-text embeddings, and self-init sync all verified against alternatives. Voyage AI and OpenAI both rejected — both require external API accounts outside the developer's existing Claude subscription (ADR-010).
 - [x] **Pass 3 — Plan scrutiny**: Riskiest decision is ADR-010 (embedding model). Risk: developer switches models, old index becomes invalid. Validation: manifest records model name; server errors on mismatch with clear remediation (`memory_sync --full`).
 

@@ -45,7 +45,7 @@ Zero setup, pure Python. Rejected for the core use case — BM25 misses cross-vo
 
 A solo developer with a Claude subscription should not need to create additional accounts to use a memory feature built on top of Claude Code. Ollama is a global machine-level install — the same `ollama serve` process serves all repos. The ~300MB model download is a one-time cost. nomic-embed-text produces 768-dimension vectors well-suited for retrieval over technical markdown text.
 
-The shift to a single backend removes the dual-detection logic, the dimension-mismatch complexity, and the `embedders/` abstraction layer entirely. With one concrete embedding implementation, the factory function is unnecessary (Principle II: no abstraction for a single caller with a single implementation). Embedding calls live directly in `sync.py`.
+The shift to a single backend removes the dual-detection logic, the dimension-mismatch complexity, and the `embedders/` abstraction layer entirely. With one concrete embedding implementation, the factory function is unnecessary (Principle II: no abstraction for a single caller with a single implementation). Embedding calls live directly in `sync.py` via the `ollama` Python SDK (`ollama.Client.embed()`), which wraps the Ollama HTTP API.
 
 ## Score Semantics and Similarity Threshold
 

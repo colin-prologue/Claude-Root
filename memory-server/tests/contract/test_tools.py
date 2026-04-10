@@ -47,7 +47,7 @@ class TestMemoryRecall:
         with patched_embed(fake_embedder), patched_index_dir(tmp_index):
             seed_chunks(tmp_index, fake_embedder, count=2, chunk_type="adr")
             seed_chunks(tmp_index, fake_embedder, count=2, chunk_type="log", idx_start=2)
-            result = memory_recall(query="anything", filter={"type": "adr"}, min_score=0.0)
+            result = memory_recall(query="anything", filters={"type": "adr"}, min_score=0.0)
         types = {r["type"] for r in result["results"]}
         assert types == {"adr"}
 
@@ -81,6 +81,49 @@ class TestMemoryRecall:
         source_files = {r["source_file"] for r in result["results"]}
         assert "file_a.md" in source_files
         assert "file_b.md" in source_files
+
+    def test_recall_results_sorted_by_score_descending(self, tmp_index, fake_embedder):
+        """Results are ordered by score descending (highest similarity first)."""
+        from speckit_memory.index import init_table, insert_chunks_batch
+        table = init_table(tmp_index)
+        query_text = "vector search score ranking"
+        # Chunk A: embedded with the same text as the query → highest cosine similarity.
+        # Chunk B: embedded with unrelated text → lower cosine similarity.
+        # The hash-based fake_embedder produces distinct unit vectors per unique input,
+        # so A should score higher than B when queried with query_text.
+        insert_chunks_batch(table, [
+            {
+                "id": str(uuid.uuid4()),
+                "content": "High-similarity chunk.",
+                "vector": fake_embedder(query_text),
+                "source_file": "high.md",
+                "section": "S",
+                "type": "adr",
+                "feature": "001",
+                "date": "2026-04-07",
+                "tags": [],
+                "synthetic": False,
+            },
+            {
+                "id": str(uuid.uuid4()),
+                "content": "Low-similarity chunk.",
+                "vector": fake_embedder("completely unrelated content xyz"),
+                "source_file": "low.md",
+                "section": "S",
+                "type": "adr",
+                "feature": "001",
+                "date": "2026-04-07",
+                "tags": [],
+                "synthetic": False,
+            },
+        ])
+        with patched_embed(fake_embedder), patched_index_dir(tmp_index):
+            result = memory_recall(query=query_text, top_k=10, min_score=0.0)
+        scores = [r["score"] for r in result["results"]]
+        assert scores == sorted(scores, reverse=True), f"Results not sorted descending: {scores}"
+        # The identical-embedding chunk must outscore the unrelated chunk.
+        source_order = [r["source_file"] for r in result["results"]]
+        assert source_order[0] == "high.md", f"Expected high.md first, got {source_order}"
 
 
 # ---------------------------------------------------------------------------
@@ -217,6 +260,24 @@ class TestMemorySyncContract:
         assert "error" in result
         assert result["error"]["code"] == "MODEL_MISMATCH"
         assert result["error"]["recoverable"] is False
+
+    def test_sync_paths_limits_crawl_to_specified_files(self, tmp_index, fake_embedder, tmp_path):
+        """memory_sync with paths= restricts crawl to the listed files only."""
+        # Create two real markdown files in a temp repo dir.
+        repo = tmp_path / "repo"
+        repo.mkdir()
+        (repo / "included.md").write_text("# Included\n\nThis file should be indexed.")
+        (repo / "excluded.md").write_text("# Excluded\n\nThis file should be skipped.")
+
+        with patched_embed(fake_embedder), patched_index_dir(tmp_index):
+            with patch("speckit_memory.server._repo_root", return_value=repo):
+                result = memory_sync(paths=[str(repo / "included.md")])
+
+        # Only the included file should be processed; excluded.md should not appear.
+        assert "error" not in result, f"Unexpected error: {result}"
+        assert result["indexed"] + result["skipped"] <= 1, (
+            f"Expected ≤1 file processed, got indexed={result['indexed']} skipped={result['skipped']}"
+        )
 
 
 # ---------------------------------------------------------------------------

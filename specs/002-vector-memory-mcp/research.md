@@ -15,9 +15,9 @@
 ## Decision 2: MCP Server Runtime
 
 **Decision**: Python + FastMCP
-**Rationale**: Embedding model and vector DB ecosystems are Python-first. FastMCP's decorator-based API keeps the server small. `uvx`-deployable. TypeScript has more MCP examples but weaker embedding/vector DB library coverage.
+**Rationale**: Embedding model and vector DB ecosystems are Python-first. FastMCP's decorator-based API keeps the server small. Invoked via `uv run --directory memory-server speckit-memory` for monorepo local development (not published to PyPI). TypeScript has more MCP examples but weaker embedding/vector DB library coverage.
 **Alternatives considered**: TypeScript + MCP SDK (more examples, weaker vector ecosystem)
-**Key risk**: Requires Python 3.10+ on developer machine; mitigated by `uvx` auto-install docs
+**Key risk**: Requires Python 3.10+ on developer machine; uv manages the venv automatically via `uv run`
 **ADR**: ADR-009
 
 ## Decision 3: Embedding Model
@@ -81,6 +81,21 @@ For a corpus of structured-but-untagged markdown files (ADRs, LOGs, specs), vect
 No existing MCP server combines: (1) automatic mtime-diff sync over a pre-existing local markdown corpus, (2) Ollama local embedding with no cloud API dependency, (3) ADR/spec/decision-record taxonomy in chunk metadata, (4) FastMCP + Python (vs. TypeScript dominance in the space). The fundamentals (LanceDB, mtime manifest pattern) are proven — the combination is novel.
 
 **Reference**: Fremem's source code should be reviewed before finalizing tasks.md to identify implementation lessons.
+
+## Decision 6: Post-Implementation Competitive Analysis — Serena
+
+**Decision**: No architecture change; maintain custom LanceDB + FastMCP implementation.
+**Date**: 2026-04-09 (added post-002 implementation)
+
+After completing 002, we evaluated [Serena](https://github.com/oraios/serena) (~22k stars), an MCP-based coding agent with a file-based memory system. Serena's memory stores named Markdown files; recall is LLM-routed via filename list in the system prompt — no embeddings, no vector DB, no chunking.
+
+**Why Serena's memory is not a replacement**: The speckit recall pattern (`memory_recall("technology choices architecture decisions")`) is a semantic query where the caller doesn't know the filename. Serena has no answer for this. Its approach degrades past ~50–100 docs as the filename list grows in the system prompt. Our embedding approach is the right architecture for the recall-before convention.
+
+**Serena's core value (not competing)**: LSP-backed symbol retrieval (`find_symbol`, `rename_symbol`, `findReferences`) — fundamentally better than RAG for code editing tasks. This is a different domain.
+
+**Gaps and learnings captured**: LOG-017 (`LOG_017_memory-server-roadmap-serena-learnings.md`) tracks 3 known implementation gaps and 5 Serena-inspired roadmap items for future features (003+).
+
+---
 
 ## Resolved Clarifications
 

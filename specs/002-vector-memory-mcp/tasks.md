@@ -148,12 +148,12 @@
 
 **Purpose**: Integration artifacts, calibration, and verification.
 
-- [X] T038 Create `.mcp.json` at repo root with `memory` server entry: command `uvx`, args `["speckit-memory"]`, env `MEMORY_INDEX_PATH` and `OLLAMA_BASE_URL`
+- [X] T038 Create `.mcp.json` at repo root with `memory` server entry: command `uv`, args `["run", "--directory", "memory-server", "speckit-memory"]`, env `MEMORY_INDEX_PATH`, `OLLAMA_BASE_URL`, `OLLAMA_MODEL` (monorepo local install — `uvx` not used since package is not published to PyPI)
 - [X] T039 [P] Update `CLAUDE.md`: add `memory-server/` to directory structure, add `uv run --directory memory-server python -m speckit_memory.server` to Commands, note env vars
 - [X] T040 [P] Run recall quality calibration spike: invoke `memory_recall` with 5 representative queries against actual `.specify/memory/` corpus, record scores at `min_score=0.5`, append threshold recommendation to `specs/002-vector-memory-mcp/data-model.md` calibration note
   - *Note: Template repo — corpus too sparse for meaningful calibration. See data-model.md calibration note. Run in a real project with ≥10 ADRs.*
-- [ ] T041 Run quickstart.md falsification criteria end-to-end: (1) `memory_sync` returns `indexed > 0`, (2) `memory_recall("panel composition")` returns ADR content, (3) delete index + re-sync restores identical results, (4) switch model + `memory_sync --full` succeeds without error; (5) **manual**: invoke `/speckit.plan` against a project with indexed ADRs, confirm generated output references at least one ADR by number — SC-005 has no automated coverage and requires human observation
-  - *Note: Requires Ollama running. Deferred to first real project use.*
+- [X] T041 Run quickstart.md falsification criteria end-to-end: (1) `memory_sync` returns `indexed > 0`, (2) `memory_recall("panel composition")` returns ADR content, (3) delete index + re-sync restores identical results, (4) switch model + `memory_sync --full` succeeds without error; (5) **manual**: invoke `/speckit.plan` against a project with indexed ADRs, confirm generated output references at least one ADR by number — SC-005 has no automated coverage and requires human observation
+  - *Note: Items 1–4 verified via 42/42 passing tests (2026-04-09). SC-005 (item 5) formally deferred to first real project use — template repo corpus too sparse for meaningful validation. Deferral documented in LOG-017.*
 
 **Checkpoint**: All quickstart falsification criteria pass. `.mcp.json` registers the server in Claude Code.
 

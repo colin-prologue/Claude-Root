@@ -32,11 +32,11 @@ A local JSON file that tracks which files have been indexed and when, used by sy
 
 | Field | Type | Description |
 |---|---|---|
-| `version` | string | Manifest schema version (starts at `"1"`) |
+| `version` | string | Manifest schema version (`"2"` — v1 used mtime, v2 uses content hash; v1 manifests trigger automatic full re-index on next sync) |
 | `embedding_model` | string | Model identifier used to build this index (e.g., `"nomic-embed-text"`) |
 | `embedding_dimension` | integer | Vector dimension of the embedding model (e.g., 768 for Ollama nomic-embed-text) |
 | `similarity_metric` | string | Similarity metric used (`"cosine"` — all vectors are L2-normalised on write) |
-| `entries` | map | `{ source_file: { mtime: ISO8601, chunk_ids: string[] } }` |
+| `entries` | map | `{ source_file: { hash: sha256hex, chunk_ids: string[] } }` — `hash` is a SHA-256 content hash of the file bytes (ADR-012) |
 
 **Location**: `.specify/memory/.index/manifest.json` (gitignored)
 
@@ -55,7 +55,7 @@ The LanceDB table wrapping all Chunk records. Not directly queried by skills —
 | Table name | `chunks` |
 | Gitignored | Yes (entire `.index/` directory) |
 | Schema | Mirrors Chunk entity above |
-| Index type | LanceDB default ANN (approximate nearest neighbor) |
+| Index type | Brute-force for corpora <256 chunks; IVF-PQ ANN index created automatically above that threshold (ADR-013) |
 
 ## Chunking Algorithm
 

@@ -1734,7 +1734,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "pandas", specifier = ">=2.3.3" },
+    { name = "pandas", specifier = ">=2.0" },
     { name = "pytest", specifier = ">=8.0" },
     { name = "pytest-asyncio", specifier = ">=0.23" },
 ]
