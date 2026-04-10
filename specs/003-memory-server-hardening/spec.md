@@ -48,7 +48,8 @@ A speckit skill calls `memory_recall` in a session where context budget is tight
 1. **Given** `max_chars` is set and full results would exceed it, **When** `memory_recall` is called, **Then** chunks are returned in ranked order (greedy top-down packing) until adding the next complete chunk would exceed the budget — that chunk is dropped, not partially included; `max_chars` applies to content characters only, not metadata or response framing
 2. **Given** `max_chars` is set smaller than the highest-ranked single chunk, **When** `memory_recall` is called, **Then** that single chunk is returned with content truncated at `max_chars` characters, and `truncated: true` is set in the response — this truncation-of-last-resort only applies when no complete chunk fits
 3. **Given** `max_chars` is not set, **When** `memory_recall` is called, **Then** behavior is unchanged from feature 002 — all top-k results returned with no budget enforcement
-4. **Given** any `memory_recall` call (with or without `max_chars`), **When** the response is received, **Then** it includes a `token_estimate` field reflecting the approximate token count of the returned content
+4. **Given** any `memory_recall` call (with or without `max_chars`), **When** the response is received, **Then** it includes a `token_estimate` field reflecting the approximate token cost of the serialized response payload
+5. **Given** `max_chars` is set and at least one ranked chunk was dropped because it would exceed the budget, **When** the response is received, **Then** it includes `budget_exhausted: true`; if all ranked chunks fit within budget, `budget_exhausted: false`
 
 ---
 
@@ -85,19 +86,20 @@ A speckit skill needs to decide which chunks to read in full before committing t
 - **FR-002**: `memory_store` MUST continue to accept writes where `source_file` is `"synthetic"` — no regression on the intended path
 - **FR-003**: `memory_recall` MUST accept an optional `max_chars` positive integer parameter; when set, the total character count across all returned chunk content MUST NOT exceed this value
 - **FR-004**: When `max_chars` is set and no complete chunk fits within the budget, `memory_recall` MUST return the highest-ranked chunk with its content truncated at `max_chars` and MUST set `truncated: true` in the response envelope
-- **FR-005**: Every `memory_recall` response MUST include a `token_estimate` field containing a positive integer approximating the token count of the returned content
+- **FR-005**: Every `memory_recall` response MUST include a `token_estimate` field containing a positive integer approximating the token cost of the serialized response payload (chunk content in full mode; metadata fields in summary mode), computed using a `chars / 4` heuristic
 - **FR-006**: `memory_recall` MUST accept an optional `summary_only` boolean parameter; when `true`, each result MUST contain `source_file`, `section`, and `score` and MUST NOT contain chunk content
-- **FR-007**: `summary_only` and `max_chars` MUST be composable: when both are set, `max_chars` limits the number of summary entries returned (each entry counted by its serialized character size)
+- **FR-007**: `summary_only` and `max_chars` MUST be composable: when both are set, `max_chars` limits the number of summary entries returned (each entry counted by its serialized character size — the concatenated length of `source_file + section + score` as a JSON string). Note: `max_chars` has two distinct behaviors — in full mode it counts content characters only; in summary mode it counts serialized entry size. This divergence is intentional.
 - **FR-008**: All new parameters (`max_chars`, `summary_only`, `filter_source_file`) MUST be optional with backward-compatible defaults — no change in behavior when omitted
-- **FR-009**: `memory_delete` MUST reject any call where the provided `source_file` matches a path present on the local filesystem, returning a structured MCP error stating the file is managed by `memory_sync`; id-based deletes are not affected by this guard
-- **FR-010**: `memory_recall` MUST accept an optional `filter_source_file` string parameter; when set, only chunks whose `source_file` matches the provided value are returned
+- **FR-011**: Every `memory_recall` response where `max_chars` is set MUST include a `budget_exhausted` boolean: `true` if at least one ranked result was dropped due to budget, `false` otherwise; when `max_chars` is not set, `budget_exhausted` is omitted
+- **FR-009**: `memory_delete` MUST reject any call where the provided `source_file` matches a path present on the local filesystem, returning a structured MCP error stating the file is managed by `memory_sync`; id-based deletes are not affected by this guard. Path comparison MUST resolve paths relative to the repository root using the same `_repo_root()` anchor as `memory_store`, ensuring consistent behavior across both guards. If the source file no longer exists on disk, the delete guard does not fire (orphaned chunks may be deleted by agent tool calls).
+- **FR-010**: `memory_recall` MUST accept an optional `filter_source_file` string parameter; when set, only chunks whose `source_file` matches the provided value are returned. This is exposed as a top-level MCP tool parameter rather than a key in the existing `filters` dict because MCP tool schemas require flat parameter declarations for discoverability — `source_file` cannot be a runtime key inside an opaque dict and remain visible in the tool schema.
 
 ### Key Entities
 
 - **Write Guard**: The whitelist validation in `memory_store` that rejects any `source_file` value other than `"synthetic"`. Only `"synthetic"` is accepted; all other values are rejected regardless of whether they exist on disk.
 - **Delete Guard**: The validation in `memory_delete` that rejects path-based deletes where `source_file` matches a path present on the local filesystem. Id-based deletes for synthetic chunks are not affected.
 - **Token Estimate**: An integer field in every `memory_recall` response approximating the token cost of the returned content. Computed locally without a network call.
-- **Budget**: The caller-specified ceiling (`max_chars`) on total character count across all chunk content in a `memory_recall` response.
+- **Budget**: The caller-specified ceiling (`max_chars`) on total character count across all chunk content in a `memory_recall` response. When budget is binding, `budget_exhausted: true` is set in the response so callers can distinguish a partial result set from a complete one.
 - **Summary Result**: A lightweight recall result containing `source_file`, `section`, and `score` with no chunk content. Returned when `summary_only: true`.
 
 ## Success Criteria *(mandatory)*
@@ -106,7 +108,7 @@ A speckit skill needs to decide which chunks to read in full before committing t
 
 - **SC-001**: `memory_store` calls with any `source_file` value other than `"synthetic"` are rejected 100% of the time — zero successful non-synthetic writes across all test cases
 - **SC-002**: `memory_recall` with `max_chars=N` returns responses whose total chunk content character count does not exceed N in any test case
-- **SC-003**: `token_estimate` in every `memory_recall` response is within 20% of the actual token count of the returned content, approximated using a `chars / 4` heuristic
+- **SC-003**: `token_estimate` in every `memory_recall` response is within 20% of the actual token count of the serialized response payload, approximated using a `chars / 4` heuristic
 - **SC-004**: `memory_recall` with `summary_only: true` returns responses at least 10x smaller in character count than an equivalent full-content recall for the same query and corpus
 - **SC-005**: All existing callers that omit the new parameters observe no change in existing response fields or behavior — additive fields (e.g., `token_estimate`) are always present but do not alter existing field semantics
 
