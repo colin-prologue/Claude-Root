@@ -82,6 +82,121 @@ class TestMemoryRecall:
         assert "file_a.md" in source_files
         assert "file_b.md" in source_files
 
+    # --- US2: Caller-Controlled Token Budget ---
+
+    def test_recall_max_chars_caps_total_content(self, tmp_index, fake_embedder):
+        """T007: memory_recall with max_chars=100 returns total content ≤ 100 chars and budget_exhausted."""
+        with patched_embed(fake_embedder), patched_index_dir(tmp_index):
+            # Seed chunks with content larger than max_chars
+            seed_chunks(tmp_index, fake_embedder, count=5)
+            result = memory_recall(query="content", max_chars=100, min_score=0.0)
+        assert "budget_exhausted" in result
+        total = sum(len(r["content"]) for r in result["results"])
+        assert total <= 100
+
+    def test_recall_max_chars_smaller_than_single_chunk_truncates(self, tmp_index, fake_embedder):
+        """T008: max_chars smaller than the single highest-ranked chunk truncates with truncated: true."""
+        from speckit_memory.index import init_table, insert_chunks_batch
+        table = init_table(tmp_index)
+        content = "X" * 500  # 500 chars
+        insert_chunks_batch(table, [{
+            "id": str(uuid.uuid4()),
+            "content": content,
+            "vector": fake_embedder("query text"),
+            "source_file": "file_a.md",
+            "section": "S",
+            "type": "adr",
+            "feature": "001",
+            "date": "2026-04-07",
+            "tags": [],
+            "synthetic": False,
+        }])
+        with patched_embed(fake_embedder), patched_index_dir(tmp_index):
+            result = memory_recall(query="query text", max_chars=50, min_score=0.0)
+        assert len(result["results"]) == 1
+        assert len(result["results"][0]["content"]) <= 50
+        assert result["results"][0].get("truncated") is True
+        assert result.get("budget_exhausted") is True
+
+    def test_recall_without_max_chars_returns_token_estimate(self, tmp_index, fake_embedder):
+        """T009: memory_recall without max_chars returns token_estimate as positive int, no budget_exhausted."""
+        with patched_embed(fake_embedder), patched_index_dir(tmp_index):
+            seed_chunks(tmp_index, fake_embedder, count=3)
+            result = memory_recall(query="content", min_score=0.0)
+        assert "token_estimate" in result
+        assert isinstance(result["token_estimate"], int)
+        assert result["token_estimate"] > 0
+        assert "budget_exhausted" not in result
+
+    def test_recall_max_chars_zero_returns_invalid_input(self, tmp_index, fake_embedder):
+        """T010: memory_recall with max_chars=0 returns INVALID_INPUT error."""
+        with patched_embed(fake_embedder), patched_index_dir(tmp_index):
+            result = memory_recall(query="anything", max_chars=0)
+        assert "error" in result
+        assert result["error"]["code"] == "INVALID_INPUT"
+
+    def test_recall_max_chars_large_enough_returns_all_chunks(self, tmp_index, fake_embedder):
+        """T011: max_chars large enough returns budget_exhausted: false and all chunks."""
+        with patched_embed(fake_embedder), patched_index_dir(tmp_index):
+            seed_chunks(tmp_index, fake_embedder, count=3)
+            result = memory_recall(query="content", max_chars=100_000, min_score=0.0)
+        assert result.get("budget_exhausted") is False
+        assert result["total"] == 3
+
+    def test_recall_stop_at_first_overflow(self, tmp_index, fake_embedder):
+        """T011b: Stop-at-first-overflow semantics — chunk B overflows, chunk C (smaller) is never considered."""
+        from speckit_memory.index import init_table, insert_chunks_batch
+        table = init_table(tmp_index)
+        query = "architecture decisions"
+        # A: score=high (identical to query), 200 chars
+        # B: score=mid, 500 chars (overflows max_chars=250)
+        # C: score=low, 50 chars (small, but never reached after B overflows)
+        insert_chunks_batch(table, [
+            {
+                "id": str(uuid.uuid4()),
+                "content": "A" * 200,
+                "vector": fake_embedder(query),          # highest score
+                "source_file": "a.md",
+                "section": "A",
+                "type": "adr",
+                "feature": "001",
+                "date": "2026-04-07",
+                "tags": [],
+                "synthetic": False,
+            },
+            {
+                "id": str(uuid.uuid4()),
+                "content": "B" * 500,
+                "vector": fake_embedder("somewhat related"),  # mid score
+                "source_file": "b.md",
+                "section": "B",
+                "type": "adr",
+                "feature": "001",
+                "date": "2026-04-07",
+                "tags": [],
+                "synthetic": False,
+            },
+            {
+                "id": str(uuid.uuid4()),
+                "content": "C" * 50,
+                "vector": fake_embedder("unrelated xyz abc"),  # lowest score
+                "source_file": "c.md",
+                "section": "C",
+                "type": "adr",
+                "feature": "001",
+                "date": "2026-04-07",
+                "tags": [],
+                "synthetic": False,
+            },
+        ])
+        with patched_embed(fake_embedder), patched_index_dir(tmp_index):
+            result = memory_recall(query=query, max_chars=250, min_score=0.0)
+        source_files = [r["source_file"] for r in result["results"]]
+        assert "a.md" in source_files, "chunk A (200 chars) must be included"
+        assert "b.md" not in source_files, "chunk B (500 chars) must overflow and stop"
+        assert "c.md" not in source_files, "chunk C must be skipped (stop after first overflow)"
+        assert result.get("budget_exhausted") is True
+
     def test_recall_results_sorted_by_score_descending(self, tmp_index, fake_embedder):
         """Results are ordered by score descending (highest similarity first)."""
         from speckit_memory.index import init_table, insert_chunks_batch

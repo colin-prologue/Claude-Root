@@ -1,6 +1,7 @@
 """FastMCP server exposing four memory tools: recall, store, sync, delete."""
 from __future__ import annotations
 
+import math
 import os
 import sys
 import uuid
@@ -101,8 +102,20 @@ def memory_recall(
     top_k: int = 5,
     min_score: float = 0.5,
     filters: dict | None = None,
+    max_chars: int | None = None,
+    filter_source_file: str | None = None,
+    summary_only: bool = False,
 ) -> dict[str, Any]:
     """Semantically search the index and return the most relevant chunks."""
+    if max_chars is not None and max_chars <= 0:
+        return {
+            "error": {
+                "code": "INVALID_INPUT",
+                "message": "max_chars must be a positive integer.",
+                "recoverable": True,
+            }
+        }
+
     _ensure_init()
 
     try:
@@ -124,8 +137,57 @@ def memory_recall(
         filter_type=f.get("type"),
         filter_feature=f.get("feature"),
         filter_tags=f.get("tags"),
+        filter_source_file=filter_source_file,
     )
-    return {"results": results, "total": len(results)}
+
+    # T012/T013: Stop-at-first-overflow budget enforcement (ADR-022)
+    budget_exhausted: bool | None = None
+    if max_chars is not None:
+        packed: list[dict] = []
+        chars_remaining = max_chars
+        for chunk in results:
+            chunk_len = len(chunk["content"])
+            if chunk_len <= chars_remaining:
+                packed.append(chunk)
+                chars_remaining -= chunk_len
+            else:
+                budget_exhausted = True
+                break  # stop — do not consider subsequent chunks
+
+        if not packed and results:
+            # Truncation-of-last-resort: first chunk truncated to max_chars
+            first = dict(results[0])
+            first["content"] = first["content"][:max_chars]
+            first["truncated"] = True
+            packed = [first]
+            budget_exhausted = True
+
+        if budget_exhausted is None:
+            budget_exhausted = False
+
+        results = packed
+
+    # T020: summary_only projection (US3)
+    if summary_only:
+        results = [
+            {"source_file": r["source_file"], "section": r["section"], "score": r["score"]}
+            for r in results
+        ]
+        total_chars = sum(len(r["source_file"] + r["section"] + str(r["score"])) for r in results)
+    else:
+        total_chars = sum(len(r["content"]) for r in results)
+
+    # T014: token_estimate always present (ADR-021)
+    token_estimate = math.ceil(total_chars / 4)
+
+    response: dict[str, Any] = {
+        "results": results,
+        "total": len(results),
+        "token_estimate": token_estimate,
+    }
+    if budget_exhausted is not None:
+        response["budget_exhausted"] = budget_exhausted
+    return response
 
 
 @mcp.tool()
