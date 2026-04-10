@@ -48,6 +48,23 @@ If no Project Context section exists, warn the user and recommend running `/spec
 
 **Do NOT instruct agents to re-read constitution.md.** Inject `CALIBRATION_BLOCK` directly into each agent's prompt in Step 4. This avoids redundant file reads across the panel.
 
+### 2.5. Initialize Review State File
+
+Determine the current feature name from the artifact paths detected in Step 1 (e.g., `003-memory-server-hardening` from `specs/003-memory-server-hardening/spec.md`). If no feature can be inferred, use `unknown`.
+
+Create or overwrite `.specify/review/<feature>-<gate>.md` with:
+
+```markdown
+# Review in Progress: <feature> — <gate> gate
+**Started**: <ISO timestamp>
+**Phase**: A (independent analysis)
+**Panel**: <comma-separated reviewer names>
+
+---
+```
+
+This file is the crash-recovery record. If the session is interrupted mid-review, the next session can read this file to understand what was completed.
+
 ### 3. Compose Review Panel
 
 Based on the gate and Principle VIII rigor level, select the review panel.
@@ -119,6 +136,8 @@ do not manufacture findings. The synthesis judge handles noise filtering; better
 
 Wait for ALL reviewers to complete Phase A before proceeding.
 
+**After Phase A completes**: append each reviewer's findings to the state file under a `## Phase A: [Reviewer Name]` heading. Update the `**Phase**` line to `B (cross-examination)`.
+
 #### Phase B: Cross-Examination (Sequential)
 
 After all Phase A findings are collected:
@@ -157,6 +176,8 @@ Respond to the challenges. You may:
 Do NOT simply agree with the devil's advocate to avoid conflict.
 ```
 
+**After Phase B completes**: append the DA challenges and each specialist's Phase B response to the state file under `## Phase B: Devil's Advocate Challenges` and `## Phase B: [Reviewer Name] Response` headings. Update the `**Phase**` line to `C (synthesis)`.
+
 #### Phase C: Synthesis
 
 Spawn the synthesis-judge with ALL outputs from Phase A and Phase B:
@@ -173,6 +194,8 @@ Ensure majority findings, minority dissents, and unresolved items are all preser
 Map unresolved items to LOG file recommendations.
 Map architectural decisions to ADR file recommendations.
 ```
+
+**After Phase C completes**: append the full synthesis report to the state file under a `## Phase C: Synthesis` heading. Update the `**Phase**` line to `complete — awaiting gate decision`.
 
 ### 5. Present Results
 
@@ -204,7 +227,14 @@ Review complete. Options:
 4. OVERRIDE — proceed despite critical findings (documents as accepted risk)
 ```
 
-If OVERRIDE is selected, create a `LOG_NNN_accepted_risk_[feature].md` documenting the decision to proceed despite findings.
+**After the user selects an option**:
+
+- **PROCEED**: Delete the state file at `.specify/review/<feature>-<gate>.md`. The synthesis is durable via any LOG/ADR files created in Step 5.
+- **REVISE**: Leave the state file in place. The next session can read it to understand what was found and what needs to change before re-reviewing.
+- **RE-REVIEW**: Delete the state file (a fresh run will create a new one).
+- **OVERRIDE**: Rename the state file to `.specify/review/<feature>-<gate>-accepted-risk.md` so the rationale is retained alongside the accepted-risk LOG.
+
+If OVERRIDE is selected, also create a `LOG_NNN_accepted_risk_[feature].md` documenting the decision to proceed despite findings.
 
 ## Operating Principles
 
