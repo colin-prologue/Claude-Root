@@ -197,6 +197,66 @@ class TestMemoryRecall:
         assert "c.md" not in source_files, "chunk C must be skipped (stop after first overflow)"
         assert result.get("budget_exhausted") is True
 
+    # --- US3: Summary-Only Recall and Source Filter ---
+
+    def test_recall_summary_only_omits_content(self, tmp_index, fake_embedder):
+        """T015: memory_recall with summary_only=True returns source_file, section, score; no content."""
+        with patched_embed(fake_embedder), patched_index_dir(tmp_index):
+            seed_chunks(tmp_index, fake_embedder, count=3)
+            result = memory_recall(query="content", summary_only=True, min_score=0.0)
+        assert result["total"] > 0
+        for entry in result["results"]:
+            assert "source_file" in entry
+            assert "section" in entry
+            assert "score" in entry
+            assert "content" not in entry
+
+    def test_recall_summary_only_with_max_chars_budget(self, tmp_index, fake_embedder):
+        """T015b: summary_only=True combined with max_chars drops entries and sets budget_exhausted."""
+        from speckit_memory.index import init_table, insert_chunks_batch
+        table = init_table(tmp_index)
+        # Seed 3 chunks; each serialized summary entry is ~25+ chars
+        for i in range(3):
+            insert_chunks_batch(table, [{
+                "id": str(uuid.uuid4()),
+                "content": f"Content block {i}",
+                "vector": fake_embedder(f"block {i}"),
+                "source_file": f"file_{i:02d}.md",
+                "section": f"Section {i}",
+                "type": "adr",
+                "feature": "001",
+                "date": "2026-04-07",
+                "tags": [],
+                "synthetic": False,
+            }])
+        # max_chars=20 forces fewer than 3 summary entries (each entry > 20 chars)
+        with patched_embed(fake_embedder), patched_index_dir(tmp_index):
+            result = memory_recall(query="content", summary_only=True, max_chars=20, min_score=0.0)
+        assert result.get("budget_exhausted") is True
+        assert result["total"] < 3
+
+    def test_recall_filter_source_file_restricts_results(self, tmp_index, fake_embedder):
+        """T017: memory_recall with filter_source_file returns only results from that file."""
+        from speckit_memory.index import init_table, insert_chunks_batch
+        table = init_table(tmp_index)
+        for sf in ["target.md", "other.md"]:
+            insert_chunks_batch(table, [{
+                "id": str(uuid.uuid4()),
+                "content": f"Content from {sf}",
+                "vector": fake_embedder(sf),
+                "source_file": sf,
+                "section": "S",
+                "type": "adr",
+                "feature": "001",
+                "date": "2026-04-07",
+                "tags": [],
+                "synthetic": False,
+            }])
+        with patched_embed(fake_embedder), patched_index_dir(tmp_index):
+            result = memory_recall(query="content", filter_source_file="target.md", min_score=0.0)
+        sources = {r["source_file"] for r in result["results"]}
+        assert sources == {"target.md"}
+
     def test_recall_results_sorted_by_score_descending(self, tmp_index, fake_embedder):
         """Results are ordered by score descending (highest similarity first)."""
         from speckit_memory.index import init_table, insert_chunks_batch
