@@ -144,8 +144,18 @@ def memory_store(
     chunk_id = str(uuid.uuid4())
     source_file = metadata.get("source_file", "synthetic")
 
-    # Non-existent source_file path → synthetic=True
-    is_synthetic = source_file == "synthetic" or not Path(_repo_root() / source_file).exists()
+    if source_file != "synthetic":
+        return {
+            "error": {
+                "code": "INVALID_SOURCE_FILE",
+                "message": (
+                    f"source_file must be 'synthetic'. Got {source_file!r}. "
+                    "Only skill-generated synthetic content may be stored via memory_store. "
+                    "Real source files are indexed via memory_sync."
+                ),
+                "recoverable": True,
+            }
+        }
 
     idx_dir = _index_dir()
     idx_dir.mkdir(parents=True, exist_ok=True)
@@ -161,7 +171,7 @@ def memory_store(
         "feature": metadata.get("feature", ""),
         "date": metadata.get("date", datetime.now(tz=timezone.utc).date().isoformat()),
         "tags": metadata.get("tags", []),
-        "synthetic": is_synthetic,
+        "synthetic": True,
     }
     insert_chunks_batch(table, [chunk])
     maybe_create_index(table)
@@ -218,6 +228,18 @@ def memory_delete(
     table = init_table(idx_dir)
 
     if source_file is not None:
+        if (_repo_root() / source_file).exists():
+            return {
+                "error": {
+                    "code": "PROTECTED_SOURCE_FILE",
+                    "message": (
+                        f"Cannot delete chunks for '{source_file}': the file still exists on disk. "
+                        "Only synthetic chunks or chunks for removed files may be deleted this way. "
+                        "Use memory_sync to re-index changed files."
+                    ),
+                    "recoverable": True,
+                }
+            }
         count = delete_chunks_by_source_file(table, source_file)
         manifest = load_manifest(idx_dir)
         manifest["entries"].pop(source_file, None)

@@ -151,7 +151,7 @@ class TestMemoryStore:
         uuid.UUID(result["id"])
 
     def test_store_nonexistent_source_sets_synthetic_flag(self, tmp_index, fake_embedder, tmp_path):
-        """When source_file does not exist on disk, synthetic is set True."""
+        """T002: memory_store with non-synthetic source_file is rejected with INVALID_SOURCE_FILE."""
         with patched_embed(fake_embedder), patched_index_dir(tmp_index):
             result = memory_store(
                 content="Synthetic content.",
@@ -164,13 +164,25 @@ class TestMemoryStore:
                     "tags": [],
                 },
             )
-        assert result["status"] == "stored"
-        # The stored chunk should have synthetic=True
-        from speckit_memory.index import init_table
-        table = init_table(tmp_index)
-        rows = table.to_pandas()
-        stored = rows[rows["id"] == result["id"]]
-        assert stored.iloc[0]["synthetic"] is True or bool(stored.iloc[0]["synthetic"])
+        assert "error" in result, f"Expected error, got: {result}"
+        assert result["error"]["code"] == "INVALID_SOURCE_FILE"
+
+    def test_store_rejects_non_synthetic_source_file(self, tmp_index, fake_embedder):
+        """T001: memory_store with source_file != 'synthetic' returns INVALID_SOURCE_FILE error."""
+        with patched_embed(fake_embedder), patched_index_dir(tmp_index):
+            result = memory_store(
+                content="A test summary.",
+                metadata={
+                    "source_file": "nonexistent/file.md",
+                    "section": "Summary",
+                    "type": "synthetic",
+                    "feature": "002",
+                    "date": "2026-04-07",
+                    "tags": [],
+                },
+            )
+        assert "error" in result
+        assert result["error"]["code"] == "INVALID_SOURCE_FILE"
 
     def test_stored_chunk_is_queryable(self, tmp_index, fake_embedder):
         """A stored chunk is retrievable in the same session."""
@@ -220,6 +232,27 @@ class TestMemoryDelete:
             )
             result = memory_delete(id=store_r["id"])
         assert result["deleted_chunks"] == 1
+
+    def test_delete_protected_source_file_returns_error(self, tmp_index, fake_embedder, tmp_path):
+        """T003: memory_delete with source_file pointing to existing file returns PROTECTED_SOURCE_FILE."""
+        real_file = tmp_path / "real_file.md"
+        real_file.write_text("# Real file")
+        with patched_embed(fake_embedder), patched_index_dir(tmp_index):
+            with patch("speckit_memory.server._repo_root", return_value=tmp_path):
+                result = memory_delete(source_file="real_file.md")
+        assert "error" in result
+        assert result["error"]["code"] == "PROTECTED_SOURCE_FILE"
+
+    def test_delete_nonexistent_source_file_proceeds(self, tmp_index, fake_embedder, tmp_path):
+        """T004: memory_delete with source_file of a deleted path proceeds with deleted_chunks: 0."""
+        ephemeral = tmp_path / "gone.md"
+        ephemeral.write_text("temp")
+        ephemeral.unlink()
+        with patched_embed(fake_embedder), patched_index_dir(tmp_index):
+            with patch("speckit_memory.server._repo_root", return_value=tmp_path):
+                result = memory_delete(source_file="gone.md")
+        assert "error" not in result
+        assert result["deleted_chunks"] == 0
 
     def test_delete_both_or_neither_returns_invalid_input(self, tmp_index, fake_embedder):
         """Providing both source_file and id, or neither, returns INVALID_INPUT."""
