@@ -1,6 +1,7 @@
 """FastMCP server exposing four memory tools: recall, store, sync, delete."""
 from __future__ import annotations
 
+import json
 import math
 import os
 import sys
@@ -140,25 +141,35 @@ def memory_recall(
         filter_source_file=filter_source_file,
     )
 
+    # T020: summary_only projection runs BEFORE budget enforcement so that max_chars
+    # in summary mode counts serialized entry size, not full content chars (FR-007).
+    if summary_only:
+        results = [
+            {"source_file": r["source_file"], "section": r["section"], "score": r["score"]}
+            for r in results
+        ]
+
     # T012/T013: Stop-at-first-overflow budget enforcement (ADR-022)
     budget_exhausted: bool | None = None
+    truncated_flag: bool = False
     if max_chars is not None:
         packed: list[dict] = []
         chars_remaining = max_chars
-        for chunk in results:
-            chunk_len = len(chunk["content"])
-            if chunk_len <= chars_remaining:
-                packed.append(chunk)
-                chars_remaining -= chunk_len
+        for item in results:
+            item_len = len(json.dumps(item)) if summary_only else len(item["content"])
+            if item_len <= chars_remaining:
+                packed.append(item)
+                chars_remaining -= item_len
             else:
                 budget_exhausted = True
                 break  # stop — do not consider subsequent chunks
 
-        if not packed and results:
-            # Truncation-of-last-resort: first chunk truncated to max_chars
+        if not packed and results and not summary_only:
+            # Truncation-of-last-resort: full-content mode only (FR-004).
+            # Summary entries cannot be truncated; in summary mode return empty with budget_exhausted.
             first = dict(results[0])
             first["content"] = first["content"][:max_chars]
-            first["truncated"] = True
+            truncated_flag = True
             packed = [first]
             budget_exhausted = True
 
@@ -167,13 +178,9 @@ def memory_recall(
 
         results = packed
 
-    # T020: summary_only projection (US3)
+    # T014: token_estimate (ADR-021): content chars in full mode; serialized entry size in summary mode
     if summary_only:
-        results = [
-            {"source_file": r["source_file"], "section": r["section"], "score": r["score"]}
-            for r in results
-        ]
-        total_chars = sum(len(r["source_file"] + r["section"] + str(r["score"])) for r in results)
+        total_chars = sum(len(json.dumps(r)) for r in results)
     else:
         total_chars = sum(len(r["content"]) for r in results)
 
@@ -187,6 +194,8 @@ def memory_recall(
     }
     if budget_exhausted is not None:
         response["budget_exhausted"] = budget_exhausted
+    if truncated_flag:
+        response["truncated"] = True
     return response
 
 

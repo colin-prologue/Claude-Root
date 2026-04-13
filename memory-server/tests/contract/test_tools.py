@@ -115,7 +115,7 @@ class TestMemoryRecall:
             result = memory_recall(query="query text", max_chars=50, min_score=0.0)
         assert len(result["results"]) == 1
         assert len(result["results"][0]["content"]) <= 50
-        assert result["results"][0].get("truncated") is True
+        assert result.get("truncated") is True
         assert result.get("budget_exhausted") is True
 
     def test_recall_without_max_chars_returns_token_estimate(self, tmp_index, fake_embedder):
@@ -212,14 +212,19 @@ class TestMemoryRecall:
             assert "content" not in entry
 
     def test_recall_summary_only_with_max_chars_budget(self, tmp_index, fake_embedder):
-        """T015b: summary_only=True combined with max_chars drops entries and sets budget_exhausted."""
+        """T015b: summary_only=True counts serialized entry size (FR-007), not full content chars.
+
+        Seeds 3 chunks with 300-char content. max_chars=150. Each serialized summary entry is
+        ~65-70 chars (json.dumps of {source_file, section, score}). With summary-based enforcement:
+        entry 0 (~67 chars) + entry 1 (~67 chars) = ~134 chars ≤ 150, entry 2 overflows → total=2.
+        With content-based enforcement (wrong): 300 > 150, no entries fit → total=0 or 1 (truncation).
+        """
         from speckit_memory.index import init_table, insert_chunks_batch
         table = init_table(tmp_index)
-        # Seed 3 chunks; each serialized summary entry is ~25+ chars
         for i in range(3):
             insert_chunks_batch(table, [{
                 "id": str(uuid.uuid4()),
-                "content": f"Content block {i}",
+                "content": "X" * 300,
                 "vector": fake_embedder(f"block {i}"),
                 "source_file": f"file_{i:02d}.md",
                 "section": f"Section {i}",
@@ -229,11 +234,14 @@ class TestMemoryRecall:
                 "tags": [],
                 "synthetic": False,
             }])
-        # max_chars=20 forces fewer than 3 summary entries (each entry > 20 chars)
         with patched_embed(fake_embedder), patched_index_dir(tmp_index):
-            result = memory_recall(query="content", summary_only=True, max_chars=20, min_score=0.0)
+            result = memory_recall(query="content", summary_only=True, max_chars=150, min_score=0.0)
         assert result.get("budget_exhausted") is True
-        assert result["total"] < 3
+        assert result["total"] == 2, (
+            f"Expected 2 summary entries (summary-based budget, ~67 chars each in 150-char budget); "
+            f"got {result['total']}. Budget is likely counting full content chars instead of "
+            "serialized summary entry size."
+        )
 
     def test_recall_filter_source_file_restricts_results(self, tmp_index, fake_embedder):
         """T017: memory_recall with filter_source_file returns only results from that file."""
@@ -326,7 +334,7 @@ class TestMemoryStore:
         uuid.UUID(result["id"])
 
     def test_store_nonexistent_source_sets_synthetic_flag(self, tmp_index, fake_embedder, tmp_path):
-        """T002: memory_store with non-synthetic source_file is rejected with INVALID_SOURCE_FILE."""
+        """T002: memory_store rejects even a nonexistent path — whitelist requires exactly 'synthetic'."""
         with patched_embed(fake_embedder), patched_index_dir(tmp_index):
             result = memory_store(
                 content="Synthetic content.",
@@ -343,12 +351,12 @@ class TestMemoryStore:
         assert result["error"]["code"] == "INVALID_SOURCE_FILE"
 
     def test_store_rejects_non_synthetic_source_file(self, tmp_index, fake_embedder):
-        """T001: memory_store with source_file != 'synthetic' returns INVALID_SOURCE_FILE error."""
+        """T001: memory_store rejects a real-looking ADR path — only 'synthetic' is accepted (FR-001)."""
         with patched_embed(fake_embedder), patched_index_dir(tmp_index):
             result = memory_store(
                 content="A test summary.",
                 metadata={
-                    "source_file": "nonexistent/file.md",
+                    "source_file": ".specify/memory/ADR_008_lancedb-vector-backend.md",
                     "section": "Summary",
                     "type": "synthetic",
                     "feature": "002",
@@ -437,10 +445,11 @@ class TestMemoryDelete:
         assert r_both["error"]["code"] == "INVALID_INPUT"
         assert r_none["error"]["code"] == "INVALID_INPUT"
 
-    def test_delete_missing_file_returns_zero(self, tmp_index, fake_embedder):
+    def test_delete_missing_file_returns_zero(self, tmp_index, fake_embedder, tmp_path):
         """Deleting a file with no indexed chunks returns deleted_chunks: 0."""
         with patched_embed(fake_embedder), patched_index_dir(tmp_index):
-            result = memory_delete(source_file="nonexistent.md")
+            with patch("speckit_memory.server._repo_root", return_value=tmp_path):
+                result = memory_delete(source_file="nonexistent.md")
         assert result["deleted_chunks"] == 0
 
 
