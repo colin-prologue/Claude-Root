@@ -78,3 +78,4 @@ truncated chunk, not an error.
 | Date | Change | Author |
 |---|---|---|
 | 2026-04-09 | Initial record | /speckit.plan |
+| 2026-04-12 | Clarified enforcement semantics: "drop it entirely" means stop-at-first-overflow (`break`), not skip-and-continue. Results are a contiguous top-N score prefix, never a sparse subset. See LOG-026. | /speckit.audit |

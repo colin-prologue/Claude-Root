@@ -10,8 +10,11 @@
 | # | Type | File | Title | Status |
 |---|---|---|---|---|
 | LOG-018 | Question | [LOG_018_index-cleanup-agent.md](../../.specify/memory/LOG_018_index-cleanup-agent.md) | Index cleanup agent deferred to feature 004 | Deferred |
-| ADR-019 | Decision | [ADR_019_whitelist-write-guard.md](../../.specify/memory/ADR_019_whitelist-write-guard.md) | Whitelist write guard (`source_file="synthetic"` only) | Pending |
+| ADR-019 | Decision | [ADR_019_whitelist-write-guard.md](../../.specify/memory/ADR_019_whitelist-write-guard.md) | Whitelist write guard (`source_file="synthetic"` only) | Accepted |
 | LOG-020 | Challenge | [LOG_020_filter-source-file-gap.md](../../.specify/memory/LOG_020_filter-source-file-gap.md) | `filter_source_file` absent from `vector_search()` — added as FR-010 | Open |
+| ADR-024 | Decision | [ADR_024_summary-mode-json-serialization.md](../../.specify/memory/ADR_024_summary-mode-json-serialization.md) | Summary-mode character counting uses `json.dumps()` (not raw field concatenation) | Accepted |
+| LOG-025 | Update | [LOG_025_summary-mode-truncation-disabled.md](../../.specify/memory/LOG_025_summary-mode-truncation-disabled.md) | Truncation-of-last-resort is intentionally disabled in summary mode | Resolved |
+| LOG-026 | Update | [LOG_026_stop-at-first-overflow-semantics.md](../../.specify/memory/LOG_026_stop-at-first-overflow-semantics.md) | ADR-022 language clarified: "drop" means stop-at-first-overflow, not skip-and-continue | Resolved |
 
 ## User Scenarios & Testing *(mandatory)*
 

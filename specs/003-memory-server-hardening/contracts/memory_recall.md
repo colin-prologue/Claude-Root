@@ -121,7 +121,7 @@ Note: `budget_exhausted` is omitted when `max_chars` is not set.
 `token_estimate = ceil(total_content_chars / 4)`
 
 - Full mode: `total_content_chars` = sum of `len(r["content"])` for all returned results
-- Summary mode: `total_content_chars` = sum of `len(r["source_file"] + r["section"] + str(r["score"]))` for all returned summary entries
+- Summary mode: `total_content_chars` = sum of `len(json.dumps(r))` for all returned summary entries (each entry is `{"source_file": ..., "section": ..., "score": ...}`; JSON framing is included in the count)
 - Empty results: `token_estimate = 0`
 
 ### `filter_source_file`
@@ -132,7 +132,7 @@ Combined with any `filters` dict conditions using AND.
 ### Composability
 
 `summary_only` and `max_chars` compose:
-- `max_chars` in summary mode counts serialized entry size (source_file + section + score as JSON string)
+- `max_chars` in summary mode counts `len(json.dumps(entry))` per summary entry (JSON-serialized size, not raw field concatenation)
 - The packing algorithm is the same greedy approach, applied to summary entries instead of full chunks
 
 ---

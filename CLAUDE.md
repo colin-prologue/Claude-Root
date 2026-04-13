@@ -80,13 +80,12 @@ docs/                   # Long-form documentation
 - See `.specify/memory/constitution.md` for full governing principles
 
 ## Recent Changes
-- 003-memory-server-hardening: Added Python 3.10+ + FastMCP 2.0+, LanceDB 0.13+, PyArrow, Ollama nomic-embed-tex
-- 003-memory-server-hardening: Added [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
+- 003-memory-server-hardening: Added mutation protection (write/delete guard), caller-controlled token budget (max_chars), summary-only recall mode, and source filter to memory_recall
 - 002-vector-memory-mcp: Added Python 3.10+ + FastMCP (MCP server framework), LanceDB (vector DB), ollama (embedding — global system install, no cloud API required)
 
 <!-- Update this as features are completed -->
 
 
 ## Active Technologies
-- Python 3.10+ + FastMCP 2.0+, LanceDB 0.13+, PyArrow, Ollama nomic-embed-tex (003-memory-server-hardening)
+- Python 3.10+ + FastMCP 2.0+, LanceDB 0.13+, PyArrow, Ollama nomic-embed-text (003-memory-server-hardening)
 - LanceDB embedded (`.specify/memory/.index/chunks.lance/`) — no schema changes (003-memory-server-hardening)
