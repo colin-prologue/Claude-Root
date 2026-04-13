@@ -1,0 +1,151 @@
+# Implementation Plan: Memory Server Hardening
+
+**Branch**: `003-memory-server-hardening` | **Date**: 2026-04-09 | **Spec**: [spec.md](spec.md)
+**Input**: Feature specification from `specs/003-memory-server-hardening/spec.md`
+
+## Summary
+
+Harden the `speckit-memory` MCP server with three independent improvements:
+(P1) mutation protection — `memory_store` write guard (whitelist: `source_file="synthetic"` only)
+and `memory_delete` delete guard (reject path-based deletes where the file exists on disk);
+(P2) token budget control — `max_chars` parameter for `memory_recall` with greedy packing,
+`budget_exhausted` flag, truncation-of-last-resort, and `token_estimate` in every response;
+(P3) summary-only recall — `summary_only` mode returning `{source_file, section, score}` without
+chunk content, and `filter_source_file` for targeted second-pass retrieval.
+
+All changes are confined to `server.py` (tool logic) and `index.py` (vector search layer).
+No schema changes to the LanceDB table. No new dependencies.
+
+## Decision Records
+
+| # | Type | File | Title | Status |
+|---|---|---|---|---|
+| LOG-018 | Question | [LOG_018_index-cleanup-agent.md](../../.specify/memory/LOG_018_index-cleanup-agent.md) | Index cleanup agent deferred to feature 004 | Deferred |
+| ADR-019 | Decision | [ADR_019_whitelist-write-guard.md](../../.specify/memory/ADR_019_whitelist-write-guard.md) | Whitelist write guard (`source_file="synthetic"` only) | Accepted |
+| LOG-020 | Challenge | [LOG_020_filter-source-file-gap.md](../../.specify/memory/LOG_020_filter-source-file-gap.md) | `filter_source_file` absent from `vector_search()` — added as FR-010 | Resolved |
+| ADR-021 | Decision | [ADR_021_token-estimation-heuristic.md](../../.specify/memory/ADR_021_token-estimation-heuristic.md) | Token estimation heuristic (`chars / 4`) | Accepted |
+| ADR-022 | Decision | [ADR_022_budget-enforcement-algorithm.md](../../.specify/memory/ADR_022_budget-enforcement-algorithm.md) | Budget enforcement algorithm (greedy top-down packing) | Accepted |
+| ADR-023 | Decision | [ADR_023_delete-guard-path-resolution.md](../../.specify/memory/ADR_023_delete-guard-path-resolution.md) | Delete guard path resolution via `_repo_root()` anchor | Accepted |
+
+## Technical Context
+
+**Language/Version**: Python 3.10+
+**Primary Dependencies**: FastMCP 2.0+, LanceDB 0.13+, PyArrow, Ollama nomic-embed-text
+**Storage**: LanceDB embedded (`.specify/memory/.index/chunks.lance/`) — no schema changes
+**Testing**: pytest + pytest-asyncio; fake embedder fixture (no Ollama required for unit/contract)
+**Target Platform**: Local MCP server, macOS / Linux
+**Project Type**: Library / MCP server
+**Performance Goals**: N/A — local server, single-user, ADR-scale corpus (50–200 chunks)
+**Constraints**: No new PyPI dependencies; all new parameters backward-compatible (FR-008)
+**Scale/Scope**: max_chars enforcement on ≤20 chunks (min(top_k, 20)); O(n) budget algorithm sufficient
+
+## Constitution Check
+
+*Pre-implementation gate — all passes required before tasks.md is generated.*
+
+- [x] **Pass 1 — Assumptions challenged**:
+  - Assumption: `chars/4` is accurate enough — confirmed, SC-003 accepts ≤20% error (ADR-021)
+  - Assumption: LanceDB `where()` supports `source_file =` filter — confirmed, identical pattern to existing `filter_type`
+  - Assumption: single PR under 300 LOC — research.md estimates ~200 LOC; verified
+  - Assumption: delete guard on `source_file="synthetic"` would never fire — correct, `"synthetic"` does not exist as a path on disk
+- [x] **Pass 2 — Research verified**: no new technology; all algorithmic decisions consistent with spec (ADR-021, 022, 023); LanceDB `where()` pattern proven in existing code
+- [x] **Pass 3 — Riskiest decision validated**: the truncation-of-last-resort edge case (FR-004) — a `max_chars` smaller than any single chunk returns one truncated chunk, not an error. This is uncommon but specified. Requires an explicit test.
+
+- [x] Principle I: Spec approved; ADRs from spec review (ADR-019, LOG-018, LOG-020) already written
+- [x] Principle II: No speculative abstractions — all changes implement named FRs; no helpers for one-time ops
+- [x] Principle III: TDD — contract tests written before implementation code in each task
+- [x] Principle IV: P1 (guards) is independently deliverable; P2 (budget) does not depend on P3 (summary_only)
+- [x] PR Policy: ~200 LOC estimated; single PR planned
+
+## Project Structure
+
+### Documentation (this feature)
+
+```text
+specs/003-memory-server-hardening/
+├── plan.md              # This file
+├── research.md          # Phase 0 — algorithmic decisions, LOC estimate
+├── data-model.md        # Response envelope changes, guard validation rules
+├── contracts/
+│   ├── memory_recall.md # Updated tool contract with new parameters + response fields
+│   ├── memory_store.md  # Write guard contract
+│   └── memory_delete.md # Delete guard contract
+└── tasks.md             # Generated by /speckit.tasks (next step)
+```
+
+### Source Code
+
+```text
+memory-server/
+  speckit_memory/
+    server.py           # All tool logic changes:
+    │                   #   memory_store: write guard (replace is_synthetic logic)
+    │                   #   memory_delete: delete guard (filesystem existence check)
+    │                   #   memory_recall: max_chars packing, token_estimate,
+    │                   #                  summary_only projection, filter_source_file param
+    index.py            # vector_search(): add filter_source_file kwarg + WHERE clause
+
+  tests/
+    contract/
+      test_tools.py     # Updated: write guard, delete guard, max_chars, summary_only,
+    │                   #          filter_source_file, token_estimate tests
+    unit/
+      test_index.py     # Updated: filter_source_file in vector_search()
+    integration/
+      test_fault_scenarios.py   # May extend for guard rejection scenarios
+```
+
+**Structure Decision**: Existing single-project layout retained; no new modules, no new files
+in `speckit_memory/`. All changes are in-place modifications to `server.py` and `index.py`.
+
+## Implementation Approach by Story
+
+### P1 — Mutation Protection (US1)
+
+**Write guard** (`server.py` — `memory_store`):
+- Replace the `is_synthetic` logic (lines 148–149) with a strict whitelist check:
+  ```python
+  if source_file != "synthetic":
+      return {"error": {"code": "INVALID_SOURCE_FILE", ...}}
+  ```
+- Remove the filesystem existence branch — it is no longer needed.
+
+**Delete guard** (`server.py` — `memory_delete`):
+- Add a pre-delete check for `source_file` path deletes:
+  ```python
+  if source_file is not None:
+      resolved = _repo_root() / source_file
+      if resolved.exists():
+          return {"error": {"code": "PROTECTED_SOURCE_FILE", ...}}
+  ```
+- Id-based deletes (the `else` branch) are unaffected.
+
+### P2 — Token Budget Control (US2)
+
+**`memory_recall` parameter additions** (`server.py`):
+- Add `max_chars: int | None = None` parameter to `memory_recall`
+- After `vector_search()` returns results, apply budget enforcement:
+  1. If `max_chars` is None: pass results through unchanged
+  2. Greedy packing loop: accumulate results while `chars_remaining > 0`; drop chunks that exceed remaining budget; set `budget_exhausted = True` if any chunk dropped
+  3. Truncation-of-last-resort: if `results` is empty after packing (all chunks too large), include first result with `content[:max_chars]`, set `truncated = True` and `budget_exhausted = True`
+- Add `token_estimate` computation: `ceil(total_content_chars / 4)`
+- Return updated response with `token_estimate` always; `budget_exhausted` only when `max_chars` set
+
+### P3 — Summary-Only Recall and Source Filter (US3)
+
+**`filter_source_file` parameter** (`index.py` — `vector_search()`):
+- Add `filter_source_file: str | None = None` parameter
+- If set, append `source_file = '...'` WHERE condition (same pattern as `filter_type`)
+
+**`filter_source_file` wiring** (`server.py` — `memory_recall`):
+- Add `filter_source_file: str | None = None` parameter
+- Pass through to `vector_search()`
+
+**`summary_only` projection** (`server.py` — `memory_recall`):
+- Add `summary_only: bool = False` parameter
+- If True: project results to `{source_file, section, score}` after vector search; exclude `content`
+- `token_estimate` in summary mode counts serialized entry chars (source_file + section + score string)
+
+## Complexity Tracking
+
+No constitution violations. All complexity in this feature is directly required by named FRs.

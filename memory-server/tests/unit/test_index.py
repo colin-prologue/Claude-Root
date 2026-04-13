@@ -133,6 +133,18 @@ class TestDeleteBySourceFile:
         assert deleted == 0
 
 
+class TestFilterSourceFile:
+    """T016: vector_search with filter_source_file returns only matching chunks."""
+
+    def test_filter_source_file_restricts_results(self, tmp_index, fake_embedder):
+        table = init_table(tmp_index)
+        for i, sf in enumerate(["file_a.md", "file_b.md"]):
+            insert_chunks_batch(table, [make_chunk(source_file=sf, section=f"S{i}", idx=i, fake_embed=fake_embedder)])
+        results = vector_search(table, fake_embedder("dummy"), top_k=10, min_score=0.0, filter_source_file="file_a.md")
+        sources = {r["source_file"] for r in results}
+        assert sources == {"file_a.md"}, f"Expected only file_a.md, got {sources}"
+
+
 class TestScoreFormula:
     """Verify that LanceDB returns L2-squared (not plain L2) in _distance for brute-force search.
 

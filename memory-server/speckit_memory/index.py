@@ -144,6 +144,7 @@ def vector_search(
     filter_type: str | None = None,
     filter_feature: str | None = None,
     filter_tags: list[str] | None = None,
+    filter_source_file: str | None = None,
 ) -> list[dict[str, Any]]:
     """Perform vector similarity search with optional metadata pre-filter.
 
@@ -162,6 +163,8 @@ def vector_search(
     if filter_tags:
         for tag in filter_tags:
             conditions.append(f"array_has(tags, '{_sql_escape(tag)}')")
+    if filter_source_file:
+        conditions.append(f"source_file = '{_sql_escape(filter_source_file)}'")
     if conditions:
         q = q.where(" AND ".join(conditions))
 

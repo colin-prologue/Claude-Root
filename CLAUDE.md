@@ -80,13 +80,12 @@ docs/                   # Long-form documentation
 - See `.specify/memory/constitution.md` for full governing principles
 
 ## Recent Changes
+- 003-memory-server-hardening: Added mutation protection (write/delete guard), caller-controlled token budget (max_chars), summary-only recall mode, and source filter to memory_recall
 - 002-vector-memory-mcp: Added Python 3.10+ + FastMCP (MCP server framework), LanceDB (vector DB), ollama (embedding — global system install, no cloud API required)
-- 2026-04-03: Added `/speckit.review-profile` command — runs adversarial review against benchmark fixture with Panel Efficiency Report; supports `--compare` mode for FULL/STANDARD/LIGHTWEIGHT comparison
-- 2026-04-03: Added benchmark fixture at `specs/000-review-benchmark/fixture/` (spec.md, plan.md, tasks.md), scoring key at `specs/000-review-benchmark/benchmark-key.md`, and run reports at `specs/000-review-benchmark/runs/`
 
 <!-- Update this as features are completed -->
 
 
 ## Active Technologies
-- Python 3.10+ + FastMCP (MCP server framework), LanceDB (vector DB), Ollama nomic-embed-text (sole embedding backend — local, no cloud API) (002-vector-memory-mcp)
-- LanceDB embedded (`.specify/memory/.index/chunks.lance/`) + JSON manifest (`.specify/memory/.index/manifest.json`) — both gitignored (002-vector-memory-mcp); embeddings via Ollama nomic-embed-text (768 dims, local, no API key)
+- Python 3.10+ + FastMCP 2.0+, LanceDB 0.13+, PyArrow, Ollama nomic-embed-text (003-memory-server-hardening)
+- LanceDB embedded (`.specify/memory/.index/chunks.lance/`) — no schema changes (003-memory-server-hardening)

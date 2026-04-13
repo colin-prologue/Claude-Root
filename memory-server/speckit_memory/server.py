@@ -1,6 +1,8 @@
 """FastMCP server exposing four memory tools: recall, store, sync, delete."""
 from __future__ import annotations
 
+import json
+import math
 import os
 import sys
 import uuid
@@ -101,8 +103,20 @@ def memory_recall(
     top_k: int = 5,
     min_score: float = 0.5,
     filters: dict | None = None,
+    max_chars: int | None = None,
+    filter_source_file: str | None = None,
+    summary_only: bool = False,
 ) -> dict[str, Any]:
     """Semantically search the index and return the most relevant chunks."""
+    if max_chars is not None and max_chars <= 0:
+        return {
+            "error": {
+                "code": "INVALID_INPUT",
+                "message": "max_chars must be a positive integer.",
+                "recoverable": True,
+            }
+        }
+
     _ensure_init()
 
     try:
@@ -124,8 +138,65 @@ def memory_recall(
         filter_type=f.get("type"),
         filter_feature=f.get("feature"),
         filter_tags=f.get("tags"),
+        filter_source_file=filter_source_file,
     )
-    return {"results": results, "total": len(results)}
+
+    # T020: summary_only projection runs BEFORE budget enforcement so that max_chars
+    # in summary mode counts serialized entry size, not full content chars (FR-007).
+    if summary_only:
+        results = [
+            {"source_file": r["source_file"], "section": r["section"], "score": r["score"]}
+            for r in results
+        ]
+
+    # T012/T013: Stop-at-first-overflow budget enforcement (ADR-022)
+    budget_exhausted: bool | None = None
+    truncated_flag: bool = False
+    if max_chars is not None:
+        packed: list[dict] = []
+        chars_remaining = max_chars
+        for item in results:
+            item_len = len(json.dumps(item)) if summary_only else len(item["content"])
+            if item_len <= chars_remaining:
+                packed.append(item)
+                chars_remaining -= item_len
+            else:
+                budget_exhausted = True
+                break  # stop — do not consider subsequent chunks
+
+        if not packed and results and not summary_only:
+            # Truncation-of-last-resort: full-content mode only (FR-004).
+            # Summary entries cannot be truncated; in summary mode return empty with budget_exhausted.
+            first = dict(results[0])
+            first["content"] = first["content"][:max_chars]
+            truncated_flag = True
+            packed = [first]
+            budget_exhausted = True
+
+        if budget_exhausted is None:
+            budget_exhausted = False
+
+        results = packed
+
+    # T014: token_estimate (ADR-021): content chars in full mode; serialized entry size in summary mode
+    if summary_only:
+        total_chars = sum(len(json.dumps(r)) for r in results)
+    else:
+        total_chars = sum(len(r["content"]) for r in results)
+
+    # T014: token_estimate always present (ADR-021)
+    token_estimate = math.ceil(total_chars / 4)
+
+    response: dict[str, Any] = {
+        "results": results,
+        "total": len(results),
+        "token_estimate": token_estimate,
+    }
+    if budget_exhausted is not None:
+        response["budget_exhausted"] = budget_exhausted
+    if truncated_flag:
+        response["truncated"] = True
+    return response
 
 
 @mcp.tool()
@@ -144,8 +215,18 @@ def memory_store(
     chunk_id = str(uuid.uuid4())
     source_file = metadata.get("source_file", "synthetic")
 
-    # Non-existent source_file path → synthetic=True
-    is_synthetic = source_file == "synthetic" or not Path(_repo_root() / source_file).exists()
+    if source_file != "synthetic":
+        return {
+            "error": {
+                "code": "INVALID_SOURCE_FILE",
+                "message": (
+                    f"source_file must be 'synthetic'. Got {source_file!r}. "
+                    "Only skill-generated synthetic content may be stored via memory_store. "
+                    "Real source files are indexed via memory_sync."
+                ),
+                "recoverable": True,
+            }
+        }
 
     idx_dir = _index_dir()
     idx_dir.mkdir(parents=True, exist_ok=True)
@@ -161,7 +242,7 @@ def memory_store(
         "feature": metadata.get("feature", ""),
         "date": metadata.get("date", datetime.now(tz=timezone.utc).date().isoformat()),
         "tags": metadata.get("tags", []),
-        "synthetic": is_synthetic,
+        "synthetic": True,
     }
     insert_chunks_batch(table, [chunk])
     maybe_create_index(table)
@@ -218,6 +299,18 @@ def memory_delete(
     table = init_table(idx_dir)
 
     if source_file is not None:
+        if (_repo_root() / source_file).exists():
+            return {
+                "error": {
+                    "code": "PROTECTED_SOURCE_FILE",
+                    "message": (
+                        f"Cannot delete chunks for '{source_file}': the file still exists on disk. "
+                        "Only synthetic chunks or chunks for removed files may be deleted this way. "
+                        "Use memory_sync to re-index changed files."
+                    ),
+                    "recoverable": True,
+                }
+            }
         count = delete_chunks_by_source_file(table, source_file)
         manifest = load_manifest(idx_dir)
         manifest["entries"].pop(source_file, None)
