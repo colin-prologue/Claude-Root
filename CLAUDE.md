@@ -80,6 +80,7 @@ docs/                   # Long-form documentation
 - See `.specify/memory/constitution.md` for full governing principles
 
 ## Recent Changes
+- 005-sync-stale-cleanup: Fixed scoped-sync mass-deletion bug (FR-001a), chunk-count bug in `deleted` stat (FR-008), hardened `find_deleted` against malformed/synthetic manifest keys (FR-007), added direct-exists safety check (ADR-030)
 - 003-memory-server-hardening: Added mutation protection (write/delete guard), caller-controlled token budget (max_chars), summary-only recall mode, and source filter to memory_recall
 - 002-vector-memory-mcp: Added Python 3.10+ + FastMCP (MCP server framework), LanceDB (vector DB), ollama (embedding — global system install, no cloud API required)
 
@@ -87,5 +88,4 @@ docs/                   # Long-form documentation
 
 
 ## Active Technologies
-- Python 3.10+ + FastMCP 2.0+, LanceDB 0.13+, PyArrow, Ollama nomic-embed-text (003-memory-server-hardening)
-- LanceDB embedded (`.specify/memory/.index/chunks.lance/`) — no schema changes (003-memory-server-hardening)
+- LanceDB embedded (`.specify/memory/.index/chunks.lance/`) + `manifest.json` (005-sync-stale-cleanup)
