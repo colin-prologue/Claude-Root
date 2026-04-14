@@ -115,3 +115,81 @@ def test_unchanged_file_sync_under_500ms(tmp_repo, tmp_index):
     assert result["duration_ms"] < 500, (
         f"Clean sync took {result['duration_ms']}ms, expected < 500ms"
     )
+
+
+@pytest.mark.integration
+def test_scoped_sync_does_not_delete_absent_files(tmp_index, tmp_path):
+    """FR-001a end-to-end: scoped sync must not delete chunks from out-of-scope files."""
+    memory_dir = tmp_path / ".specify" / "memory"
+    memory_dir.mkdir(parents=True)
+
+    adr_keep = memory_dir / "ADR_001_keep.md"
+    adr_delete = memory_dir / "ADR_002_delete.md"
+    adr_keep.write_text(
+        "# Keep\n\nThis ADR documents a decision that should remain indexed after a scoped sync. "
+        "It contains enough text to form a real chunk.\n"
+    )
+    adr_delete.write_text(
+        "# Delete\n\nThis ADR will be removed from disk before the scoped sync runs. "
+        "Its chunks must survive the scoped sync targeting the other file.\n"
+    )
+
+    # Full sync — both files indexed
+    run_sync(tmp_index, tmp_path, embed_fn, OLLAMA_MODEL)
+
+    # Delete adr_delete from disk
+    adr_delete.unlink()
+
+    # Scoped sync targeting only adr_keep
+    rel_keep = str(adr_keep.relative_to(tmp_path))
+    result = run_sync(tmp_index, tmp_path, embed_fn, OLLAMA_MODEL, paths=[rel_keep])
+
+    assert result["deleted"] == 0, (
+        f"Scoped sync must not delete out-of-scope chunks, got deleted={result['deleted']}"
+    )
+
+    table = init_table(tmp_index)
+    rows = table.to_pandas()
+    rel_delete = str(adr_delete.relative_to(tmp_path))
+    surviving = rows[rows["source_file"] == rel_delete]
+    assert len(surviving) > 0, "adr_delete chunks must still be in index after scoped sync"
+
+
+@pytest.mark.integration
+def test_deleted_count_matches_actual_chunks_removed(tmp_index, tmp_path):
+    """FR-008 end-to-end: deleted count must equal actual row count delta in LanceDB."""
+    memory_dir = tmp_path / ".specify" / "memory"
+    memory_dir.mkdir(parents=True)
+
+    adr = memory_dir / "ADR_001_multi.md"
+    adr.write_text(
+        "# Root\n\nPreamble with enough content to form an independent chunk in the indexer.\n\n"
+        "## Section A\n\nFirst section with sufficient prose to exceed the minimum chunk threshold "
+        "and form its own embedding chunk in the LanceDB index.\n\n"
+        "## Section B\n\nSecond section with sufficient prose to exceed the minimum chunk threshold "
+        "and form its own embedding chunk in the LanceDB index.\n\n"
+        "## Section C\n\nThird section with sufficient prose to exceed the minimum chunk threshold "
+        "and form its own embedding chunk in the LanceDB index.\n"
+    )
+
+    run_sync(tmp_index, tmp_path, embed_fn, OLLAMA_MODEL)
+
+    table = init_table(tmp_index)
+    rows_before = table.count_rows()
+    rel = str(adr.relative_to(tmp_path))
+    rows_df = table.to_pandas()
+    chunk_count = len(rows_df[rows_df["source_file"] == rel])
+    assert chunk_count > 1, f"Expected >1 chunks, got {chunk_count}"
+
+    adr.unlink()
+    result = run_sync(tmp_index, tmp_path, embed_fn, OLLAMA_MODEL)
+
+    rows_after = init_table(tmp_index).count_rows()
+    actual_removed = rows_before - rows_after
+
+    assert result["deleted"] == actual_removed, (
+        f"deleted={result['deleted']} must equal actual rows removed={actual_removed}"
+    )
+    assert result["deleted"] == chunk_count, (
+        f"deleted={result['deleted']} must equal chunk count={chunk_count}"
+    )

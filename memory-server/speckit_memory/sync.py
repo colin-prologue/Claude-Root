@@ -242,9 +242,16 @@ def classify_files(
 
 
 def find_deleted(manifest: dict, files: list[Path], repo_root: Path) -> list[str]:
-    """Return relative paths present in manifest but absent from filesystem."""
+    """Return relative paths present in manifest but absent from filesystem.
+
+    Empty-string keys and the reserved "synthetic" key are excluded — they are
+    never real source files and must not trigger deletion (FR-007).
+    """
     indexed_rel = {str(f.relative_to(repo_root)) for f in files}
-    return [rel for rel in manifest.get("entries", {}) if rel not in indexed_rel]
+    return [
+        rel for rel in manifest.get("entries", {})
+        if rel and rel != "synthetic" and rel not in indexed_rel
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -264,6 +271,12 @@ def run_sync(
 
     Returns stats dict: {indexed, skipped, deleted, duration_ms, model}.
     """
+    if full and paths:
+        raise ValueError(
+            "full=True and paths cannot be used together — a full rebuild drops and "
+            "recreates the entire index, making scoped paths meaningless."
+        )
+
     import time
     from speckit_memory.index import (
         init_table, drop_table, load_manifest, save_manifest,
@@ -323,21 +336,34 @@ def run_sync(
 
     # Determine file set
     all_files = crawl_files(repo_root, index_paths_env)
-    if paths:
-        all_files = [f for f in all_files if str(f.relative_to(repo_root)) in paths]
+    # scoped_files drives the add/update pass; all_files drives cleanup so that
+    # a scoped sync never considers out-of-scope files as "deleted" (ADR-027, FR-001a).
+    scoped_files = (
+        [f for f in all_files if str(f.relative_to(repo_root)) in paths]
+        if paths else all_files
+    )
 
-    classified = classify_files(all_files, manifest, repo_root)
-    deleted_rel = find_deleted(manifest, all_files, repo_root)
+    classified = classify_files(scoped_files, manifest, repo_root)
 
     indexed = 0
     skipped = len(classified["unchanged"])
     deleted = 0
 
-    # Purge deleted files (T023)
-    for rel in deleted_rel:
-        delete_chunks_by_source_file(table, rel)
-        manifest["entries"].pop(rel, None)
-        deleted += 1
+    # Cleanup pass — skipped on scoped syncs (ADR-027, FR-001a) and full rebuilds
+    # (full=True drops and recreates the table, so per-file cleanup is a no-op).
+    if not paths and not full:
+        deleted_candidates = find_deleted(manifest, all_files, repo_root)
+        for rel in deleted_candidates:
+            # Conservative safety check (ADR-030): verify the file truly doesn't exist
+            # before deleting. Handles permission errors or glob misses.
+            try:
+                if (repo_root / rel).exists():
+                    continue  # file exists but wasn't crawled — skip
+            except OSError:
+                continue  # cannot check; treat as present (conservative)
+            n = delete_chunks_by_source_file(table, rel)
+            manifest["entries"].pop(rel, None)
+            deleted += n  # chunks removed, not files (FR-008)
 
     # Stale file: delete old chunks then re-embed
     for f in classified["stale"]:
