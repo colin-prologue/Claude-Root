@@ -25,7 +25,7 @@ class TestEmbedError:
         from speckit_memory.server import _embed_error
 
         with pytest.raises(ToolError) as exc_info:
-            _embed_error(ConnectionError("refused"), "nomic-embed-text")
+            raise _embed_error(ConnectionError("refused"), "nomic-embed-text")
         assert "EMBEDDING_UNAVAILABLE" in str(exc_info.value)
 
     def test_os_error_raises_embedding_unavailable(self):
@@ -33,7 +33,7 @@ class TestEmbedError:
         from speckit_memory.server import _embed_error
 
         with pytest.raises(ToolError) as exc_info:
-            _embed_error(OSError("no route to host"), "nomic-embed-text")
+            raise _embed_error(OSError("no route to host"), "nomic-embed-text")
         assert "EMBEDDING_UNAVAILABLE" in str(exc_info.value)
 
     def test_httpx_timeout_raises_embedding_unavailable(self):
@@ -42,7 +42,17 @@ class TestEmbedError:
         from speckit_memory.server import _embed_error
 
         with pytest.raises(ToolError) as exc_info:
-            _embed_error(httpx.TimeoutException("timed out"), "nomic-embed-text")
+            raise _embed_error(httpx.TimeoutException("timed out"), "nomic-embed-text")
+        assert "EMBEDDING_UNAVAILABLE" in str(exc_info.value)
+
+    def test_httpx_read_error_raises_embedding_unavailable(self):
+        """httpx.ReadError (TransportError subclass) must produce EMBEDDING_UNAVAILABLE (S-01)."""
+        import httpx
+        from fastmcp.exceptions import ToolError
+        from speckit_memory.server import _embed_error
+
+        with pytest.raises(ToolError) as exc_info:
+            raise _embed_error(httpx.ReadError("mid-response failure"), "nomic-embed-text")
         assert "EMBEDDING_UNAVAILABLE" in str(exc_info.value)
 
     def test_response_error_404_raises_embedding_model_error(self):
@@ -52,7 +62,7 @@ class TestEmbedError:
 
         exc = ollama_sdk.ResponseError("model not found", 404)
         with pytest.raises(ToolError) as exc_info:
-            _embed_error(exc, "nomic-embed-text")
+            raise _embed_error(exc, "nomic-embed-text")
         assert "EMBEDDING_MODEL_ERROR" in str(exc_info.value)
 
     def test_response_error_non_404_raises_embedding_unavailable(self):
@@ -62,7 +72,7 @@ class TestEmbedError:
 
         exc = ollama_sdk.ResponseError("server error", 500)
         with pytest.raises(ToolError) as exc_info:
-            _embed_error(exc, "nomic-embed-text")
+            raise _embed_error(exc, "nomic-embed-text")
         assert "EMBEDDING_UNAVAILABLE" in str(exc_info.value)
 
     def test_error_message_contains_model_name_on_404(self):
@@ -72,7 +82,7 @@ class TestEmbedError:
 
         exc = ollama_sdk.ResponseError("not found", 404)
         with pytest.raises(ToolError) as exc_info:
-            _embed_error(exc, "my-custom-model")
+            raise _embed_error(exc, "my-custom-model")
         assert "my-custom-model" in str(exc_info.value)
 
     def test_error_message_contains_hint(self):
@@ -80,7 +90,7 @@ class TestEmbedError:
         from speckit_memory.server import _embed_error
 
         with pytest.raises(ToolError) as exc_info:
-            _embed_error(ConnectionError("refused"), "nomic-embed-text")
+            raise _embed_error(ConnectionError("refused"), "nomic-embed-text")
         assert "Hint:" in str(exc_info.value)
 
 
@@ -189,6 +199,21 @@ class TestSummaryOnlyBypass:
 
         def bad_embed(text):
             raise ConnectionError("Ollama down")
+
+        with patch("speckit_memory.server._embed_text", side_effect=bad_embed), \
+             patch("speckit_memory.server._index_dir", return_value=tmp_index), \
+             patch("speckit_memory.server._first_call_done", True):
+            with pytest.raises(ToolError, match="EMBEDDING_UNAVAILABLE"):
+                memory_recall(query="test")
+
+    def test_read_error_caught_by_memory_recall(self, tmp_index):
+        """httpx.ReadError (TransportError subclass not caught before S-01) raises ToolError (S-01)."""
+        import httpx
+        from fastmcp.exceptions import ToolError
+        from speckit_memory.server import memory_recall
+
+        def bad_embed(text):
+            raise httpx.ReadError("mid-response failure")
 
         with patch("speckit_memory.server._embed_text", side_effect=bad_embed), \
              patch("speckit_memory.server._index_dir", return_value=tmp_index), \

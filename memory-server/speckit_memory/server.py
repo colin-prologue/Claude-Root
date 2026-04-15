@@ -154,8 +154,8 @@ def memory_recall(
         # Semantic path — Ollama required
         try:
             query_vec = _embed_text(query)
-        except (ConnectionError, OSError, httpx.TimeoutException, ollama_sdk.ResponseError) as exc:
-            _embed_error(exc, _OLLAMA_MODEL)
+        except (ConnectionError, OSError, httpx.TransportError, ollama_sdk.ResponseError) as exc:
+            raise _embed_error(exc, _OLLAMA_MODEL)
         query_vec = _l2_normalize(query_vec)
         results = vector_search(
             table=table,
@@ -224,11 +224,10 @@ def memory_store(
     metadata: dict,
 ) -> dict[str, Any]:
     """Embed content and store it as a chunk (for skill-generated summaries)."""
-    _ensure_init()
     try:
         raw_vec = _embed_text(content)
-    except (ConnectionError, OSError, httpx.TimeoutException, ollama_sdk.ResponseError) as exc:
-        _embed_error(exc, _OLLAMA_MODEL)
+    except (ConnectionError, OSError, httpx.TransportError, ollama_sdk.ResponseError) as exc:
+        raise _embed_error(exc, _OLLAMA_MODEL)
 
     vec = _l2_normalize(raw_vec)
     chunk_id = str(uuid.uuid4())
@@ -274,7 +273,6 @@ def memory_sync(
     paths: list[str] | None = None,
 ) -> dict[str, Any]:
     """Re-index changed markdown files (or full rebuild if full=True)."""
-    _ensure_init()
     idx_dir = _index_dir()
     idx_dir.mkdir(parents=True, exist_ok=True)
 
@@ -288,8 +286,8 @@ def memory_sync(
             paths=paths,
             index_paths_env=_MEMORY_INDEX_PATH or None,
         )
-    except (ConnectionError, OSError, httpx.TimeoutException, ollama_sdk.ResponseError) as exc:
-        _embed_error(exc, _OLLAMA_MODEL)
+    except (ConnectionError, OSError, httpx.TransportError, ollama_sdk.ResponseError) as exc:
+        raise _embed_error(exc, _OLLAMA_MODEL)
 
 
 @mcp.tool()
@@ -362,19 +360,19 @@ def memory_delete(
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _embed_error(exc: Exception, model: str) -> None:
-    """Raise ToolError with a category-prefixed message. Never returns (ADR-033)."""
+def _embed_error(exc: Exception, model: str) -> ToolError:
+    """Return a categorized ToolError. Callers must use `raise _embed_error(...)` (ADR-033)."""
     if isinstance(exc, ollama_sdk.ResponseError) and getattr(exc, "status_code", None) == 404:
-        raise ToolError(
+        return ToolError(
             f"EMBEDDING_MODEL_ERROR: model '{model}' is not available. "
             f"Hint: run `ollama pull {model}` to download the model."
         )
     if isinstance(exc, httpx.TimeoutException):
-        raise ToolError(
+        return ToolError(
             f"EMBEDDING_UNAVAILABLE: Ollama did not respond within {_OLLAMA_TIMEOUT}s. "
             f"Hint: check that Ollama is running and accessible at {_OLLAMA_BASE_URL}."
         )
-    raise ToolError(
+    return ToolError(
         f"EMBEDDING_UNAVAILABLE: Ollama is not reachable at {_OLLAMA_BASE_URL}. "
         f"Hint: run `ollama serve` to start the embedding service."
     )

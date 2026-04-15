@@ -521,22 +521,36 @@ class TestMemorySyncContract:
                 memory_sync()
 
     def test_sync_paths_limits_crawl_to_specified_files(self, tmp_index, fake_embedder, tmp_path):
-        """memory_sync with paths= restricts crawl to the listed files only."""
-        # Create two real markdown files in a temp repo dir.
+        """memory_sync with paths= restricts embedding to only the listed files (relative paths)."""
+        # Files must be in locations that match DEFAULT_INDEX_GLOBS so crawl_files finds them.
         repo = tmp_path / "repo"
-        repo.mkdir()
-        (repo / "included.md").write_text("# Included\n\nThis file should be indexed.")
-        (repo / "excluded.md").write_text("# Excluded\n\nThis file should be skipped.")
+        memory_dir = repo / ".specify" / "memory"
+        memory_dir.mkdir(parents=True)
+        (memory_dir / "ADR_001_included.md").write_text(
+            "# Included\n\nThis file should be indexed when paths= is specified."
+        )
+        (memory_dir / "ADR_002_excluded.md").write_text(
+            "# Excluded\n\nThis file must NOT be indexed when paths= restricts to ADR_001."
+        )
+
+        included_rel = ".specify/memory/ADR_001_included.md"
+        excluded_rel = ".specify/memory/ADR_002_excluded.md"
 
         with patched_embed(fake_embedder), patched_index_dir(tmp_index):
             with patch("speckit_memory.server._repo_root", return_value=repo):
-                result = memory_sync(paths=[str(repo / "included.md")])
+                result = memory_sync(paths=[included_rel])
 
-        # Only the included file should be processed; excluded.md should not appear.
         assert "error" not in result, f"Unexpected error: {result}"
-        assert result["indexed"] + result["skipped"] <= 1, (
-            f"Expected ≤1 file processed, got indexed={result['indexed']} skipped={result['skipped']}"
+        assert result["indexed"] == 1, (
+            f"Expected exactly 1 file indexed, got {result['indexed']} "
+            f"(scoped sync must restrict to paths= argument)"
         )
+        assert result["skipped"] == 0
+
+        from speckit_memory.index import load_manifest
+        manifest = load_manifest(tmp_index)
+        assert included_rel in manifest["entries"], "Included file must be in manifest"
+        assert excluded_rel not in manifest["entries"], "Excluded file must NOT be in manifest"
 
 
 # ---------------------------------------------------------------------------
