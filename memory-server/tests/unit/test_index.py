@@ -17,6 +17,7 @@ from speckit_memory.index import (
     insert_chunks_batch,
     delete_chunks_by_source_file,
     vector_search,
+    scan_chunks,
 )
 
 
@@ -184,3 +185,90 @@ class TestScoreFormula:
             "This may indicate LanceDB returns plain L2 (not L2²) — fix formula to "
             "1 - (raw_distance ** 2) / 2.0"
         )
+
+
+class TestScanChunks:
+    """T008: scan_chunks covers all filter types, top_k, and edge cases (ADR-037)."""
+
+    def _make_chunk(self, idx, source_file="f.md", section="S", chunk_type="adr",
+                    feature="001", tags=None):
+        return {
+            "id": f"00000000-0000-0000-0000-{idx:012d}",
+            "content": f"Content {idx}",
+            "vector": [0.0] * 768,
+            "source_file": source_file,
+            "section": section,
+            "type": chunk_type,
+            "feature": feature,
+            "date": "2026-04-14",
+            "tags": tags or [],
+            "synthetic": False,
+        }
+
+    def test_returns_rows_up_to_top_k(self, tmp_index):
+        table = init_table(tmp_index)
+        for i in range(5):
+            insert_chunks_batch(table, [self._make_chunk(i)])
+        result = scan_chunks(table, top_k=3)
+        assert len(result) == 3
+
+    def test_empty_table_returns_empty_list(self, tmp_index):
+        table = init_table(tmp_index)
+        result = scan_chunks(table)
+        assert result == []
+
+    def test_filter_type_returns_only_matching(self, tmp_index):
+        table = init_table(tmp_index)
+        insert_chunks_batch(table, [
+            self._make_chunk(0, chunk_type="adr"),
+            self._make_chunk(1, chunk_type="log"),
+            self._make_chunk(2, chunk_type="adr"),
+        ])
+        result = scan_chunks(table, top_k=10, filter_type="adr")
+        assert all(r["type"] == "adr" for r in result)
+        assert len(result) == 2
+
+    def test_filter_feature_returns_only_matching(self, tmp_index):
+        table = init_table(tmp_index)
+        insert_chunks_batch(table, [
+            self._make_chunk(0, feature="001"),
+            self._make_chunk(1, feature="002"),
+        ])
+        result = scan_chunks(table, top_k=10, filter_feature="001")
+        assert all(r["feature"] == "001" for r in result)
+        assert len(result) == 1
+
+    def test_filter_tags_all_must_match(self, tmp_index):
+        table = init_table(tmp_index)
+        insert_chunks_batch(table, [
+            self._make_chunk(0, tags=["alpha", "beta"]),
+            self._make_chunk(1, tags=["beta"]),
+            self._make_chunk(2, tags=["gamma"]),
+        ])
+        result = scan_chunks(table, top_k=10, filter_tags=["beta"])
+        assert len(result) == 2
+        assert all("beta" in (r.get("tags") or []) for r in result)
+
+    def test_filter_source_file_returns_only_matching(self, tmp_index):
+        table = init_table(tmp_index)
+        insert_chunks_batch(table, [
+            self._make_chunk(0, source_file="a.md"),
+            self._make_chunk(1, source_file="b.md"),
+        ])
+        result = scan_chunks(table, top_k=10, filter_source_file="a.md")
+        assert all(r["source_file"] == "a.md" for r in result)
+        assert len(result) == 1
+
+    def test_result_has_no_score_field(self, tmp_index):
+        table = init_table(tmp_index)
+        insert_chunks_batch(table, [self._make_chunk(0)])
+        result = scan_chunks(table, top_k=5)
+        assert len(result) == 1
+        assert "score" not in result[0]
+
+    def test_top_k_truncates_when_more_rows_exist(self, tmp_index):
+        table = init_table(tmp_index)
+        for i in range(10):
+            insert_chunks_batch(table, [self._make_chunk(i)])
+        result = scan_chunks(table, top_k=2)
+        assert len(result) == 2

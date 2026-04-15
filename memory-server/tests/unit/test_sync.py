@@ -241,6 +241,37 @@ def test_full_and_paths_raises(fake_embedder, tmp_path):
                  full=True, paths=["some/file.md"])
 
 
+class TestOllamaEmbedTimeout:
+    """T002: _ollama_embed must pass the timeout value to ollama.Client."""
+
+    def test_timeout_passed_to_client(self):
+        """_ollama_embed constructs ollama.Client with the passed timeout value."""
+        from unittest.mock import patch, MagicMock
+        from speckit_memory.sync import _ollama_embed
+
+        mock_client = MagicMock()
+        mock_client.embed.return_value = {"embeddings": [[0.1] * 768]}
+
+        with patch("ollama.Client", return_value=mock_client) as mock_cls:
+            _ollama_embed("text", "http://localhost:11434", "nomic-embed-text", timeout=5.0)
+
+        mock_cls.assert_called_once_with(host="http://localhost:11434", timeout=5.0)
+
+    def test_default_timeout_is_ten(self):
+        """_ollama_embed uses 10.0 as the default timeout when not specified."""
+        from unittest.mock import patch, MagicMock
+        from speckit_memory.sync import _ollama_embed
+
+        mock_client = MagicMock()
+        mock_client.embed.return_value = {"embeddings": [[0.1] * 768]}
+
+        with patch("ollama.Client", return_value=mock_client) as mock_cls:
+            _ollama_embed("text", "http://localhost:11434", "nomic-embed-text")
+
+        _, kwargs = mock_cls.call_args
+        assert kwargs.get("timeout") == 10.0
+
+
 def test_find_deleted_filters_synthetic_entries():
     """FR-007: find_deleted must exclude 'synthetic' keys from deletion candidates."""
     manifest = {

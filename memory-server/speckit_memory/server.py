@@ -5,12 +5,17 @@ import json
 import math
 import os
 import sys
+import urllib.parse
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+import httpx
+import ollama as ollama_sdk
+
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 
 from speckit_memory.index import (
     delete_chunk_by_id,
@@ -20,6 +25,7 @@ from speckit_memory.index import (
     load_manifest,
     maybe_create_index,
     save_manifest,
+    scan_chunks,
     vector_search,
 )
 from speckit_memory.sync import (
@@ -35,6 +41,7 @@ from speckit_memory.sync import (
 
 _OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
 _OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "nomic-embed-text")
+_OLLAMA_TIMEOUT = float(os.environ.get("OLLAMA_TIMEOUT", "10"))
 _MEMORY_INDEX_PATH = os.environ.get("MEMORY_INDEX_PATH", "")
 
 # Process-lifetime first-call flag (ADR-011 self-init sync)
@@ -59,8 +66,13 @@ def _index_dir() -> Path:
 
 
 def _embed_text(text: str) -> list[float]:
-    """Embed text via Ollama. Raises on network failure."""
-    return _ollama_embed(text, _OLLAMA_BASE_URL, _OLLAMA_MODEL)
+    """Embed text via Ollama. Raises ToolError on config error; propagates network errors."""
+    if urllib.parse.urlparse(_OLLAMA_BASE_URL).scheme not in ("http", "https"):
+        raise ToolError(
+            "EMBEDDING_CONFIG_ERROR: OLLAMA_BASE_URL is not a valid HTTP/HTTPS URL. "
+            "Hint: check the value of the OLLAMA_BASE_URL environment variable."
+        )
+    return _ollama_embed(text, _OLLAMA_BASE_URL, _OLLAMA_MODEL, _OLLAMA_TIMEOUT)
 
 
 def _crawl_files() -> list[Path]:
@@ -72,7 +84,6 @@ def _ensure_init() -> None:
     global _first_call_done
     if _first_call_done:
         return
-    _first_call_done = True
     idx_dir = _index_dir()
     idx_dir.mkdir(parents=True, exist_ok=True)
     try:
@@ -84,9 +95,10 @@ def _ensure_init() -> None:
             full=False,
             index_paths_env=_MEMORY_INDEX_PATH or None,
         )
+        _first_call_done = True  # moved inside try — stays False if sync fails (LOG-035)
     except Exception as exc:
         # Self-init failure is non-fatal — server continues without a fresh index.
-        # Log to stderr so the issue appears in Claude Code's MCP server output.
+        # _first_call_done stays False so the next call will retry (LOG-035).
         print(f"[speckit-memory] WARNING: auto-init sync failed: {exc}", file=sys.stderr)
 
 
@@ -117,37 +129,44 @@ def memory_recall(
             }
         }
 
-    _ensure_init()
+    # LOG-038: skip _ensure_init on summary_only path — post-T007, _ensure_init retries
+    # on every call when Ollama is down, adding ~10s latency to every summary_only call.
+    if not summary_only:
+        _ensure_init()
 
-    try:
-        query_vec = _embed_text(query)
-    except (ConnectionError, OSError) as exc:
-        return _api_unavailable(str(exc))
-
-    query_vec = _l2_normalize(query_vec)
     idx_dir = _index_dir()
     idx_dir.mkdir(parents=True, exist_ok=True)
     table = init_table(idx_dir)
-
     f = filters or {}
-    results = vector_search(
-        table=table,
-        query_vector=query_vec,
-        top_k=min(top_k, 20),
-        min_score=min_score,
-        filter_type=f.get("type"),
-        filter_feature=f.get("feature"),
-        filter_tags=f.get("tags"),
-        filter_source_file=filter_source_file,
-    )
 
-    # T020: summary_only projection runs BEFORE budget enforcement so that max_chars
-    # in summary mode counts serialized entry size, not full content chars (FR-007).
     if summary_only:
-        results = [
-            {"source_file": r["source_file"], "section": r["section"], "score": r["score"]}
-            for r in results
-        ]
+        # ADR-037: table scan — no Ollama, no vector search
+        raw = scan_chunks(
+            table=table,
+            top_k=min(top_k, 20),
+            filter_type=f.get("type"),
+            filter_feature=f.get("feature"),
+            filter_tags=f.get("tags"),
+            filter_source_file=filter_source_file,
+        )
+        results = [{"source_file": r["source_file"], "section": r["section"]} for r in raw]
+    else:
+        # Semantic path — Ollama required
+        try:
+            query_vec = _embed_text(query)
+        except (ConnectionError, OSError, httpx.TimeoutException, ollama_sdk.ResponseError) as exc:
+            _embed_error(exc, _OLLAMA_MODEL)
+        query_vec = _l2_normalize(query_vec)
+        results = vector_search(
+            table=table,
+            query_vector=query_vec,
+            top_k=min(top_k, 20),
+            min_score=min_score,
+            filter_type=f.get("type"),
+            filter_feature=f.get("feature"),
+            filter_tags=f.get("tags"),
+            filter_source_file=filter_source_file,
+        )
 
     # T012/T013: Stop-at-first-overflow budget enforcement (ADR-022)
     budget_exhausted: bool | None = None
@@ -208,8 +227,8 @@ def memory_store(
     _ensure_init()
     try:
         raw_vec = _embed_text(content)
-    except (ConnectionError, OSError) as exc:
-        return _api_unavailable(str(exc))
+    except (ConnectionError, OSError, httpx.TimeoutException, ollama_sdk.ResponseError) as exc:
+        _embed_error(exc, _OLLAMA_MODEL)
 
     vec = _l2_normalize(raw_vec)
     chunk_id = str(uuid.uuid4())
@@ -269,13 +288,8 @@ def memory_sync(
             paths=paths,
             index_paths_env=_MEMORY_INDEX_PATH or None,
         )
-    except (ConnectionError, OSError) as exc:
-        return _api_unavailable(str(exc))
-    except Exception as exc:
-        err_str = str(exc)
-        if "connection" in err_str.lower() or "refused" in err_str.lower():
-            return _api_unavailable(err_str)
-        raise
+    except (ConnectionError, OSError, httpx.TimeoutException, ollama_sdk.ResponseError) as exc:
+        _embed_error(exc, _OLLAMA_MODEL)
 
 
 @mcp.tool()
@@ -284,7 +298,7 @@ def memory_delete(
     id: str | None = None,
 ) -> dict[str, Any]:
     """Remove chunks by source_file (all) or by id (single). Exactly one required."""
-    _ensure_init()
+    # No _ensure_init() — delete never embeds; auto-sync-on-first-call not needed here (LOG-038)
     if (source_file is None) == (id is None):
         return {
             "error": {
@@ -348,14 +362,23 @@ def memory_delete(
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _api_unavailable(detail: str) -> dict[str, Any]:
-    return {
-        "error": {
-            "code": "API_UNAVAILABLE",
-            "message": f"Ollama embedding API unreachable: {detail}",
-            "recoverable": True,
-        }
-    }
+def _embed_error(exc: Exception, model: str) -> None:
+    """Raise ToolError with a category-prefixed message. Never returns (ADR-033)."""
+    if isinstance(exc, ollama_sdk.ResponseError) and getattr(exc, "status_code", None) == 404:
+        raise ToolError(
+            f"EMBEDDING_MODEL_ERROR: model '{model}' is not available. "
+            f"Hint: run `ollama pull {model}` to download the model."
+        )
+    if isinstance(exc, httpx.TimeoutException):
+        raise ToolError(
+            f"EMBEDDING_UNAVAILABLE: Ollama did not respond within {_OLLAMA_TIMEOUT}s. "
+            f"Hint: check that Ollama is running and accessible at {_OLLAMA_BASE_URL}."
+        )
+    raise ToolError(
+        f"EMBEDDING_UNAVAILABLE: Ollama is not reachable at {_OLLAMA_BASE_URL}. "
+        f"Hint: run `ollama serve` to start the embedding service."
+    )
+
 
 
 # ---------------------------------------------------------------------------

@@ -136,6 +136,27 @@ def delete_chunk_by_id(table: Any, chunk_id: str) -> int:
     return before - after
 
 
+def scan_chunks(
+    table: Any,
+    top_k: int = 5,
+    filter_type: str | None = None,
+    filter_feature: str | None = None,
+    filter_tags: list[str] | None = None,
+    filter_source_file: str | None = None,
+) -> list[dict[str, Any]]:
+    """Return chunks via table scan without vector search. Used for summary_only bypass (ADR-037)."""
+    rows = table.to_arrow().to_pylist()
+    if filter_type:
+        rows = [r for r in rows if r.get("type") == filter_type]
+    if filter_feature:
+        rows = [r for r in rows if r.get("feature") == filter_feature]
+    if filter_tags:
+        rows = [r for r in rows if all(t in (r.get("tags") or []) for t in filter_tags)]
+    if filter_source_file:
+        rows = [r for r in rows if r.get("source_file") == filter_source_file]
+    return rows[:top_k]
+
+
 def vector_search(
     table: Any,
     query_vector: list[float],
