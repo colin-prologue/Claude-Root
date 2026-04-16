@@ -200,24 +200,25 @@ class TestMemoryRecall:
     # --- US3: Summary-Only Recall and Source Filter ---
 
     def test_recall_summary_only_omits_content(self, tmp_index, fake_embedder):
-        """T015: memory_recall with summary_only=True returns source_file, section, score; no content."""
-        with patched_embed(fake_embedder), patched_index_dir(tmp_index):
+        """T010b: memory_recall with summary_only=True returns only source_file and section; no content, no score."""
+        with patched_index_dir(tmp_index):
             seed_chunks(tmp_index, fake_embedder, count=3)
             result = memory_recall(query="content", summary_only=True, min_score=0.0)
         assert result["total"] > 0
         for entry in result["results"]:
             assert "source_file" in entry
             assert "section" in entry
-            assert "score" in entry
             assert "content" not in entry
+            assert "score" not in entry
 
     def test_recall_summary_only_with_max_chars_budget(self, tmp_index, fake_embedder):
-        """T015b: summary_only=True counts serialized entry size (FR-007), not full content chars.
+        """T010c: summary_only=True counts serialized entry size (FR-007), not full content chars.
 
-        Seeds 3 chunks with 300-char content. max_chars=150. Each serialized summary entry is
-        ~65-70 chars (json.dumps of {source_file, section, score}). With summary-based enforcement:
-        entry 0 (~67 chars) + entry 1 (~67 chars) = ~134 chars ≤ 150, entry 2 overflows → total=2.
-        With content-based enforcement (wrong): 300 > 150, no entries fit → total=0 or 1 (truncation).
+        Seeds 3 chunks with 300-char content. max_chars=150. Each summary entry is
+        ~53 chars (json.dumps of {source_file, section} — no score field). With
+        summary-based enforcement: entry 0 (~53) + entry 1 (~53) = ~106 ≤ 150,
+        entry 2 would be 159 > 150 → budget_exhausted, total=2.
+        With content-based enforcement (wrong): 300 > 150 → no entries or 1 truncated.
         """
         from speckit_memory.index import init_table, insert_chunks_batch
         table = init_table(tmp_index)
@@ -234,14 +235,27 @@ class TestMemoryRecall:
                 "tags": [],
                 "synthetic": False,
             }])
-        with patched_embed(fake_embedder), patched_index_dir(tmp_index):
+        with patched_index_dir(tmp_index):
             result = memory_recall(query="content", summary_only=True, max_chars=150, min_score=0.0)
         assert result.get("budget_exhausted") is True
         assert result["total"] == 2, (
-            f"Expected 2 summary entries (summary-based budget, ~67 chars each in 150-char budget); "
+            f"Expected 2 summary entries (~53 chars each in 150-char budget); "
             f"got {result['total']}. Budget is likely counting full content chars instead of "
             "serialized summary entry size."
         )
+
+    def test_recall_semantic_raises_tool_error_when_ollama_down(self, tmp_index, fake_embedder):
+        """T010a: memory_recall in semantic mode with Ollama down raises ToolError (ADR-033)."""
+        from fastmcp.exceptions import ToolError
+
+        def bad_embed(text):
+            raise ConnectionError("refused")
+
+        with patch("speckit_memory.server._embed_text", side_effect=bad_embed), \
+             patched_index_dir(tmp_index), \
+             patch("speckit_memory.server._first_call_done", True):
+            with pytest.raises(ToolError, match="EMBEDDING_UNAVAILABLE"):
+                memory_recall(query="test")
 
     def test_recall_filter_source_file_restricts_results(self, tmp_index, fake_embedder):
         """T017: memory_recall with filter_source_file returns only results from that file."""
@@ -367,6 +381,24 @@ class TestMemoryStore:
         assert "error" in result
         assert result["error"]["code"] == "INVALID_SOURCE_FILE"
 
+    def test_store_raises_tool_error_when_ollama_down(self, tmp_index, fake_embedder):
+        """T016a: memory_store with Ollama down raises ToolError (ADR-033 breaking change)."""
+        from fastmcp.exceptions import ToolError
+
+        def bad_embed(text):
+            raise ConnectionError("refused")
+
+        with patch("speckit_memory.server._embed_text", side_effect=bad_embed), \
+             patched_index_dir(tmp_index), \
+             patch("speckit_memory.server._first_call_done", True):
+            with pytest.raises(ToolError, match="EMBEDDING_UNAVAILABLE"):
+                memory_store(
+                    content="Test content",
+                    metadata={"source_file": "synthetic", "section": "S",
+                              "type": "synthetic", "feature": "006",
+                              "date": "2026-04-14", "tags": []},
+                )
+
     def test_stored_chunk_is_queryable(self, tmp_index, fake_embedder):
         """A stored chunk is retrievable in the same session."""
         with patched_embed(fake_embedder), patched_index_dir(tmp_index):
@@ -478,23 +510,47 @@ class TestMemorySyncContract:
         assert result["error"]["code"] == "MODEL_MISMATCH"
         assert result["error"]["recoverable"] is False
 
+    def test_sync_raises_tool_error_when_ollama_down(self, tmp_index, fake_embedder):
+        """T016b: memory_sync with Ollama down raises ToolError (ADR-033 breaking change)."""
+        from fastmcp.exceptions import ToolError
+
+        with patch("speckit_memory.server.run_sync", side_effect=ConnectionError("refused")), \
+             patched_index_dir(tmp_index), \
+             patch("speckit_memory.server._first_call_done", True):
+            with pytest.raises(ToolError, match="EMBEDDING_UNAVAILABLE"):
+                memory_sync()
+
     def test_sync_paths_limits_crawl_to_specified_files(self, tmp_index, fake_embedder, tmp_path):
-        """memory_sync with paths= restricts crawl to the listed files only."""
-        # Create two real markdown files in a temp repo dir.
+        """memory_sync with paths= restricts embedding to only the listed files (relative paths)."""
+        # Files must be in locations that match DEFAULT_INDEX_GLOBS so crawl_files finds them.
         repo = tmp_path / "repo"
-        repo.mkdir()
-        (repo / "included.md").write_text("# Included\n\nThis file should be indexed.")
-        (repo / "excluded.md").write_text("# Excluded\n\nThis file should be skipped.")
+        memory_dir = repo / ".specify" / "memory"
+        memory_dir.mkdir(parents=True)
+        (memory_dir / "ADR_001_included.md").write_text(
+            "# Included\n\nThis file should be indexed when paths= is specified."
+        )
+        (memory_dir / "ADR_002_excluded.md").write_text(
+            "# Excluded\n\nThis file must NOT be indexed when paths= restricts to ADR_001."
+        )
+
+        included_rel = ".specify/memory/ADR_001_included.md"
+        excluded_rel = ".specify/memory/ADR_002_excluded.md"
 
         with patched_embed(fake_embedder), patched_index_dir(tmp_index):
             with patch("speckit_memory.server._repo_root", return_value=repo):
-                result = memory_sync(paths=[str(repo / "included.md")])
+                result = memory_sync(paths=[included_rel])
 
-        # Only the included file should be processed; excluded.md should not appear.
         assert "error" not in result, f"Unexpected error: {result}"
-        assert result["indexed"] + result["skipped"] <= 1, (
-            f"Expected ≤1 file processed, got indexed={result['indexed']} skipped={result['skipped']}"
+        assert result["indexed"] == 1, (
+            f"Expected exactly 1 file indexed, got {result['indexed']} "
+            f"(scoped sync must restrict to paths= argument)"
         )
+        assert result["skipped"] == 0
+
+        from speckit_memory.index import load_manifest
+        manifest = load_manifest(tmp_index)
+        assert included_rel in manifest["entries"], "Included file must be in manifest"
+        assert excluded_rel not in manifest["entries"], "Excluded file must NOT be in manifest"
 
 
 # ---------------------------------------------------------------------------
@@ -542,6 +598,52 @@ def seed_chunks(index_dir, fake_embedder, count=3, chunk_type="adr",
             "synthetic": False,
         })
     insert_chunks_batch(table, chunks)
+
+
+# ---------------------------------------------------------------------------
+# memory_delete — Ollama unavailable (T023)
+# ---------------------------------------------------------------------------
+
+class TestMemoryDeleteOllamaUnavailable:
+    """T023: memory_delete must work without Ollama — delete never requires embedding (FR-008)."""
+
+    def test_delete_by_id_does_not_call_ensure_init(self, tmp_index, fake_embedder, tmp_path):
+        """memory_delete must not call _ensure_init (T023b removes the call)."""
+        ensure_init_called = []
+
+        def mock_ensure_init():
+            ensure_init_called.append(True)
+
+        with patch("speckit_memory.server._ensure_init", side_effect=mock_ensure_init), \
+             patched_index_dir(tmp_index), \
+             patch("speckit_memory.server._repo_root", return_value=tmp_path):
+            # nonexistent source_file — no embedding needed
+            memory_delete(source_file="nonexistent.md")
+
+        assert ensure_init_called == [], "memory_delete must not call _ensure_init (T023b)"
+
+    def test_delete_by_id_succeeds_without_ollama(self, tmp_index):
+        """memory_delete by id works even when _embed_text raises ConnectionError."""
+        from speckit_memory.index import init_table, insert_chunks_batch
+
+        chunk_id = str(uuid.uuid4())
+        table = init_table(tmp_index)
+        insert_chunks_batch(table, [{
+            "id": chunk_id, "content": "Delete me.", "vector": [0.0] * 768,
+            "source_file": "synthetic", "section": "S", "type": "synthetic",
+            "feature": "006", "date": "2026-04-14", "tags": [], "synthetic": True,
+        }])
+
+        def bad_embed(text):
+            raise ConnectionError("Ollama down")
+
+        with patch("speckit_memory.server._embed_text", side_effect=bad_embed), \
+             patched_index_dir(tmp_index), \
+             patch("speckit_memory.server._first_call_done", False):
+            result = memory_delete(id=chunk_id)
+
+        assert "error" not in result
+        assert result["deleted_chunks"] == 1
 
 
 @pytest.fixture

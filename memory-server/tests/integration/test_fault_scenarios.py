@@ -61,9 +61,10 @@ def test_model_mismatch_errors_clearly(tmp_repo, tmp_index):
 
 
 @pytest.mark.integration
-def test_api_unavailable_returns_recoverable_error(tmp_repo, tmp_index):
-    """When Ollama HTTP is unreachable, API_UNAVAILABLE error with recoverable=True."""
+def test_api_unavailable_raises_tool_error(tmp_repo, tmp_index):
+    """When Ollama HTTP is unreachable, memory_sync raises ToolError (ADR-033)."""
     from speckit_memory import server as srv
+    from fastmcp.exceptions import ToolError
 
     def bad_embed(text: str) -> list[float]:
         raise ConnectionRefusedError("Connection refused")
@@ -71,11 +72,144 @@ def test_api_unavailable_returns_recoverable_error(tmp_repo, tmp_index):
     with patch("speckit_memory.server._embed_text", side_effect=bad_embed), \
          patch("speckit_memory.server._index_dir", return_value=tmp_index), \
          patch("speckit_memory.server._first_call_done", True):
-        result = srv.memory_sync()
+        with pytest.raises(ToolError, match="EMBEDDING_UNAVAILABLE"):
+            srv.memory_sync()
 
-    assert "error" in result
-    assert result["error"]["code"] == "API_UNAVAILABLE"
-    assert result["error"]["recoverable"] is True
+
+@pytest.mark.integration
+def test_summary_only_returns_results_without_ollama(tmp_repo, tmp_index):
+    """T011: memory_recall(summary_only=True) returns results even when Ollama is down (US1)."""
+    from speckit_memory.server import memory_recall
+    from speckit_memory.index import init_table, insert_chunks_batch
+    import uuid
+
+    # Seed the index directly — no Ollama needed
+    table = init_table(tmp_index)
+    insert_chunks_batch(table, [
+        {
+            "id": str(uuid.uuid4()),
+            "content": "Decision about vector storage backend.",
+            "vector": [0.0] * 768,
+            "source_file": ".specify/memory/ADR_001_test.md",
+            "section": "Decision",
+            "type": "adr",
+            "feature": "002",
+            "date": "2026-04-14",
+            "tags": [],
+            "synthetic": False,
+        }
+    ])
+
+    def bad_embed(text: str) -> list[float]:
+        raise ConnectionError("Ollama is down")
+
+    with patch("speckit_memory.server._embed_text", side_effect=bad_embed), \
+         patch("speckit_memory.server._index_dir", return_value=tmp_index):
+        result = memory_recall(query="vector storage", summary_only=True)
+
+    assert "error" not in result, f"summary_only must not error with Ollama down: {result}"
+    assert result["total"] >= 1, "Expected at least 1 result from populated index"
+    for entry in result["results"]:
+        assert "source_file" in entry
+        assert "section" in entry
+        assert "content" not in entry
+
+
+@pytest.mark.integration
+def test_semantic_recall_raises_tool_error_within_timeout(tmp_repo, tmp_index):
+    """T012: memory_recall semantic mode raises ToolError when Ollama is down (US1)."""
+    from speckit_memory.server import memory_recall
+    from fastmcp.exceptions import ToolError
+
+    def bad_embed(text: str) -> list[float]:
+        raise ConnectionError("Ollama is down")
+
+    with patch("speckit_memory.server._embed_text", side_effect=bad_embed), \
+         patch("speckit_memory.server._index_dir", return_value=tmp_index), \
+         patch("speckit_memory.server._first_call_done", True):
+        with pytest.raises(ToolError, match="EMBEDDING_UNAVAILABLE"):
+            memory_recall(query="test query")
+
+
+@pytest.mark.integration
+def test_memory_store_raises_tool_error_when_ollama_down(tmp_repo, tmp_index):
+    """T017: memory_store with Ollama not running raises ToolError with EMBEDDING_UNAVAILABLE and Hint."""
+    from speckit_memory.server import memory_store
+    from fastmcp.exceptions import ToolError
+
+    def bad_embed(text: str) -> list[float]:
+        raise ConnectionError("Ollama not running")
+
+    with patch("speckit_memory.server._embed_text", side_effect=bad_embed), \
+         patch("speckit_memory.server._index_dir", return_value=tmp_index), \
+         patch("speckit_memory.server._first_call_done", True):
+        with pytest.raises(ToolError) as exc_info:
+            memory_store(
+                content="Test summary content.",
+                metadata={"source_file": "synthetic", "section": "S",
+                          "type": "synthetic", "feature": "006",
+                          "date": "2026-04-14", "tags": []},
+            )
+
+    error_msg = str(exc_info.value)
+    assert "EMBEDDING_UNAVAILABLE" in error_msg
+    assert "Hint:" in error_msg
+
+
+@pytest.mark.integration
+def test_memory_store_raises_model_error_for_bad_model(tmp_repo, tmp_index):
+    """T018: memory_store with a missing model raises ToolError with EMBEDDING_MODEL_ERROR."""
+    import ollama as ollama_sdk
+    from speckit_memory.server import memory_store
+    from fastmcp.exceptions import ToolError
+
+    def bad_embed(text: str) -> list[float]:
+        raise ollama_sdk.ResponseError("model not found", 404)
+
+    with patch("speckit_memory.server._embed_text", side_effect=bad_embed), \
+         patch("speckit_memory.server._index_dir", return_value=tmp_index), \
+         patch("speckit_memory.server._first_call_done", True):
+        with pytest.raises(ToolError) as exc_info:
+            memory_store(
+                content="Test summary.",
+                metadata={"source_file": "synthetic", "section": "S",
+                          "type": "synthetic", "feature": "006",
+                          "date": "2026-04-14", "tags": []},
+            )
+
+    error_msg = str(exc_info.value)
+    assert "EMBEDDING_MODEL_ERROR" in error_msg
+
+
+@pytest.mark.integration
+def test_partial_sync_does_not_write_manifest_on_embed_failure(tmp_path):
+    """T018b: manifest.json is not updated when embedding fails mid-sync (FR-007, SC-004)."""
+    from speckit_memory.server import memory_sync
+    from speckit_memory.index import load_manifest
+    from fastmcp.exceptions import ToolError
+
+    memory_dir = tmp_path / ".specify" / "memory"
+    memory_dir.mkdir(parents=True)
+    adr = memory_dir / "ADR_001_test.md"
+    adr.write_text("# Decision\n\nContent that will fail to embed.")
+    index_dir = tmp_path / ".index"
+    index_dir.mkdir()
+
+    def always_fails(text: str) -> list[float]:
+        raise ConnectionError("Ollama down")
+
+    with patch("speckit_memory.server._embed_text", side_effect=always_fails), \
+         patch("speckit_memory.server._index_dir", return_value=index_dir), \
+         patch("speckit_memory.server._repo_root", return_value=tmp_path), \
+         patch("speckit_memory.server._first_call_done", True):
+        with pytest.raises(ToolError):
+            memory_sync()
+
+    manifest = load_manifest(index_dir)
+    rel = str(adr.relative_to(tmp_path))
+    assert rel not in manifest["entries"], (
+        "Manifest must not contain entries for files that failed to embed"
+    )
 
 
 @pytest.mark.integration

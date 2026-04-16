@@ -38,6 +38,7 @@ uv run --directory memory-server speckit-memory
 # Environment variables
 # OLLAMA_BASE_URL (default: http://localhost:11434)
 # OLLAMA_MODEL (default: nomic-embed-text)
+# OLLAMA_TIMEOUT (default: 10) — seconds before Ollama calls fail (006-ollama-fallback)
 # MEMORY_INDEX_PATH (default: .specify/memory/ADR_*.md,LOG_*.md,constitution.md + specs/*/spec.md,plan.md)
 ```
 
@@ -80,6 +81,7 @@ docs/                   # Long-form documentation
 - See `.specify/memory/constitution.md` for full governing principles
 
 ## Recent Changes
+- 006-ollama-fallback: Ollama resilience — ToolError raises, configurable timeout (`OLLAMA_TIMEOUT`), summary_only bypass via table scan, `_ensure_init` retry fix
 - 005-sync-stale-cleanup: Fixed scoped-sync mass-deletion bug (FR-001a), chunk-count bug in `deleted` stat (FR-008), hardened `find_deleted` against malformed/synthetic manifest keys (FR-007), added direct-exists safety check (ADR-030)
 - 003-memory-server-hardening: Added mutation protection (write/delete guard), caller-controlled token budget (max_chars), summary-only recall mode, and source filter to memory_recall
 - 002-vector-memory-mcp: Added Python 3.10+ + FastMCP (MCP server framework), LanceDB (vector DB), ollama (embedding — global system install, no cloud API required)

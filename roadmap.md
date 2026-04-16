@@ -3,8 +3,8 @@
 **Project**: ClaudeTest / Speckit Template
 **Owner**: Colin Dwan (Prologue Games)
 **Purpose**: A spec-driven development template with multi-agent adversarial review, optional local vector memory, and bidirectional consistency auditing. Designed to be deployed into any project — every project should be able to use this pattern for scoping, clarifying, building, reviewing, and maintaining its repo.
-**Last Updated**: 2026-04-12
-**Status**: Phase 1 complete. Phase 2 active.
+**Last Updated**: 2026-04-15
+**Status**: Phase 1 complete. Phase 2 active (2 of 3 items done).
 
 ---
 
@@ -30,48 +30,50 @@ Speckit is composed of three independently-deployable components. Projects opt i
 | 001 | review-efficiency-profiler | Done | `/speckit.review-profile` command + `--compare` mode for FULL/STANDARD/LIGHTWEIGHT |
 | 002 | vector-memory-mcp | Done | `speckit-memory` MCP server: `memory_recall`, `memory_store`, `memory_sync`, `memory_delete` |
 | 003 | memory-server-hardening | Done | Mutation guard, caller-controlled token budget, summary-only mode, source filter; ADR-019–024 |
+| 004 | *(skipped — number reserved)* | — | — |
+| 005 | sync-stale-cleanup | Done | Stale chunk cleanup pass in `memory_sync`; fixes scoped-sync mass-deletion (FR-001a) and per-file deleted count (FR-008); ADR-027, ADR-030 |
+| 006 | ollama-fallback | Done | ToolError raises for all Ollama errors, configurable `OLLAMA_TIMEOUT`, `summary_only` bypass via table scan (`scan_chunks`), `_ensure_init` retry fix, `memory_delete` drops init call; ADR-032, ADR-033, ADR-037 |
 
-**ADRs created**: 14 (ADR-001–013, ADR-019, ADR-021–024)
-**LOGs open**: LOG-017 (partially addressed), LOG-020
-**LOGs resolved**: LOG-014, LOG-015, LOG-016, LOG-018 (deferred), LOG-025, LOG-026
+**ADRs created**: 21 (ADR-001–013, ADR-019, ADR-021–024, ADR-027, ADR-030, ADR-032, ADR-033, ADR-037)
+**LOGs open**: LOG-017 (partially addressed), LOG-020, LOG-028 (orphaned chunks, deferred), LOG-029 (de-dupe + synthetic purge, deferred), LOG-031 (005 fast-follows: FF-001 partial error, FF-002 absolute paths), LOG-038 (partial — `memory_delete` question closed; `OLLAMA_TIMEOUT` non-numeric open)
+**LOGs resolved**: LOG-014, LOG-015, LOG-016, LOG-018 (partially resolved by 005), LOG-025, LOG-026, LOG-034, LOG-035, LOG-036 (post-codereview amendment)
 
 ---
 
 ## Phase 2 — Reliability
 *Goal: Make the current single-deployment trustworthy for long-lived real projects.*
 
-### 004 · Index Cleanup Agent
-
-**Summary**: `memory_sync` currently only adds and updates chunks — it never removes chunks for files that have been deleted or renamed. In a long-lived project (50+ ADRs, evolving spec structure), the index accumulates stale chunks that pollute recall results with content that no longer exists on disk.
-
-**What it builds**: A cleanup pass in `memory_sync` that diffs the manifest against the current filesystem state, identifies orphaned chunks (source file no longer exists at indexed path), and deletes them. Should run as part of the normal sync cycle, not as a separate tool call.
-
-**MoSCoW**: Must
-**Effort**: S
-**Key assumption**: The manifest already tracks `source_file` per chunk — cleanup is a manifest diff, not a full re-scan.
-**Depends on**: None
-**Blocked by**: Nothing (LOG-018 explicitly deferred this here)
+### ~~004 · Index Cleanup Agent~~ → Shipped as 005 (see Implementation Summary)
 
 ---
 
-### 005 · Ollama Fallback (Graceful Degradation)
+### ~~006 · Ollama Fallback (Graceful Degradation)~~ → Done (see Implementation Summary)
 
-**Summary**: `memory_recall` returns `API_UNAVAILABLE` when Ollama is unreachable. Any session without Ollama pre-started gets a broken tool — unacceptable for a real project. A BM25/keyword fallback over chunk content would let recall degrade gracefully instead of failing hard.
+**What it built**: `ToolError` replaces `_api_unavailable` return-value dicts for all four tools (ADR-033). `_embed_error` helper with typed error codes (`EMBEDDING_UNAVAILABLE`, `EMBEDDING_MODEL_ERROR`, `EMBEDDING_CONFIG_ERROR`). `OLLAMA_TIMEOUT` env var with 10s default. `memory_recall` restructured: `summary_only` bypasses `_ensure_init` and `_embed_text` entirely via `scan_chunks` table scan (ADR-037). `_ensure_init` flag ordering fixed for retry-on-recovery. `memory_delete` drops `_ensure_init` call. URL validation for non-HTTP/HTTPS schemes (FR-009).
 
-**What it builds**: A fallback search path in `memory_recall`: if the Ollama embedding call fails, fall back to BM25 keyword search over `chunk.content` and `chunk.section`. Returned results include a `degraded: true` flag in the response envelope so callers know the quality is lower.
+**Branch**: `006-ollama-fallback`
 
-**MoSCoW**: Must
+---
+
+### 007 · BM25 Keyword Fallback
+
+**Summary**: After 006, `memory_recall` in semantic mode returns a structured error when Ollama is unavailable — but returns nothing useful. The original roadmap intent for feature 006 was that recall degrades gracefully to keyword search rather than failing. BM25 over `chunk.content` and `chunk.section` would let semantic recall return reduced-quality results instead of an error when Ollama is down. Deferred from 006 per ADR-032.
+
+**What it builds**: A BM25/keyword search path in `memory_recall`: if the Ollama embedding call fails (caught as `ToolError`), fall back to BM25 search over `chunk.content` and `chunk.section`. Returned results include a `degraded: true` flag so callers know quality is lower. Error handling infrastructure from 006 is a prerequisite — the fallback needs a clean error path to fall back *to*.
+
+**MoSCoW**: Must (completes the original 006 promise — tool works offline)
 **Effort**: S–M
-**Key assumption**: BM25 over the LanceDB table is achievable without a separate search index (LanceDB has FTS support; alternatively, simple substring match is sufficient for fallback quality).
-**Depends on**: None
-**Reference**: LOG-017/GAP-1
+**Key assumption**: BM25 over the LanceDB table is achievable without a separate search index. LanceDB has FTS support; alternatively, simple scored substring match over content is sufficient for fallback quality.
+**Depends on**: 006 (ToolError infrastructure — done)
+**Reference**: LOG-017/GAP-1, ADR-032
+**Branch**: `007-bm25-fallback`
 
 ---
 
 ## Phase 3 — Composability
 *Goal: Make speckit deployable into any project, with upgrade support for in-flight projects.*
 
-### 006 · Component Model + Graceful Degradation in Skills
+### 008 · Component Model + Graceful Degradation in Skills
 
 **Summary**: Before building the init CLI, the component boundaries need to be formally defined and the skill layer needs to handle missing components gracefully. Currently, skills implicitly assume `speckit-memory` is always configured. A project using only `speckit-core` would break any skill that calls `memory_recall`.
 
@@ -81,7 +83,9 @@ Speckit is composed of three independently-deployable components. Projects opt i
 - Conditional MCP calls in skills: call `memory_recall` when `speckit-memory` is configured; skip gracefully when not
 - Convention: oracle tools (when present) are called alongside memory tools in plan/review skills
 
-**MoSCoW**: Must (prerequisite for 007)
+**Note (from 006 retro)**: `_ensure_init` was the source of three separate bugs in 006 (LOG-035 flag ordering, LOG-038 retry latency, S-02 double-timeout in write tools). Before building additional init paths in Phase 3, consider a simplification pass on `_ensure_init` — it is now conditionally skipped by multiple tools and its behavior on failure has become non-obvious.
+
+**MoSCoW**: Must (prerequisite for 009)
 **Effort**: S
 **Key assumption**: Skills can check for MCP availability at call time; the Claude Code harness doesn't fail on missing MCP tool references, it just returns an error the skill can handle.
 **Depends on**: Nothing
@@ -89,7 +93,7 @@ Speckit is composed of three independently-deployable components. Projects opt i
 
 ---
 
-### 007 · speckit-init + Upgrade CLI
+### 009 · speckit-init + Upgrade CLI
 
 **Summary**: There is currently no mechanism to start a new project with speckit or to bring an in-flight project up to a newer version. This is the single largest gap between "personal tooling" and "reusable template." The init system must handle three scenarios: fresh project, upgrade of a current-version project, and catch-up of an in-flight project on an older version.
 
@@ -104,17 +108,17 @@ Speckit is composed of three independently-deployable components. Projects opt i
 **MoSCoW**: Must
 **Effort**: L
 **Key assumptions**:
-- Component file ownership is tracked in `.speckit.json` (built in 006)
+- Component file ownership is tracked in `.speckit.json` (built in 008)
 - "In-flight project on older version" means `.speckit.json` is absent or has an older version — upgrade detects this and offers a migration path
 - The CLI is a standalone script (Python or shell), not a published package — packaging for distribution is Phase 5+
-**Depends on**: 006 (component model + manifest format)
+**Depends on**: 008 (component model + manifest format)
 
 ---
 
 ## Phase 4 — Cross-Project Intelligence
 *Goal: Define what speckit offers to external systems; defer joint interface contract until oracle repo is shareable.*
 
-### 008 · Speckit Decision Export Surface
+### 010 · Speckit Decision Export Surface
 
 **Summary**: Speckit accumulates structured decision artifacts (ADRs, LOGs, retro learnings, synthetic memory chunks). An external system like oracle could consume these to build cross-project intelligence — but only if speckit exposes them in a consistent, queryable form. This feature defines speckit's *offer* — independent of how oracle or any other consumer ingests it.
 
@@ -132,7 +136,7 @@ Speckit is composed of three independently-deployable components. Projects opt i
 
 ---
 
-### 009 · Session Handoff Skill
+### 011 · Session Handoff Skill
 
 **Summary**: For async, multi-project workflows, there's no durable "where we left off" record between sessions. The hindsight plugin captures conversation history but not structured project-state summaries. A `/speckit.handoff` skill writes a synthetic chunk summarizing the current session's key decisions, open questions, and next steps — queryable in the next session via `memory_recall`.
 
@@ -152,9 +156,9 @@ Speckit is composed of three independently-deployable components. Projects opt i
 ## Phase 5 — Skills Integration
 *Goal: Close the loop between the memory/oracle layer and the skill layer.*
 
-### 010 · Memory-Aware + Oracle-Aware Skill Upgrades
+### 012 · Memory-Aware + Oracle-Aware Skill Upgrades
 
-**Summary**: The `memory-convention.md` documents a recall-before/store-after pattern for skills, but the actual skill implementations may not consistently follow it. This feature audits and upgrades all speckit skills to: (1) call `memory_recall` before plan/review/task generation, (2) store summaries after, and (3) call oracle tools when configured. The oracle call convention is established here once the joint interface contract (post-008) is defined.
+**Summary**: The `memory-convention.md` documents a recall-before/store-after pattern for skills, but the actual skill implementations may not consistently follow it. This feature audits and upgrades all speckit skills to: (1) call `memory_recall` before plan/review/task generation, (2) store summaries after, and (3) call oracle tools when configured. The oracle call convention is established here once the joint interface contract (post-010) is defined.
 
 **What it builds**:
 - Audit of all `.claude/commands/` skills against the recall-before/store-after convention
@@ -164,8 +168,8 @@ Speckit is composed of three independently-deployable components. Projects opt i
 
 **MoSCoW**: Should
 **Effort**: M
-**Key assumption**: The oracle interface contract is defined before this feature is implemented (depends on 008 + joint interface work).
-**Depends on**: 006 (graceful degradation), 008 (export surface), oracle interface contract
+**Key assumption**: The oracle interface contract is defined before this feature is implemented (depends on 010 + joint interface work).
+**Depends on**: 008 (graceful degradation), 010 (export surface), oracle interface contract
 
 ---
 
@@ -180,6 +184,9 @@ Speckit is composed of three independently-deployable components. Projects opt i
 | CI spec compliance check | Future | Run audit on PR to catch doc-code drift before merge |
 | speckit package distribution | Future | Publish as installable package (npm/pip/homebrew); upgrade via package manager |
 | Constitution diff/migration tool | Future | When upgrading, show a structured diff of principle changes between constitution versions |
+| DB/manifest partial-state fix | research.md Finding 5 (006) | If sync crashes after chunks written to LanceDB but before `save_manifest`, chunks exist in DB without manifest records — re-embedded on next sync, creating duplicates until `full=True` rebuild. Pre-existing issue; deferred LOG never written in 006. |
+| `_ensure_init` simplification | 006 retro | Function caused three separate bugs in one feature (LOG-035, LOG-038, S-02). Now conditionally skipped by multiple tools. Simplification candidate before Phase 3 adds more init paths. |
+| OLLAMA_TIMEOUT non-numeric fallback | LOG-038 / 006 spec | Spec says warn + default on non-numeric value; impl raises `ValueError` at import. Open divergence. |
 
 ---
 
@@ -190,7 +197,7 @@ Speckit is composed of three independently-deployable components. Projects opt i
 | Q1 | What is the right split between speckit-core file ownership and project customization for agent persona files? Users may customize agent prompts — init should not overwrite these. | Phase 3 planning | High |
 | Q2 | Should `speckit upgrade` be non-interactive (dry-run by default, apply with `--apply`) or interactive (prompt per file)? | Phase 3 planning | Medium |
 | Q3 | What is the oracle intake schema? (Blocked on oracle repo access — do not speculate.) | Phase 4 planning | High, blocked |
-| Q4 | Does `/speckit.handoff` auto-trigger at session end via a hook, or is it always user-invoked? | 009 planning | Low |
+| Q4 | Does `/speckit.handoff` auto-trigger at session end via a hook, or is it always user-invoked? | 011 planning | Low |
 
 ---
 
@@ -199,3 +206,5 @@ Speckit is composed of three independently-deployable components. Projects opt i
 | Date | Change | Author |
 |---|---|---|
 | 2026-04-12 | Initial roadmap — drafted post-003 completion; incorporates component model, init+upgrade requirement, and export surface framing | /speckit.retro (stripped-down) |
+| 2026-04-14 | Mark 005 done; reconcile numbering (004 skipped); update ADR/LOG counts; add branch hint for 006 | /speckit.audit post-005 |
+| 2026-04-15 | Mark 006 done; insert 007 BM25 Fallback (deferred from 006 per ADR-032); renumber Phase 3–5 features (008–012); update ADR/LOG counts to 21 ADRs; add `_ensure_init` simplification note to Phase 3/008; add 3 raw idea pool entries (DB partial-state, `_ensure_init`, OLLAMA_TIMEOUT); Phase 2 now 2 of 3 | /speckit.retro post-006 |

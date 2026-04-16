@@ -141,11 +141,11 @@ def chunk_markdown(filename: str, text: str) -> list[dict[str, Any]]:
 # Embedding (T013) + L2 normalisation (T014)
 # ---------------------------------------------------------------------------
 
-def _ollama_embed(text: str, base_url: str, model: str) -> list[float]:
+def _ollama_embed(text: str, base_url: str, model: str, timeout: float = 10.0) -> list[float]:
     """Call Ollama embed API via the ollama SDK and return the raw vector."""
     import ollama
 
-    client = ollama.Client(host=base_url)
+    client = ollama.Client(host=base_url, timeout=timeout)
     response = client.embed(model=model, input=text)
     return response["embeddings"][0]
 
