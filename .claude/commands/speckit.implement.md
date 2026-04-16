@@ -177,6 +177,7 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Provide clear error messages with context for debugging
    - Suggest next steps if implementation cannot proceed
    - **IMPORTANT** For completed tasks, make sure to mark the task off as [X] in the tasks file.
+   - **COMMIT AT EACH PHASE CHECKPOINT (NON-NEGOTIABLE)**: After all tasks in a phase are complete and the phase checkpoint is verified, stage only the files modified or created during that phase's tasks using `git add <file1> <file2> ...` (never `git add -A`), then commit. Use conventional commit format: `feat(NNN): [phase name] — [checkpoint description]` where NNN is the feature number and the description comes from the Checkpoint line in tasks.md. Do not batch multiple phase checkpoints into one commit. This produces granular local history that can be squashed pre-push.
 
 10. Completion validation:
    - Verify all required tasks are completed

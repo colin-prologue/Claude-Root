@@ -11,9 +11,9 @@
 |---|---|---|---|---|
 | 032 | ADR | ADR_032_006-scope-errors-vs-bm25.md | Ollama-down scope: structured errors (006) vs. BM25 fallback (007) | Accepted |
 | 033 | ADR | ADR_033_mcp-error-channel-strategy.md | MCP error channel strategy: raise ToolError, not return-value dicts | Accepted |
-| 034 | LOG | LOG_034_summary-only-ollama-dependency.md | `summary_only` mode does not currently bypass Ollama | Open |
-| 035 | LOG | LOG_035_first-call-done-before-init-success.md | `_ensure_init` sets flag before init succeeds — blocks retry-on-recovery | Open |
-| 036 | LOG | LOG_036_httpx-timeout-exception-catch-gap.md | `httpx.TimeoutException` escapes current catch clauses — FR-004 blocker | Open |
+| 034 | LOG | LOG_034_summary-only-ollama-dependency.md | `summary_only` mode does not currently bypass Ollama | Resolved → plan.md |
+| 035 | LOG | LOG_035_first-call-done-before-init-success.md | `_ensure_init` sets flag before init succeeds — blocks retry-on-recovery | Resolved → plan.md |
+| 036 | LOG | LOG_036_httpx-timeout-exception-catch-gap.md | `httpx.TimeoutException` escapes current catch clauses — FR-004 blocker | Resolved → plan.md (impl uses `httpx.TransportError`) |
 | 038 | LOG | LOG_038_ensure-init-retry-non-embed-tools.md | `_ensure_init` retry-on-every-call adds ~10s latency to `summary_only`/delete after T007 | Open |
 
 ## User Scenarios & Testing *(mandatory)*

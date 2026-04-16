@@ -41,6 +41,12 @@ For areas of disagreement:
 
 ### Step 4: Synthesize Report
 
+**Self-contained context rule**: Every finding in the report must be understandable without prior context. The reader may not have read the code or the feature spec recently. For each finding, always include two blocks immediately after the table row:
+
+> **Context:** [What the current code/spec does] — [what the spec assumes or requires] — [why the gap matters in plain terms]. No assumed familiarity with the codebase, feature history, or prior conversation.
+
+> **Recommendation:** [Specific proposed change — what to add, remove, rewrite, or decide, stated as a concrete action.]
+
 ## Output Format
 
 ```markdown
@@ -52,10 +58,16 @@ For areas of disagreement:
 ### Consensus Findings (agreed by 2+ reviewers)
 | ID | Severity | Finding | Reviewers | Action Required |
 |----|----------|---------|-----------|-----------------|
+| S-1 | ... | ... | ... | ... |
+
+> **Context:** [What the code currently does] — [what the spec assumes] — [why the gap matters in plain terms].
 
 ### Minority Findings (high-signal, raised by 1 reviewer)
 | ID | Severity | Finding | Reviewer | Why It Matters |
 |----|----------|---------|----------|----------------|
+| M-1 | ... | ... | ... | ... |
+
+> **Context:** [What the code currently does] — [what the spec assumes] — [why the gap matters in plain terms].
 
 ### Active Disagreements
 | Topic | Position A (Reviewer) | Position B (Reviewer) | Root Cause | Resolution Path |

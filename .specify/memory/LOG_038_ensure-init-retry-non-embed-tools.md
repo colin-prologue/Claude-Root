@@ -51,5 +51,5 @@ Partially resolved by task amendment. T014 now includes guard: `if not summary_o
 ## Impact
 
 - [x] Tasks revised: T014 (amended to guard `_ensure_init` behind `if not summary_only`)
-- [ ] Tasks revised: T023 — consider adding assertion that `memory_delete` returns within 1s when Ollama is down
-- [ ] Plan updated: plan.md Change 3 pseudocode should reflect the `_ensure_init` guard
+- [x] Tasks revised: T023b removes `_ensure_init()` from `memory_delete` entirely (direct `init_table` call instead) — eliminates the latency concern for delete; timing assertion deferred as won't-add (T023 contract test asserts `_ensure_init` is never called, which is the observable guarantee)
+- [x] Plan updated: plan.md Change 3 pseudocode is superseded by T014 task description, which is the authoritative implementation spec for this change
