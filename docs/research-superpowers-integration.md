@@ -313,6 +313,165 @@ Skip: brainstorming, code review, branch finishing, and auto-activation of overl
 
 ---
 
+## 9. Deep Dive: Implementation Approach Trade-Offs
+
+### 9.1 What You Lose Using Superpowers' Execution Instead of Spec-Kit's
+
+If you replaced `speckit.implement` with superpowers' `executing-plans` or `subagent-driven-development`:
+
+| Spec-Kit Capability Lost | Consequence | Severity |
+|--------------------------|-------------|----------|
+| **ADR Decision Record Gate** (step 5) | No pre-implementation check that all architectural decisions have ADRs. No mid-implementation stopping to create ADRs when new decisions surface. Decisions silently go untracked. | **CRITICAL** |
+| **Extension hooks** (before/after implement) | No `.specify/extensions.yml` integration. Custom pre/post hooks (linting, security scans, memory sync) won't fire. | HIGH |
+| **Checklist gate** (step 2) | No verification that UX/test/security checklists are complete before starting. | HIGH |
+| **Phase-based execution from tasks.md** | Superpowers executes tasks linearly from its own plan format. Loses phase grouping (Setup → Tests → Core → Integration → Polish), [P] parallel markers, and dependency ordering from spec-kit's tasks.md. | HIGH |
+| **Tasks.md checkbox tracking** | Superpowers uses TodoWrite for progress. Spec-Kit marks `[X]` directly in tasks.md — creating a durable, version-controlled progress record visible across sessions. | MEDIUM |
+| **Project setup verification** (step 4) | No auto-detection of .gitignore, .dockerignore, .eslintignore patterns based on tech stack. | LOW |
+| **Completion validation against spec** (step 10) | Spec-Kit validates implemented features match original specification. Superpowers' verification is per-task, not feature-wide. | MEDIUM |
+| **Constitution-aware implementation** | Spec-Kit loads constitution.md and respects rigor calibration throughout. Superpowers has no concept of governance calibration. | HIGH |
+
+### 9.2 What You Gain Using Superpowers' Execution
+
+| Superpowers Capability | Value |
+|------------------------|-------|
+| **Per-task subagent isolation** | Fresh context per task prevents cross-contamination between tasks. Each subagent starts clean with only its task context. |
+| **Two-stage inline review** | Every task gets reviewed for spec compliance THEN code quality before proceeding. Catches bugs per-task rather than per-feature. |
+| **Micro-task granularity** | 2-5 minute tasks with exact code blocks, exact commands, exact expected output. Reduces agent drift. |
+| **Strict TDD with teeth** | RED must fail for the right reason. Code before test = delete and restart. Anti-rationalization patterns. |
+| **Systematic debugging built-in** | 4-phase root cause analysis when things break. |
+| **Verification-before-completion** | Dedicated skill ensuring fixes actually work before marking done. |
+| **Git worktree isolation** | Parallel workspaces without branch switching. |
+
+### 9.3 The Core Tension: Governance vs. Discipline
+
+**Spec-Kit's implementation is governance-oriented**: It asks "are all decisions tracked? are all gates passed? does the output match the spec?" It trusts the agent to write good code but wraps execution in documentation and compliance checks.
+
+**Superpowers' implementation is discipline-oriented**: It asks "did you write the test first? did it fail? did you write the minimum code? did you verify?" It doesn't care about ADRs or checklists but enforces rigorous moment-to-moment coding discipline.
+
+Neither alone is complete. Spec-Kit can produce well-governed code that wasn't actually TDD'd. Superpowers can produce perfectly TDD'd code with zero decision tracking.
+
+---
+
+## 10. File Output Patterns & Cross-Referencing
+
+### 10.1 Where Each System Puts Its Files
+
+| Artifact | Spec-Kit Location | Superpowers Location | Conflict? |
+|----------|-------------------|----------------------|-----------|
+| **Design docs** | `specs/###-feature/spec.md` | `docs/superpowers/specs/YYYY-MM-DD-topic-design.md` | **YES** — parallel design docs with no cross-reference |
+| **Plans** | `specs/###-feature/plan.md` + `tasks.md` | `docs/superpowers/plans/YYYY-MM-DD-feature.md` | **YES** — parallel plans with different granularity |
+| **Decision records** | `.specify/memory/ADR_NNN_*.md`, `LOG_NNN_*.md` | None | No conflict — superpowers doesn't create these |
+| **Research** | `specs/###-feature/research.md` | None | No conflict |
+| **Data model** | `specs/###-feature/data-model.md` | None | No conflict |
+| **Contracts** | `specs/###-feature/contracts/` | None | No conflict |
+| **Progress tracking** | `specs/###-feature/tasks.md` (checkboxes `[X]`) | TodoWrite (ephemeral, in-session only) | Different mechanisms — spec-kit is persistent, superpowers is ephemeral |
+| **Brainstorm artifacts** | `roadmap.md`, `brainstorm-notes.md` | `docs/superpowers/specs/*-design.md` | Different scope, different location |
+| **Git branches** | `###-feature-name` (branch per feature) | Worktree in `.worktrees/` or `~/.config/superpowers/worktrees/` | Different branching models |
+| **Code review output** | Inline report from multi-persona panel | Inline per-task review (not persisted) | Spec-Kit is richer; superpowers is ephemeral |
+| **Memory/recall** | `.specify/memory/.index/` (LanceDB vectors) | None | Unique to spec-kit |
+
+### 10.2 The Cross-Referencing Problem
+
+If both systems run, you get **parallel artifact trees with no links between them**:
+
+```
+specs/006-new-feature/
+  spec.md              ← spec-kit knows about this
+  plan.md              ← spec-kit knows about this
+  tasks.md             ← spec-kit knows about this
+
+docs/superpowers/
+  specs/
+    2026-04-18-new-feature-design.md    ← superpowers knows about this
+  plans/
+    2026-04-18-new-feature.md           ← superpowers knows about this
+```
+
+Neither system reads the other's artifacts. Superpowers' brainstorming skill won't check `specs/006-new-feature/spec.md`. Spec-Kit's `/speckit.implement` won't read `docs/superpowers/plans/*.md`.
+
+### 10.3 Consolidation Options
+
+#### Option A: Spec-Kit Owns All Artifacts (Recommended)
+
+Keep spec-kit's file layout as the single source of truth. Suppress superpowers' file output and redirect its inputs.
+
+**How**:
+1. **Skip superpowers' brainstorming** — use `speckit.brainstorm` and `speckit.specify` exclusively
+2. **Skip superpowers' writing-plans** — use `speckit.tasks` for task breakdown; let superpowers' TDD/debugging/verification skills operate within `speckit.implement` without generating their own plan files
+3. **Configure superpowers to not emit design/plan docs** — either:
+   - Add a `.claude/rules/superpowers-integration.md` rule that says: "Do NOT create files under `docs/superpowers/`. All design artifacts live in `specs/###-feature/`. All decision records live in `.specify/memory/`."
+   - Or disable the brainstorming and writing-plans skills entirely (only keep TDD, debugging, verification, worktrees)
+
+**What you wire in from superpowers**: Only the execution-discipline skills (TDD, debugging, verification, optionally worktrees). These don't create their own artifacts — they modify behavior during implementation.
+
+**Trade-off**: You lose superpowers' micro-task plan format (2-5 min with exact code). Spec-Kit's tasks.md is higher level.
+
+#### Option B: Superpowers Owns Execution, Spec-Kit Owns Governance
+
+Let superpowers handle brainstorming → planning → execution. Spec-Kit handles review, audit, ADRs, memory.
+
+**How**:
+1. Superpowers writes design docs and plans to `docs/superpowers/`
+2. Before `speckit.review`, a bridge step copies or references superpowers artifacts:
+   - Add spec-kit `spec.md` that references `docs/superpowers/specs/*-design.md`
+   - Create tasks.md from superpowers' plan (manual or scripted)
+3. After implementation, run `speckit.codereview` and `speckit.audit` as normal
+4. ADRs are created by spec-kit's gates during review/audit
+
+**Trade-off**: You maintain two artifact trees. The bridge step is manual friction. Drift between `docs/superpowers/` and `specs/` is likely over time.
+
+#### Option C: Merge File Layouts Into a Single Tree
+
+Reconfigure superpowers to write into spec-kit's file structure.
+
+**How**:
+1. Create a `.claude/rules/superpowers-integration.md` that remaps output paths:
+   ```
+   When the brainstorming skill would write to docs/superpowers/specs/, write to specs/###-feature/ instead.
+   When writing-plans would write to docs/superpowers/plans/, write as specs/###-feature/superpowers-plan.md instead.
+   ```
+2. Update `speckit.implement.md` to also load `superpowers-plan.md` if it exists (micro-task detail augmenting the higher-level tasks.md)
+3. Update `speckit.codereview.md` and `speckit.audit.md` to include `superpowers-plan.md` in their DOC_CONTEXT
+4. Add memory-recall hooks so superpowers design docs get indexed by the memory server
+
+**Trade-off**: Requires maintaining a rules file that overrides superpowers' default behavior. May break on superpowers plugin updates. But gives you a single artifact tree with both levels of detail.
+
+### 10.4 Making Systems Aware of Each Other
+
+Regardless of which option you choose, these cross-references are needed:
+
+| Direction | What Needs to Happen |
+|-----------|---------------------|
+| **Superpowers → Spec-Kit artifacts** | Superpowers skills need to read `specs/###-feature/spec.md` and `plan.md` as context. Add to rules: "Before executing any superpowers skill, check for an active feature in `specs/` and load its spec.md and plan.md as context." |
+| **Superpowers → ADRs** | Superpowers' TDD and debugging skills should respect existing ADRs. Add to rules: "When making implementation decisions, check `.specify/memory/ADR_*.md` for existing architectural decisions. Do not contradict them." |
+| **Superpowers → Memory server** | After superpowers generates a design doc or plan, store a summary chunk via `memory_store` with `source_file: "synthetic"`. This makes superpowers' outputs recallable in future sessions. |
+| **Spec-Kit → Superpowers skills** | `speckit.implement` should invoke TDD/debugging/verification skills during execution. Add skill references to implement.md steps 7-9. |
+| **Spec-Kit audit → Superpowers artifacts** | If Option B or C, `speckit.audit` needs to scan `docs/superpowers/` or `superpowers-plan.md` for consistency checking. |
+| **Worktrees → Branch naming** | Superpowers creates worktrees with its own naming. Add rule: "When creating git worktrees, use spec-kit's `###-feature-name` branch convention." |
+
+---
+
+## 11. Recommendation (Updated)
+
+**Option A (Spec-Kit owns artifacts) is the cleanest path.** Here's why:
+
+1. **No file layout changes needed** — everything stays in `specs/` and `.specify/memory/`
+2. **No cross-referencing infrastructure** — superpowers' execution-discipline skills don't create files
+3. **No drift risk** — one artifact tree, one source of truth
+4. **You keep governance** — ADR gates, checklist gates, extension hooks, memory server all work unchanged
+5. **You gain discipline** — TDD enforcement, systematic debugging, verification gates operate inside `speckit.implement`
+
+The trade-off (losing superpowers' micro-task plan format) is minor — you could enhance `speckit.tasks` to generate more granular tasks if needed, without adopting superpowers' separate plan file.
+
+**Concrete next steps**:
+1. Install superpowers plugin
+2. Create `.claude/rules/superpowers-integration.md` with activation policy (which skills activate when, artifact path overrides)
+3. Add TDD/debugging/verification references to `speckit.implement.md`
+4. Disable or suppress: brainstorming, writing-plans, executing-plans, subagent-driven-development, finishing-a-development-branch, code-reviewer
+5. Test on a real feature
+
+---
+
 ## Sources
 
 - [Superpowers GitHub Repository](https://github.com/obra/superpowers)
