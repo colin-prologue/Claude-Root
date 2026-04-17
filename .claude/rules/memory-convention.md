@@ -2,6 +2,15 @@
 
 Speckit skills integrate with the `memory` MCP server (from feature 002-vector-memory-mcp) via a recall-before / store-after convention.
 
+## Memory is best-effort
+
+**The memory server is optional infrastructure.** Skills MUST NOT block or fail if memory calls are unavailable, return errors, or time out. If `memory_recall` or `memory_store` is not in the available tool list, or returns an error, skip the step silently and continue. Memory improves context quality; it is never a prerequisite for skill correctness.
+
+Signals that memory is unavailable:
+- The tool is absent from the MCP tool list (server not registered or failed to start)
+- The tool returns an error (server crashed, Ollama down with no index to fall back to)
+- `degraded: true` in the recall response (BM25 fallback active — results are usable but lower quality)
+
 ## Recall-before
 
 Skills that produce plans, reviews, or decisions SHOULD call `memory_recall` at the start to surface relevant prior decisions. Example queries:

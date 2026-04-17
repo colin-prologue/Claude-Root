@@ -116,10 +116,9 @@ def test_summary_only_returns_results_without_ollama(tmp_repo, tmp_index):
 
 
 @pytest.mark.integration
-def test_semantic_recall_raises_tool_error_within_timeout(tmp_repo, tmp_index):
-    """T012: memory_recall semantic mode raises ToolError when Ollama is down (US1)."""
+def test_semantic_recall_falls_back_when_ollama_down(tmp_repo, tmp_index):
+    """T012 (007): memory_recall returns degraded:true on ConnectionError — no ToolError raised."""
     from speckit_memory.server import memory_recall
-    from fastmcp.exceptions import ToolError
 
     def bad_embed(text: str) -> list[float]:
         raise ConnectionError("Ollama is down")
@@ -127,8 +126,10 @@ def test_semantic_recall_raises_tool_error_within_timeout(tmp_repo, tmp_index):
     with patch("speckit_memory.server._embed_text", side_effect=bad_embed), \
          patch("speckit_memory.server._index_dir", return_value=tmp_index), \
          patch("speckit_memory.server._first_call_done", True):
-        with pytest.raises(ToolError, match="EMBEDDING_UNAVAILABLE"):
-            memory_recall(query="test query")
+        result = memory_recall(query="test query")
+
+    assert "error" not in result, "ConnectionError must trigger BM25 fallback, not ToolError"
+    assert result.get("degraded") is True
 
 
 @pytest.mark.integration
