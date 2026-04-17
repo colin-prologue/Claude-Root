@@ -192,9 +192,8 @@ class TestSummaryOnlyBypass:
 
         assert ensure_init_called == [], "summary_only=True must not call _ensure_init (LOG-038)"
 
-    def test_semantic_recall_with_ollama_down_raises_tool_error(self, tmp_index):
-        """memory_recall in semantic mode with Ollama down raises ToolError (ADR-033)."""
-        from fastmcp.exceptions import ToolError
+    def test_semantic_recall_with_ollama_down_triggers_fallback(self, tmp_index):
+        """memory_recall with ConnectionError triggers BM25 fallback with degraded:true (007 behavior)."""
         from speckit_memory.server import memory_recall
 
         def bad_embed(text):
@@ -203,13 +202,14 @@ class TestSummaryOnlyBypass:
         with patch("speckit_memory.server._embed_text", side_effect=bad_embed), \
              patch("speckit_memory.server._index_dir", return_value=tmp_index), \
              patch("speckit_memory.server._first_call_done", True):
-            with pytest.raises(ToolError, match="EMBEDDING_UNAVAILABLE"):
-                memory_recall(query="test")
+            result = memory_recall(query="test")
+
+        assert "error" not in result
+        assert result.get("degraded") is True
 
     def test_read_error_caught_by_memory_recall(self, tmp_index):
-        """httpx.ReadError (TransportError subclass not caught before S-01) raises ToolError (S-01)."""
+        """httpx.ReadError (TransportError subclass) triggers BM25 fallback with degraded:true (007)."""
         import httpx
-        from fastmcp.exceptions import ToolError
         from speckit_memory.server import memory_recall
 
         def bad_embed(text):
@@ -218,8 +218,10 @@ class TestSummaryOnlyBypass:
         with patch("speckit_memory.server._embed_text", side_effect=bad_embed), \
              patch("speckit_memory.server._index_dir", return_value=tmp_index), \
              patch("speckit_memory.server._first_call_done", True):
-            with pytest.raises(ToolError, match="EMBEDDING_UNAVAILABLE"):
-                memory_recall(query="test")
+            result = memory_recall(query="test")
+
+        assert "error" not in result
+        assert result.get("degraded") is True
 
 
 # ---------------------------------------------------------------------------

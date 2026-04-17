@@ -22,6 +22,7 @@ from speckit_memory.index import (
     delete_chunks_by_source_file,
     init_table,
     insert_chunks_batch,
+    keyword_search,
     load_manifest,
     maybe_create_index,
     save_manifest,
@@ -69,8 +70,8 @@ def _embed_text(text: str) -> list[float]:
     """Embed text via Ollama. Raises ToolError on config error; propagates network errors."""
     if urllib.parse.urlparse(_OLLAMA_BASE_URL).scheme not in ("http", "https"):
         raise ToolError(
-            "EMBEDDING_CONFIG_ERROR: OLLAMA_BASE_URL is not a valid HTTP/HTTPS URL. "
-            "Hint: check the value of the OLLAMA_BASE_URL environment variable."
+            f"EMBEDDING_CONFIG_ERROR: OLLAMA_BASE_URL is not a valid HTTP/HTTPS URL "
+            f"(got: {_OLLAMA_BASE_URL!r}). Hint: check the value of the OLLAMA_BASE_URL environment variable."
         )
     return _ollama_embed(text, _OLLAMA_BASE_URL, _OLLAMA_MODEL, _OLLAMA_TIMEOUT)
 
@@ -139,6 +140,7 @@ def memory_recall(
     table = init_table(idx_dir)
     f = filters or {}
 
+    _degraded = False
     if summary_only:
         # ADR-037: table scan — no Ollama, no vector search
         raw = scan_chunks(
@@ -151,22 +153,41 @@ def memory_recall(
         )
         results = [{"source_file": r["source_file"], "section": r["section"]} for r in raw]
     else:
-        # Semantic path — Ollama required
+        # Semantic path — Ollama required; BM25 fallback on network-layer failures (ADR-044)
+        query_vec = None
         try:
             query_vec = _embed_text(query)
-        except (ConnectionError, OSError, httpx.TransportError, ollama_sdk.ResponseError) as exc:
-            raise _embed_error(exc, _OLLAMA_MODEL)
-        query_vec = _l2_normalize(query_vec)
-        results = vector_search(
-            table=table,
-            query_vector=query_vec,
-            top_k=min(top_k, 20),
-            min_score=min_score,
-            filter_type=f.get("type"),
-            filter_feature=f.get("feature"),
-            filter_tags=f.get("tags"),
-            filter_source_file=filter_source_file,
-        )
+        except ollama_sdk.ResponseError as exc:
+            raise _embed_error(exc, _OLLAMA_MODEL)  # all ResponseError → hard ToolError (ADR-044)
+        except (ConnectionError, OSError, httpx.TransportError):
+            _degraded = True  # network-layer only → BM25 fallback
+
+        if _degraded:
+            print(
+                "[speckit-memory] WARNING: embedding unavailable — falling back to keyword search",
+                file=sys.stderr,
+            )
+            results = keyword_search(
+                table=table,
+                query=query,
+                top_k=min(top_k, 20),
+                filter_type=f.get("type"),
+                filter_feature=f.get("feature"),
+                filter_tags=f.get("tags"),
+                filter_source_file=filter_source_file,
+            )
+        else:
+            query_vec = _l2_normalize(query_vec)
+            results = vector_search(
+                table=table,
+                query_vector=query_vec,
+                top_k=min(top_k, 20),
+                min_score=min_score,
+                filter_type=f.get("type"),
+                filter_feature=f.get("feature"),
+                filter_tags=f.get("tags"),
+                filter_source_file=filter_source_file,
+            )
 
     # T012/T013: Stop-at-first-overflow budget enforcement (ADR-022)
     budget_exhausted: bool | None = None
@@ -215,6 +236,8 @@ def memory_recall(
         response["budget_exhausted"] = budget_exhausted
     if truncated_flag:
         response["truncated"] = True
+    if _degraded:
+        response["degraded"] = True
     return response
 
 

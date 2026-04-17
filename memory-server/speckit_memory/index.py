@@ -219,6 +219,68 @@ def vector_search(
     return output
 
 
+def keyword_search(
+    table: Any,
+    query: str,
+    top_k: int = 5,
+    filter_type: str | None = None,
+    filter_feature: str | None = None,
+    filter_tags: list[str] | None = None,
+    filter_source_file: str | None = None,
+) -> list[dict[str, Any]]:
+    """Keyword fallback via occurrence-count TF scoring with max-relative [0,1] normalization.
+
+    Used when Ollama is unavailable (ADR-043). Scores = sum of term occurrences in
+    content+section, normalized by the highest raw score in the result set. Empty query
+    returns all rows with score 0.0. min_score is never applied (ADR-040).
+    """
+    rows = table.to_arrow().to_pylist()
+    if filter_type:
+        rows = [r for r in rows if r.get("type") == filter_type]
+    if filter_feature:
+        rows = [r for r in rows if r.get("feature") == filter_feature]
+    if filter_tags:
+        rows = [r for r in rows if all(t in (r.get("tags") or []) for t in filter_tags)]
+    if filter_source_file:
+        rows = [r for r in rows if r.get("source_file") == filter_source_file]
+
+    query_terms = query.lower().split() if query.strip() else []
+
+    raw_scores = []
+    for row in rows:
+        if not query_terms:
+            raw_scores.append(0)
+        else:
+            raw = sum(
+                text.lower().count(term)
+                for term in query_terms
+                for text in [row.get("content", ""), row.get("section", "")]
+            )
+            raw_scores.append(raw)
+
+    max_raw = max(raw_scores) if raw_scores else 0
+
+    output = []
+    for row, raw in zip(rows, raw_scores):
+        score = raw / max_raw if max_raw > 0 else 0.0
+        tags = row.get("tags") or []
+        output.append({
+            "id": row["id"],
+            "content": row["content"],
+            "score": round(score, 4),
+            "source_file": row["source_file"],
+            "section": row["section"],
+            "type": row["type"],
+            "feature": row["feature"],
+            "date": row["date"],
+            "tags": list(tags),
+            "synthetic": bool(row["synthetic"]),
+        })
+
+    output.sort(key=lambda r: r["score"], reverse=True)
+    return output[:top_k]
+
+
 def maybe_create_index(table: Any, min_rows: int = 256) -> None:
     """Create an IVF-PQ ANN index once the corpus is large enough to benefit.
 
