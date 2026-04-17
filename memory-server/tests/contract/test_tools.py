@@ -12,6 +12,8 @@ import pytest
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
+import ollama as ollama_sdk
+
 from speckit_memory.server import (
     memory_recall,
     memory_store,
@@ -245,17 +247,19 @@ class TestMemoryRecall:
         )
 
     def test_recall_semantic_raises_tool_error_when_ollama_down(self, tmp_index, fake_embedder):
-        """T010a: memory_recall in semantic mode with Ollama down raises ToolError (ADR-033)."""
-        from fastmcp.exceptions import ToolError
-
+        """T010a (007): ConnectionError triggers BM25 fallback with degraded:true — no ToolError raised."""
         def bad_embed(text):
             raise ConnectionError("refused")
 
         with patch("speckit_memory.server._embed_text", side_effect=bad_embed), \
              patched_index_dir(tmp_index), \
              patch("speckit_memory.server._first_call_done", True):
-            with pytest.raises(ToolError, match="EMBEDDING_UNAVAILABLE"):
-                memory_recall(query="test")
+            seed_chunks(tmp_index, fake_embedder, count=3)
+            result = memory_recall(query="test")
+
+        assert "error" not in result, "ConnectionError must trigger BM25 fallback, not ToolError"
+        assert result.get("degraded") is True
+        assert isinstance(result["results"], list)
 
     def test_recall_filter_source_file_restricts_results(self, tmp_index, fake_embedder):
         """T017: memory_recall with filter_source_file returns only results from that file."""
@@ -321,6 +325,197 @@ class TestMemoryRecall:
         # The identical-embedding chunk must outscore the unrelated chunk.
         source_order = [r["source_file"] for r in result["results"]]
         assert source_order[0] == "high.md", f"Expected high.md first, got {source_order}"
+
+
+# ---------------------------------------------------------------------------
+# memory_recall fallback contract tests (007 — T003–T006a)
+# ---------------------------------------------------------------------------
+
+class TestMemoryRecallFallback:
+    """BM25 fallback contract tests: error routing, degraded flag, filter/budget parity."""
+
+    # T003 — ResponseError always routes to hard ToolError (ADR-044)
+
+    def test_recall_model_error_still_raises_tool_error(self, tmp_index, fake_embedder):
+        """ResponseError status_code=404 raises EMBEDDING_MODEL_ERROR ToolError — no fallback (ADR-044)."""
+        from fastmcp.exceptions import ToolError
+
+        def bad_embed_404(text):
+            exc = ollama_sdk.ResponseError("not found")
+            exc.status_code = 404
+            raise exc
+
+        with patch("speckit_memory.server._embed_text", side_effect=bad_embed_404), \
+             patched_index_dir(tmp_index), \
+             patch("speckit_memory.server._first_call_done", True):
+            with pytest.raises(ToolError, match="EMBEDDING_MODEL_ERROR"):
+                memory_recall(query="test")
+
+    def test_recall_non404_response_error_raises_tool_error(self, tmp_index, fake_embedder):
+        """ResponseError status_code=500 raises ToolError — not degraded fallback (ADR-044)."""
+        from fastmcp.exceptions import ToolError
+
+        def bad_embed_500(text):
+            exc = ollama_sdk.ResponseError("internal error")
+            exc.status_code = 500
+            raise exc
+
+        with patch("speckit_memory.server._embed_text", side_effect=bad_embed_500), \
+             patched_index_dir(tmp_index), \
+             patch("speckit_memory.server._first_call_done", True):
+            with pytest.raises(ToolError):
+                memory_recall(query="test")
+
+    # T004 — CONFIG_ERROR message includes bad URL (FR-011)
+
+    def test_recall_config_error_message_includes_url(self, tmp_index):
+        """EMBEDDING_CONFIG_ERROR message includes the bad URL value and names OLLAMA_BASE_URL (FR-011)."""
+        from fastmcp.exceptions import ToolError
+
+        bad_url = "ftp://not-http"
+        with patch("speckit_memory.server._OLLAMA_BASE_URL", bad_url), \
+             patched_index_dir(tmp_index), \
+             patch("speckit_memory.server._first_call_done", True):
+            with pytest.raises(ToolError) as exc_info:
+                memory_recall(query="test")
+
+        msg = str(exc_info.value)
+        assert bad_url in msg, f"Error must include bad URL value; got: {msg}"
+        assert "OLLAMA_BASE_URL" in msg
+
+    # T004a — CONFIG_ERROR (ToolError) propagates through fallback handler (ADR-039 invariant)
+
+    def test_recall_config_error_not_caught_by_fallback_handler(self, tmp_index):
+        """ToolError(CONFIG_ERROR) from _embed_text propagates — never swallowed by fallback (ADR-039)."""
+        from fastmcp.exceptions import ToolError
+
+        config_err = ToolError("EMBEDDING_CONFIG_ERROR: bad url (got: 'ftp://bad'). Hint: check OLLAMA_BASE_URL")
+        with patch("speckit_memory.server._embed_text", side_effect=config_err), \
+             patched_index_dir(tmp_index), \
+             patch("speckit_memory.server._first_call_done", True):
+            with pytest.raises(ToolError, match="EMBEDDING_CONFIG_ERROR"):
+                memory_recall(query="test")
+
+    # T005 — 'degraded' key absent on non-fallback paths (US2)
+
+    def test_recall_degraded_absent_on_semantic_path(self, tmp_index, fake_embedder):
+        """'degraded' key must be absent when Ollama is available (US2)."""
+        with patched_embed(fake_embedder), patched_index_dir(tmp_index):
+            result = memory_recall(query="test")
+        assert "degraded" not in result, f"'degraded' must be absent on semantic path; got: {result}"
+
+    def test_recall_summary_only_no_degraded(self, tmp_index, fake_embedder):
+        """'degraded' key must be absent on summary_only path (summary_only never embeds)."""
+        with patched_index_dir(tmp_index):
+            result = memory_recall(query="test", summary_only=True)
+        assert "degraded" not in result
+
+    # T005a — stderr warning on fallback activation (ADR-041, FR-012)
+
+    def test_recall_fallback_emits_stderr_warning(self, tmp_index, fake_embedder, capsys):
+        """Fallback activation emits exact warning string to stderr (ADR-041)."""
+        with patch("speckit_memory.server._embed_text", side_effect=ConnectionError("refused")), \
+             patched_index_dir(tmp_index), \
+             patch("speckit_memory.server._first_call_done", True):
+            seed_chunks(tmp_index, fake_embedder, count=1)
+            memory_recall(query="test")
+
+        captured = capsys.readouterr()
+        assert (
+            "[speckit-memory] WARNING: embedding unavailable — falling back to keyword search"
+            in captured.err
+        )
+
+    # T006 — US3: filter and budget parity in fallback mode
+
+    def test_recall_fallback_filter_source_file(self, tmp_index, fake_embedder):
+        """Fallback mode: filter_source_file scopes results to matching source file."""
+        from speckit_memory.index import init_table, insert_chunks_batch
+        table = init_table(tmp_index)
+        for sf in ["target.md", "other.md"]:
+            insert_chunks_batch(table, [{
+                "id": str(uuid.uuid4()),
+                "content": f"Architecture decisions from {sf}",
+                "vector": [0.0] * 768,
+                "source_file": sf, "section": "S", "type": "adr",
+                "feature": "001", "date": "2026-04-07", "tags": [], "synthetic": False,
+            }])
+
+        with patch("speckit_memory.server._embed_text", side_effect=ConnectionError("refused")), \
+             patched_index_dir(tmp_index), \
+             patch("speckit_memory.server._first_call_done", True):
+            result = memory_recall(query="architecture", filter_source_file="target.md")
+
+        assert result.get("degraded") is True
+        assert {r["source_file"] for r in result["results"]} == {"target.md"}
+
+    def test_recall_fallback_filters_dict(self, tmp_index, fake_embedder):
+        """Fallback mode: filters dict (type, feature) scopes results correctly."""
+        from speckit_memory.index import init_table, insert_chunks_batch
+        table = init_table(tmp_index)
+        insert_chunks_batch(table, [
+            {"id": str(uuid.uuid4()), "content": "ADR feature 005 decisions",
+             "vector": [0.0] * 768, "source_file": "a.md", "section": "S",
+             "type": "adr", "feature": "005", "date": "2026-04-07", "tags": [], "synthetic": False},
+            {"id": str(uuid.uuid4()), "content": "LOG feature 004 context",
+             "vector": [0.0] * 768, "source_file": "b.md", "section": "S",
+             "type": "log", "feature": "004", "date": "2026-04-07", "tags": [], "synthetic": False},
+        ])
+
+        with patch("speckit_memory.server._embed_text", side_effect=ConnectionError("refused")), \
+             patched_index_dir(tmp_index), \
+             patch("speckit_memory.server._first_call_done", True):
+            result = memory_recall(query="decisions", filters={"type": "adr", "feature": "005"})
+
+        assert result.get("degraded") is True
+        assert all(r["type"] == "adr" for r in result["results"])
+        assert all(r["feature"] == "005" for r in result["results"])
+
+    def test_recall_fallback_top_k(self, tmp_index, fake_embedder):
+        """Fallback mode: top_k caps number of results."""
+        seed_chunks(tmp_index, fake_embedder, count=5)
+        with patch("speckit_memory.server._embed_text", side_effect=ConnectionError("refused")), \
+             patched_index_dir(tmp_index), \
+             patch("speckit_memory.server._first_call_done", True):
+            result = memory_recall(query="content", top_k=2)
+
+        assert result.get("degraded") is True
+        assert len(result["results"]) <= 2
+
+    def test_recall_fallback_max_chars_and_budget_exhausted(self, tmp_index, fake_embedder):
+        """Fallback mode: max_chars enforced and budget_exhausted returned."""
+        seed_chunks(tmp_index, fake_embedder, count=5)  # each chunk ~58 chars
+        with patch("speckit_memory.server._embed_text", side_effect=ConnectionError("refused")), \
+             patched_index_dir(tmp_index), \
+             patch("speckit_memory.server._first_call_done", True):
+            result = memory_recall(query="content", max_chars=50)
+
+        assert result.get("degraded") is True
+        assert result.get("budget_exhausted") is True
+        assert sum(len(r["content"]) for r in result["results"]) <= 50
+
+    # T006a — min_score ignored in fallback mode (ADR-040)
+
+    def test_recall_fallback_ignores_min_score(self, tmp_index, fake_embedder):
+        """Fallback mode: min_score is not applied — low-scoring chunk still returned (ADR-040)."""
+        from speckit_memory.index import init_table, insert_chunks_batch
+        table = init_table(tmp_index)
+        # Content that won't match "architecture decisions technology" at all → TF score = 0.0
+        insert_chunks_batch(table, [{
+            "id": str(uuid.uuid4()),
+            "content": "Completely unrelated prose about nothing.",
+            "vector": [0.0] * 768,
+            "source_file": "a.md", "section": "S", "type": "adr",
+            "feature": "001", "date": "2026-04-07", "tags": [], "synthetic": False,
+        }])
+
+        with patch("speckit_memory.server._embed_text", side_effect=ConnectionError("refused")), \
+             patched_index_dir(tmp_index), \
+             patch("speckit_memory.server._first_call_done", True):
+            result = memory_recall(query="architecture decisions technology", min_score=0.95)
+
+        assert result.get("degraded") is True
+        assert len(result["results"]) >= 1, "min_score must be ignored in fallback mode"
 
 
 # ---------------------------------------------------------------------------

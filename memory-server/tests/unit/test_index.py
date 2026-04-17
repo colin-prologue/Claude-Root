@@ -18,6 +18,7 @@ from speckit_memory.index import (
     delete_chunks_by_source_file,
     vector_search,
     scan_chunks,
+    keyword_search,
 )
 
 
@@ -272,3 +273,94 @@ class TestScanChunks:
             insert_chunks_batch(table, [self._make_chunk(i)])
         result = scan_chunks(table, top_k=2)
         assert len(result) == 2
+
+
+class TestKeywordSearch:
+    """T007: keyword_search() — occurrence-count TF scoring with max-relative [0,1] normalization."""
+
+    def _make_chunk(self, idx, content="", section="", source_file="f.md",
+                    chunk_type="adr", feature="001"):
+        return {
+            "id": f"00000000-0000-0000-0000-{idx:012d}",
+            "content": content,
+            "vector": [0.0] * 768,
+            "source_file": source_file,
+            "section": section,
+            "type": chunk_type,
+            "feature": feature,
+            "date": "2026-04-14",
+            "tags": [],
+            "synthetic": False,
+        }
+
+    def test_zero_match_returns_score_zero(self, tmp_index):
+        """Chunk with no query terms present scores 0.0."""
+        table = init_table(tmp_index)
+        insert_chunks_batch(table, [self._make_chunk(0, content="unrelated prose", section="")])
+        results = keyword_search(table, "architecture decisions", top_k=10)
+        assert len(results) == 1
+        assert results[0]["score"] == 0.0
+
+    def test_best_match_chunk_scores_one(self, tmp_index):
+        """Best-matching chunk gets score 1.0 via max-relative normalization."""
+        table = init_table(tmp_index)
+        insert_chunks_batch(table, [
+            self._make_chunk(0, content="architecture", section=""),
+            self._make_chunk(1, content="architecture architecture architecture", section=""),
+        ])
+        results = keyword_search(table, "architecture", top_k=10)
+        assert max(r["score"] for r in results) == 1.0
+
+    def test_partial_match_returns_intermediate_score(self, tmp_index):
+        """Chunk matching some but not all query terms returns score strictly between 0 and 1."""
+        table = init_table(tmp_index)
+        insert_chunks_batch(table, [
+            self._make_chunk(0, content="architecture notes", section=""),
+            self._make_chunk(1, content="architecture and decisions", section=""),
+        ])
+        results = keyword_search(table, "architecture decisions technology", top_k=10)
+        scores = sorted([r["score"] for r in results], reverse=True)
+        assert any(0.0 < s < 1.0 for s in scores), f"Expected intermediate score; got {scores}"
+
+    def test_more_occurrences_scores_higher(self, tmp_index):
+        """Chunk with more occurrences of query term ranks above chunk with fewer (ADR-043)."""
+        table = init_table(tmp_index)
+        insert_chunks_batch(table, [
+            self._make_chunk(0, content="architecture", section=""),
+            self._make_chunk(1, content="architecture architecture architecture", section=""),
+        ])
+        results = keyword_search(table, "architecture", top_k=10)
+        score_by_id = {r["id"]: r["score"] for r in results}
+        id_low = "00000000-0000-0000-0000-000000000000"
+        id_high = "00000000-0000-0000-0000-000000000001"
+        assert score_by_id[id_high] > score_by_id[id_low]
+
+    def test_empty_query_all_chunks_score_zero(self, tmp_index):
+        """Empty query → all chunks score 0.0; returned in table order."""
+        table = init_table(tmp_index)
+        insert_chunks_batch(table, [
+            self._make_chunk(0, content="architecture", section=""),
+            self._make_chunk(1, content="decisions technology", section=""),
+        ])
+        results = keyword_search(table, "", top_k=10)
+        assert all(r["score"] == 0.0 for r in results)
+
+    def test_result_includes_required_fields_excludes_vector(self, tmp_index):
+        """Result dicts include all required fields and exclude 'vector'."""
+        table = init_table(tmp_index)
+        insert_chunks_batch(table, [self._make_chunk(0, content="test content", section="Intro")])
+        results = keyword_search(table, "test", top_k=10)
+        assert len(results) == 1
+        row = results[0]
+        for field in ("id", "content", "score", "source_file", "section", "type",
+                      "feature", "date", "tags", "synthetic"):
+            assert field in row, f"Missing required field: {field}"
+        assert "vector" not in row, "'vector' must be excluded from results"
+
+    def test_top_k_caps_results(self, tmp_index):
+        """top_k parameter caps number of returned results."""
+        table = init_table(tmp_index)
+        for i in range(5):
+            insert_chunks_batch(table, [self._make_chunk(i, content=f"architecture item {i}")])
+        results = keyword_search(table, "architecture", top_k=3)
+        assert len(results) <= 3
