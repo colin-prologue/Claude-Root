@@ -517,6 +517,87 @@ class TestMemoryRecallFallback:
         assert result.get("degraded") is True
         assert len(result["results"]) >= 1, "min_score must be ignored in fallback mode"
 
+    def test_recall_fallback_realistic_caller_scenario(self, tmp_index, fake_embedder):
+        """Consolidated realistic-caller test covering S-1, S-3, and S-4.
+
+        S-1: section-field scoring (FR-002) — chunk with term in section only must score > 0
+        S-3: empty index + Ollama down → {results:[], total:0, degraded:true} (spec Scenario 3)
+        S-4: degraded:true + truncated:true co-occurrence in envelope under max_chars pressure
+        """
+        from speckit_memory.index import init_table, insert_chunks_batch
+
+        # S-3: empty index + Ollama down — must return degraded envelope with zero results
+        with patch("speckit_memory.server._embed_text", side_effect=ConnectionError("refused")), \
+             patched_index_dir(tmp_index), \
+             patch("speckit_memory.server._first_call_done", True):
+            empty_result = memory_recall(query="architecture decisions")
+        assert empty_result.get("degraded") is True
+        assert empty_result["results"] == []
+        assert empty_result["total"] == 0
+        assert "error" not in empty_result
+
+        # Seed realistic corpus:
+        #   a.md: term ONLY in section (content is unrelated) — validates section scoring (FR-002)
+        #   b.md: term in content only
+        #   c.md: no match in either field
+        table = init_table(tmp_index)
+        insert_chunks_batch(table, [
+            {
+                "id": str(uuid.uuid4()),
+                "content": "Completely unrelated prose with no matching terms.",
+                "vector": [0.0] * 768,
+                "source_file": "a.md",
+                "section": "Architecture Decisions Technology",  # query terms here only
+                "type": "adr", "feature": "001", "date": "2026-04-07",
+                "tags": [], "synthetic": False,
+            },
+            {
+                "id": str(uuid.uuid4()),
+                "content": "Architecture decisions drive this technology choice.",
+                "vector": [0.0] * 768,
+                "source_file": "b.md",
+                "section": "",
+                "type": "adr", "feature": "001", "date": "2026-04-07",
+                "tags": [], "synthetic": False,
+            },
+            {
+                "id": str(uuid.uuid4()),
+                "content": "Nothing here matches the query at all.",
+                "vector": [0.0] * 768,
+                "source_file": "c.md",
+                "section": "",
+                "type": "adr", "feature": "001", "date": "2026-04-07",
+                "tags": [], "synthetic": False,
+            },
+        ])
+
+        # S-1: section-only chunk must produce a non-zero score
+        with patch("speckit_memory.server._embed_text", side_effect=ConnectionError("refused")), \
+             patched_index_dir(tmp_index), \
+             patch("speckit_memory.server._first_call_done", True):
+            result = memory_recall(query="architecture decisions technology")
+
+        assert result.get("degraded") is True
+        scores = {r["source_file"]: r["score"] for r in result["results"]}
+        assert scores.get("a.md", 0) > 0, (
+            "Section-only match must produce non-zero score — FR-002 requires "
+            "term occurrences counted in both content AND section"
+        )
+        assert scores.get("b.md", 0) > 0, "Content match must produce non-zero score"
+        assert scores.get("c.md", 0) == 0.0, "No-match chunk must score 0.0"
+
+        # S-4: degraded:true and truncated:true must both appear when max_chars forces truncation
+        with patch("speckit_memory.server._embed_text", side_effect=ConnectionError("refused")), \
+             patched_index_dir(tmp_index), \
+             patch("speckit_memory.server._first_call_done", True):
+            trunc_result = memory_recall(query="architecture decisions technology", max_chars=5)
+
+        assert trunc_result.get("degraded") is True, "degraded flag must be set in fallback mode"
+        assert trunc_result.get("truncated") is True, (
+            "truncated flag must be set when max_chars forces truncation-of-last-resort "
+            "— degraded and truncated must co-exist correctly in the response envelope"
+        )
+
 
 # ---------------------------------------------------------------------------
 # memory_store contract tests (T027) — US3

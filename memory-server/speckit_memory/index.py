@@ -233,6 +233,11 @@ def keyword_search(
     Used when Ollama is unavailable (ADR-043). Scores = sum of term occurrences in
     content+section, normalized by the highest raw score in the result set. Empty query
     returns all rows with score 0.0. min_score is never applied (ADR-040).
+
+    Caller contract: query tokens should be >= 4 characters for reliable ranking.
+    Scoring uses str.count() (substring matching), which is intentional — partial tokens
+    like "arch" legitimately match "architecture". Short tokens (e.g., "a", "is") can
+    inflate scores; callers should strip punctuation and avoid stop words.
     """
     rows = table.to_arrow().to_pylist()
     if filter_type:

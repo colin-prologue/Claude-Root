@@ -159,6 +159,11 @@ def memory_recall(
             query_vec = _embed_text(query)
         except ollama_sdk.ResponseError as exc:
             raise _embed_error(exc, _OLLAMA_MODEL)  # all ResponseError → hard ToolError (ADR-044)
+        # httpx.TransportError catches all transport-layer subclasses transitively:
+        # ReadError, ConnectError, TimeoutException, etc. TimeoutException is a
+        # TransportError subclass, so it is absorbed here and triggers BM25 fallback
+        # rather than the specialized timeout message in _embed_error. That message
+        # is only reachable from memory_store/memory_sync (ADR-041 amendment, LOG-046).
         except (ConnectionError, OSError, httpx.TransportError):
             _degraded = True  # network-layer only → BM25 fallback
 
@@ -384,7 +389,12 @@ def memory_delete(
 # ---------------------------------------------------------------------------
 
 def _embed_error(exc: Exception, model: str) -> ToolError:
-    """Return a categorized ToolError. Callers must use `raise _embed_error(...)` (ADR-033)."""
+    """Return a categorized ToolError. Callers must use `raise _embed_error(...)` (ADR-033).
+
+    NOTE: httpx.TimeoutException is a TransportError subclass. In memory_recall it is caught
+    by the BM25 fallback handler before this function is called, so the timeout branch below
+    is only reachable from memory_store and memory_sync (ADR-041 amendment, LOG-046).
+    """
     if isinstance(exc, ollama_sdk.ResponseError) and getattr(exc, "status_code", None) == 404:
         return ToolError(
             f"EMBEDDING_MODEL_ERROR: model '{model}' is not available. "
