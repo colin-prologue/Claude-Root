@@ -65,7 +65,7 @@
 
 ### Verification for User Story 2
 
-- [ ] T011 [US2] Verify US2 contract tests pass: `uv run --directory memory-server pytest tests/contract/test_tools.py -k "degraded"` — `test_recall_degraded_absent_on_semantic_path` and `test_recall_summary_only_no_degraded` must pass; no new implementation required if T010 is correct
+- [X] T011 [US2] Verify US2 contract tests pass: `uv run --directory memory-server pytest tests/contract/test_tools.py -k "degraded"` — `test_recall_degraded_absent_on_semantic_path` and `test_recall_summary_only_no_degraded` must pass; no new implementation required if T010 is correct
 
 **Checkpoint**: US2 acceptance scenarios verified. `degraded` key is absent on semantic path; present on fallback path; absent on summary_only path.
 
@@ -79,7 +79,7 @@
 
 ### Verification for User Story 3
 
-- [ ] T012 [US3] Verify US3 contract tests pass: `uv run --directory memory-server pytest tests/contract/test_tools.py -k "filter or budget or top_k"` — all four T006 tests pass; no new implementation required if T009 (keyword_search filter params) and T010 (wiring + budget enforcement) are correct
+- [X] T012 [US3] Verify US3 contract tests pass: `uv run --directory memory-server pytest tests/contract/test_tools.py -k "filter or budget or top_k"` — all four T006 tests pass; no new implementation required if T009 (keyword_search filter params) and T010 (wiring + budget enforcement) are correct
 
 **Checkpoint**: US3 acceptance scenarios verified. Filters scope results; budget enforcement applies; `top_k` caps results.
 
@@ -87,10 +87,10 @@
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [ ] T013 [P] Update `CLAUDE.md` — change 007 status line from "In-progress" to reflect BM25 fallback implemented; confirm `OLLAMA_TIMEOUT` env var entry remains accurate (no change needed)
-- [ ] T013a Verify `specs/007-bm25-keyword-fallback/contracts/memory_recall.md` matches final `server.py` behavior — confirm score description reflects occurrence-count TF, error routing table matches ADR-044 (all `ResponseError` → hard ToolError), and `min_score` behavioral note is present
-- [ ] T014 Run full test suite to confirm no regressions: `uv run --directory memory-server pytest -m "not integration"` — all pass
-- [ ] T015 [P] Commit all changes with `feat(007): BM25 keyword fallback for memory_recall — degraded flag, in-process TF scoring`
+- [X] T013 [P] Update `CLAUDE.md` — change 007 status line from "In-progress" to reflect BM25 fallback implemented; confirm `OLLAMA_TIMEOUT` env var entry remains accurate (no change needed)
+- [X] T013a Verify `specs/007-bm25-keyword-fallback/contracts/memory_recall.md` matches final `server.py` behavior — confirm score description reflects occurrence-count TF, error routing table matches ADR-044 (all `ResponseError` → hard ToolError), and `min_score` behavioral note is present
+- [X] T014 Run full test suite to confirm no regressions: `uv run --directory memory-server pytest -m "not integration"` — all pass
+- [X] T015 [P] Commit all changes with `feat(007): BM25 keyword fallback for memory_recall — degraded flag, in-process TF scoring`
 
 ---
 
