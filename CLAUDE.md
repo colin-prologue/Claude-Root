@@ -56,6 +56,8 @@ uv run --directory memory-server speckit-memory
     constitution.md     # Project principles + context
     .index/             # GITIGNORED — LanceDB + manifest (volatile cache)
   templates/            # Document templates
+    hooks/              # Git hook templates (pre-push, installed by /speckit.branching)
+    github/             # GitHub config templates (branch-protection.json)
   scripts/              # Helper scripts
 memory-server/
   pyproject.toml        # speckit-memory package
@@ -73,7 +75,8 @@ docs/                   # Long-form documentation
 
 ## Key Conventions
 
-- Branch naming: `###-feature-name` (e.g., `001-user-auth`)
+- Branch naming: `###-feature-name` for features; `fix/`, `chore/`, `spike/`, `docs/`, `claude/` for ad-hoc work (see `.claude/rules/branching.md`)
+- Never commit directly to `main` — PRs only (enforced by pre-push hook + GitHub branch protection; run `/speckit.branching` to install)
 - Commit format: conventional commits (`feat:`, `fix:`, `refactor:`, `docs:`, `chore:`)
 - Commit after each completed task
 - No credentials or secrets in source — use environment variables

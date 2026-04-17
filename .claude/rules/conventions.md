@@ -3,11 +3,15 @@
 ## Git
 
 - Default branch MUST be `main` — initialize new repos with `git init -b main`
-- Branch per feature: `###-feature-name` (e.g., `001-user-auth`)
+- Never commit directly to `main` — all changes come through PRs (enforced by `pre-push` hook + GitHub branch protection)
+- Branch naming (see `.claude/rules/branching.md` for the full convention):
+  - `###-feature-name` — spec-kit features
+  - `fix/`, `chore/`, `spike/`, `docs/`, `claude/` — typed prefixes for ad-hoc work
 - Commit format: conventional commits (`feat:`, `fix:`, `refactor:`, `docs:`, `chore:`)
 - Commit after each completed task
 - PRs target ≤300 LOC (calibrated by constitution; may be 200 or 500 depending on project context)
 - No credentials or secrets in source — use environment variables
+- Run `/speckit.branching` to install hooks + verify GitHub branch protection
 
 ## Decision Records
 

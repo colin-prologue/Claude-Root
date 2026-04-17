@@ -1,0 +1,34 @@
+#!/bin/sh
+# Spec-Kit pre-push hook: enforce branching rules locally
+# Managed by /speckit.branching — do not edit manually.
+# To update: re-run /speckit.branching, which will reinstall from this template.
+
+protected_branch='main'
+
+# Read the list of refs being pushed from stdin.
+# Format per line: <local_ref> <local_sha> <remote_ref> <remote_sha>
+while read local_ref local_sha remote_ref remote_sha
+do
+  # Skip deletions (local_sha is all zeros)
+  zero='0000000000000000000000000000000000000000'
+  if [ "$local_sha" = "$zero" ]; then
+    continue
+  fi
+
+  remote_branch=$(echo "$remote_ref" | sed 's|refs/heads/||')
+
+  if [ "$remote_branch" = "$protected_branch" ]; then
+    echo ""
+    echo "🚫 Direct push to '$protected_branch' is blocked by spec-kit branching rules."
+    echo ""
+    echo "   All changes to '$protected_branch' must go through a pull request."
+    echo "   See .claude/rules/branching.md for the full convention."
+    echo ""
+    echo "   To continue: create a feature branch and open a PR."
+    echo "   Emergency bypass: git push --no-verify (documented LOG entry required)"
+    echo ""
+    exit 1
+  fi
+done
+
+exit 0
