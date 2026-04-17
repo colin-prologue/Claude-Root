@@ -43,4 +43,5 @@ A feature is done when:
 4. All ADRs and LOGs are written and cross-referenced
 5. `CLAUDE.md` reflects any new commands, dependencies, or structure changes
 6. Adversarial review findings are addressed or documented as accepted risks
-7. Branch is merged and deleted
+7. `memory_sync()` called to index new ADRs/LOGs into the knowledge base (if memory server is enabled)
+8. Branch is merged and deleted
