@@ -46,6 +46,26 @@ Content should be a 2-5 sentence summary of the key decisions or findings — de
 | `/speckit.implement` | Optional | No |
 | `/speckit.audit` | Yes — pull ADRs for compliance check | Yes — store audit findings |
 
+## Constitution gate
+
+Before invoking any memory tool, check the `memory_enabled` field in the
+constitution front-matter (`.specify/memory/constitution.md`). If
+`memory_enabled: false`, skip all `memory_recall` and `memory_store` calls
+and continue without error.
+
+If `memory_enabled` is absent or the constitution is absent or unparseable,
+treat as `memory_enabled: true` (default-on).
+
+**Example gate check in a skill prompt:**
+
+```
+Read .specify/memory/constitution.md. Parse the YAML front-matter block
+(lines between the opening `---` and the next `---`). If the key
+`memory_enabled` is present and its value is exactly `false`, skip all
+memory_recall and memory_store calls in this skill run. If the key is absent
+or the file cannot be read, proceed normally (treat as memory_enabled: true).
+```
+
 ## Synthetic chunk management
 
 Chunks stored by skills have `synthetic: true`. Delete them by `id` (returned by `memory_store`), never by `source_file = "synthetic"` — that would delete all synthetic chunks project-wide.

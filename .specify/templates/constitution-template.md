@@ -1,3 +1,6 @@
+---
+memory_enabled: true  # Set to false to disable all memory_recall/memory_store calls in speckit skills
+---
 # [PROJECT_NAME] Constitution
 
 ## Project Context
