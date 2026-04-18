@@ -120,19 +120,16 @@ No new MCP tool interfaces are added. No contract document is required — this 
 - Pre-008: `_ensure_init()` runs at most once per process lifetime
 - Post-008: `_ensure_init()` may trigger re-sync more than once per process lifetime when the staleness threshold is crossed. Callers see no API change; the latency of a single recall call may be higher after a stale window.
 
-### `_ensure_init()` Logic (post-008)
+### `_check_staleness()` and `_ensure_init()` Logic (post-008)
+
+`_check_staleness()` is called from `memory_recall()` directly, **before** the `summary_only` gate, ensuring all recall callers (including `summary_only=True`) trigger the staleness check. This fixes the FR-002 invariant and avoids the summary_only regression identified in task-gate review.
 
 ```
-_ensure_init():
-  if _first_call_done:
-    _check_staleness()     # may reset _first_call_done = False
-  if _first_call_done:
-    return
-  try:
-    run_sync(...)
-    _first_call_done = True
-  except Exception as exc:
-    print(WARNING, stderr)  # non-fatal; stays False → retries next call
+memory_recall(..., summary_only=False):
+    _check_staleness()          # all paths — pure arithmetic, no Ollama (FR-002)
+    if not summary_only:
+        _ensure_init()          # embed + sync — Ollama required
+    ...
 
 _check_staleness():
   if MEMORY_STALENESS_THRESHOLD <= 0:
@@ -142,9 +139,20 @@ _check_staleness():
     last_sync = manifest.get("last_sync_ts", 0)
     if time.time() - last_sync > MEMORY_STALENESS_THRESHOLD:
       _first_call_done = False
-  except Exception:
-    pass                   # non-fatal; stale check failure does not break recall
+  except Exception as exc:
+    print(f"[speckit-memory] WARNING: staleness check failed: {exc}", stderr)
+
+_ensure_init():
+  if _first_call_done:
+    return                 # no staleness logic here — moved to memory_recall
+  try:
+    run_sync(...)
+    _first_call_done = True
+  except Exception as exc:
+    print(WARNING, stderr)  # non-fatal; stays False → retries next call
 ```
+
+**Note**: `_MEMORY_STALENESS_THRESHOLD` is parsed with try/except at module load — non-numeric or non-positive values default to `0.0` (disabled) without raising.
 
 ### `run_sync()` Change (post-008)
 
