@@ -1,4 +1,4 @@
-# ADR-050: Timestamp-Based Staleness Detection in `_ensure_init`
+# ADR-050: Timestamp-Based Staleness Detection via `_check_staleness()` in `memory_recall`
 
 **Date**: 2026-04-17
 **Status**: Accepted
@@ -15,7 +15,7 @@ LOG-049 identified this as the root cause of the April 9–17 drift where 37 fil
 
 ## Decision
 
-We will use timestamp-based staleness detection: after the first successful sync, subsequent `_ensure_init()` calls compare `time.time()` against a `last_sync_ts` field written to the manifest on each successful sync completion. If the elapsed time exceeds `MEMORY_STALENESS_THRESHOLD` (default 3600s), `_first_call_done` is reset to `False` so the next call triggers incremental re-sync. A threshold of 0 disables the check entirely.
+We will use timestamp-based staleness detection: `memory_recall()` calls `_check_staleness()` on every invocation, before the `summary_only` gate. `_check_staleness()` compares `time.time()` against a `last_sync_ts` field written to the manifest on each successful sync completion. If the elapsed time exceeds `MEMORY_STALENESS_THRESHOLD` (default 3600s), `_first_call_done` is reset to `False` so the next `_ensure_init()` call triggers incremental re-sync. A threshold of 0 disables the check entirely. Placing the check in `memory_recall()` (not `_ensure_init()`) ensures the `summary_only=True` path also triggers staleness detection (H2 fix from task-gate review).
 
 ## Alternatives Considered
 
@@ -56,3 +56,4 @@ File-count delta was rejected because the per-call glob scan adds overhead to ev
 | Date | Change | Author |
 |---|---|---|
 | 2026-04-17 | Initial record | speckit.plan |
+| 2026-04-18 | Architecture revised: staleness check moved from `_ensure_init()` to `memory_recall()` via `_check_staleness()` helper to fix `summary_only` staleness gap (H2, task-gate review). ADR title and Decision body updated. | speckit.analyze |

@@ -33,7 +33,7 @@ _ensure_init():
 
 **Purpose**: Create test file before writing any tests.
 
-- [ ] T001 Create empty test file `memory-server/tests/unit/test_staleness.py` with module docstring and `from __future__ import annotations` import
+- [x] T001 Create empty test file `memory-server/tests/unit/test_staleness.py` with module docstring and `from __future__ import annotations` import
 
 ---
 
@@ -47,22 +47,22 @@ _ensure_init():
 
 > **Write ALL tests first and confirm they FAIL before proceeding to T008**
 
-- [ ] T002 [US1] Write failing unit test: `_check_staleness()` resets `_first_call_done` when `time.time() - last_sync_ts > threshold` in `memory-server/tests/unit/test_staleness.py`
-- [ ] T003 [US1] Write failing unit test: `_check_staleness()` does NOT reset `_first_call_done` when `time.time() - last_sync_ts <= threshold` in `memory-server/tests/unit/test_staleness.py`
-- [ ] T004 [US1] Write failing unit test: `_check_staleness()` does nothing when `MEMORY_STALENESS_THRESHOLD` is 0 (disabled) in `memory-server/tests/unit/test_staleness.py`
-- [ ] T005 [US1] Write failing unit test: `_check_staleness()` treats absent `last_sync_ts` (pre-008 manifest) as stale and resets `_first_call_done` in `memory-server/tests/unit/test_staleness.py`
-- [ ] T006 [US1] Write failing unit test: `_check_staleness()` logs a WARNING to stderr and continues when manifest read raises an exception (does not re-raise) in `memory-server/tests/unit/test_staleness.py`
-- [ ] T007 [US1] Write failing unit test: `run_sync()` writes a `last_sync_ts` float field to the manifest on successful completion in `memory-server/tests/unit/test_staleness.py`
-- [ ] T008 [US1] Write failing integration test: calling `_check_staleness()` when stale resets `_first_call_done = False`, and a subsequent `_ensure_init()` call invokes `run_sync` (mock `run_sync` to verify two-call sequence) in `memory-server/tests/unit/test_staleness.py`
-- [ ] T009 [US1] Write failing unit test: `_check_staleness()` is called on the `summary_only=True` path of `memory_recall` — verify it runs before `_ensure_init()` is bypassed in `memory-server/tests/unit/test_staleness.py`
-- [ ] T010 [US1] Write failing unit test: non-numeric `MEMORY_STALENESS_THRESHOLD` env var does NOT raise at import; server module imports cleanly and treats it as 0 (disabled) in `memory-server/tests/unit/test_staleness.py`
+- [x] T002 [US1] Write failing unit test: `_check_staleness()` resets `_first_call_done` when `time.time() - last_sync_ts > threshold` in `memory-server/tests/unit/test_staleness.py`
+- [x] T003 [US1] Write failing unit test: `_check_staleness()` does NOT reset `_first_call_done` when `time.time() - last_sync_ts <= threshold` in `memory-server/tests/unit/test_staleness.py`
+- [x] T004 [US1] Write failing unit test: `_check_staleness()` does nothing when `MEMORY_STALENESS_THRESHOLD` is 0 (disabled) in `memory-server/tests/unit/test_staleness.py`
+- [x] T005 [US1] Write failing unit test: `_check_staleness()` treats absent `last_sync_ts` (pre-008 manifest) as stale and resets `_first_call_done` in `memory-server/tests/unit/test_staleness.py`
+- [x] T006 [US1] Write failing unit test: `_check_staleness()` logs a WARNING to stderr and continues when manifest read raises an exception (does not re-raise) in `memory-server/tests/unit/test_staleness.py`
+- [x] T007 [US1] Write failing unit test: `run_sync()` writes a `last_sync_ts` float field to the manifest on successful completion in `memory-server/tests/unit/test_staleness.py`
+- [x] T008 [US1] Write failing integration test: calling `_check_staleness()` when stale resets `_first_call_done = False`, and a subsequent `_ensure_init()` call invokes `run_sync` (mock `run_sync` to verify two-call sequence) in `memory-server/tests/unit/test_staleness.py`
+- [x] T009 [US1] Write failing unit test: `_check_staleness()` is called on the `summary_only=True` path of `memory_recall` — verify it runs before `_ensure_init()` is bypassed in `memory-server/tests/unit/test_staleness.py`
+- [x] T010 [US1] Write failing unit test: non-numeric `MEMORY_STALENESS_THRESHOLD` env var does NOT raise at import; server module imports cleanly and treats it as 0 (disabled) in `memory-server/tests/unit/test_staleness.py`
 
 ### Implementation for User Story 1
 
-- [ ] T011 [US1] Add `manifest["last_sync_ts"] = time.time()` immediately before the final `save_manifest(index_dir, manifest)` call in `run_sync()` in `memory-server/speckit_memory/sync.py` (uses `time` already imported in function scope)
-- [ ] T012 [US1] Add config to `memory-server/speckit_memory/server.py`: `import time` at module level; `_MEMORY_STALENESS_THRESHOLD` parsed from `MEMORY_STALENESS_THRESHOLD` env var using try/except — on `ValueError` or any parse error, default to `0.0` (disabled); non-positive values also treat as `0.0`
-- [ ] T013 [US1] Add `_check_staleness()` helper to `memory-server/speckit_memory/server.py`: reads manifest from `_index_dir()`, compares `time.time() - manifest.get("last_sync_ts", 0)` against `_MEMORY_STALENESS_THRESHOLD`, resets `global _first_call_done = False` if stale; on any exception emits `[speckit-memory] WARNING: staleness check failed: {exc}` to stderr and returns without re-raising
-- [ ] T014 [US1] Move staleness check to `memory_recall()` in `memory-server/speckit_memory/server.py`: add `_check_staleness()` call at the top of `memory_recall()`, before the `if not summary_only: _ensure_init()` branch; remove any staleness logic from `_ensure_init()` (which should retain only its existing first-call-done guard and sync logic)
+- [x] T011 [US1] Add `manifest["last_sync_ts"] = time.time()` immediately before the final `save_manifest(index_dir, manifest)` call in `run_sync()` in `memory-server/speckit_memory/sync.py` (uses `time` already imported in function scope)
+- [x] T012 [US1] Add config to `memory-server/speckit_memory/server.py`: `import time` at module level; `_MEMORY_STALENESS_THRESHOLD` parsed from `MEMORY_STALENESS_THRESHOLD` env var using try/except — on `ValueError` or any parse error, default to `0.0` (disabled); non-positive values also treat as `0.0`
+- [x] T013 [US1] Add `_check_staleness()` helper to `memory-server/speckit_memory/server.py`: reads manifest from `_index_dir()`, compares `time.time() - manifest.get("last_sync_ts", 0)` against `_MEMORY_STALENESS_THRESHOLD`, resets `global _first_call_done = False` if stale; on any exception emits `[speckit-memory] WARNING: staleness check failed: {exc}` to stderr and returns without re-raising
+- [x] T014 [US1] Move staleness check to `memory_recall()` in `memory-server/speckit_memory/server.py`: add `_check_staleness()` call at the top of `memory_recall()`, before the `if not summary_only: _ensure_init()` branch; remove any staleness logic from `_ensure_init()` (which should retain only its existing first-call-done guard and sync logic)
 
 **Checkpoint**: Run `uv run --directory memory-server pytest memory-server/tests/unit/test_staleness.py -m "not integration"` — all T002–T010 tests must pass.
 
@@ -76,13 +76,13 @@ _ensure_init():
 
 ### Tests for User Story 2
 
-- [ ] T015 [US2] Write smoke test: read `.specify/memory/memory-convention.md` and assert it contains the string "Constitution gate" and "memory_enabled" in `memory-server/tests/unit/test_staleness.py` (documents the convention is present; guards against accidental removal)
+- [x] T015 [US2] Write smoke test: read `.claude/rules/memory-convention.md` and assert all four of the following strings are present in `memory-server/tests/unit/test_staleness.py`: (1) `"Constitution gate"` — gate section exists (FR-008); (2) `"memory_enabled"` — field name documented (FR-008); (3) `"absent"` or `"absent or unparseable"` — absent-field default-to-true documented (FR-009); (4) `"unparseable"` — fallback for bad constitution documented (FR-011). Guards against accidental removal and verifies convention text covers all three spec requirements.
 
 ### Implementation for User Story 2
 
-- [ ] T016 [US2] Add YAML front-matter to `.specify/memory/constitution.md`: insert `---\nmemory_enabled: true\n---\n` at file start, before the existing SYNC IMPACT REPORT HTML comment
-- [ ] T017 [US2] Add `memory_enabled` field to `.specify/templates/constitution-template.md` with a comment: `# memory_enabled: true | Set to false to disable all memory_recall/memory_store calls in speckit skills`
-- [ ] T018 [US2] Add "Constitution gate" section to `.claude/rules/memory-convention.md`: before invoking any memory tool, check `memory_enabled` in constitution front-matter; if `false`, skip all `memory_recall` and `memory_store` calls; if absent or unparseable, treat as `true`; include a concrete example showing exactly what the gate check looks like in a skill prompt
+- [x] T016 [US2] Add YAML front-matter to `.specify/memory/constitution.md`: insert `---\nmemory_enabled: true\n---\n` at file start, before the existing SYNC IMPACT REPORT HTML comment
+- [x] T017 [US2] Add `memory_enabled` field to `.specify/templates/constitution-template.md` with a comment: `# memory_enabled: true | Set to false to disable all memory_recall/memory_store calls in speckit skills`
+- [x] T018 [US2] Add "Constitution gate" section to `.claude/rules/memory-convention.md`: before invoking any memory tool, check `memory_enabled` in constitution front-matter; if `false`, skip all `memory_recall` and `memory_store` calls; if absent or unparseable, treat as `true`; include a concrete example showing exactly what the gate check looks like in a skill prompt. The section MUST explicitly state: (a) absent `memory_enabled` defaults to `true` (FR-009), and (b) an unparseable or absent constitution file also defaults to `true` (FR-011) — T015 asserts these strings are present.
 
 **Checkpoint**: Run T015 smoke test; verify constitution.md front-matter is parseable; verify memory-convention.md gate section is present.
 
@@ -90,10 +90,10 @@ _ensure_init():
 
 ## Phase 4: Polish & Cross-Cutting Concerns
 
-- [ ] T019 Update `CLAUDE.md` to add `MEMORY_STALENESS_THRESHOLD` to the Environment Variables table in the Commands section (default: `3600`; `0` = disabled)
-- [ ] T020 Verify ADR-011 amendment history entry is present in `.specify/memory/ADR_011_self-init-sync-trigger.md`; update if the plan-phase entry doesn't reflect the revised architecture (staleness check in `memory_recall`, not `_ensure_init`)
-- [ ] T021 Update `specs/008-auto-sync-staleness/spec.md` Decision Records table to add ADR-050 and ADR-051 rows
-- [ ] T022 Run full test suite `uv run --directory memory-server pytest -m "not integration"` to confirm no regressions
+- [x] T019 Update `CLAUDE.md` to add `MEMORY_STALENESS_THRESHOLD` to the Environment Variables table in the Commands section (default: `3600`; `0` = disabled)
+- [x] T020 Verify ADR-011 amendment history entry is present in `.specify/memory/ADR_011_self-init-sync-trigger.md`; update if the plan-phase entry doesn't reflect the revised architecture (staleness check in `memory_recall`, not `_ensure_init`)
+- [x] T021 Update `specs/008-auto-sync-staleness/spec.md` Decision Records table to add ADR-050 and ADR-051 rows
+- [x] T022 Run full test suite `uv run --directory memory-server pytest -m "not integration"` to confirm no regressions
 
 ---
 
