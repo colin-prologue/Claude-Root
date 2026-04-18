@@ -21,7 +21,7 @@ We will use timestamp-based staleness detection: `memory_recall()` calls `_check
 
 ### Option A: Timestamp delta *(chosen)*
 
-Check `time.time() - manifest.get("last_sync_ts", 0) > threshold`. The manifest is already loaded during `_ensure_init`; no additional I/O is required. A missing `last_sync_ts` (pre-008 manifests) evaluates as stale (0 timestamp), which is safe.
+Check `time.time() - manifest.get("last_sync_ts", 0) > threshold`. `_check_staleness()` loads `manifest.json` from disk on each `memory_recall` call — a sub-millisecond local read that does not constitute measurable latency against SC-002. FR-007 explicitly permits this read ("no new file I/O *beyond reading the manifest*"). A missing `last_sync_ts` (pre-008 manifests) evaluates as stale (0 timestamp), which is safe.
 
 **Pros**: Zero filesystem overhead per call; no false positives from file deletions; trivially configurable; single field in existing JSON document
 **Cons**: Does not detect staleness faster than the configured window — a new ADR created 1 minute after a sync will not be indexed for up to 59 more minutes (at default threshold)
@@ -51,9 +51,14 @@ File-count delta was rejected because the per-call glob scan adds overhead to ev
 **Risks**: If sync takes longer than expected (large corpus, slow Ollama), the first post-staleness recall blocks for the full sync duration. Mitigation: the window is 1 hour by default, so this occurs at most once per hour
 **Follow-on decisions required**: ADR-011 must be amended to document the new `last_sync_ts` write condition and multi-fire trigger behavior
 
+## summary_only Carve-out (LOG-053)
+
+`_check_staleness()` is called on every `memory_recall` invocation including `summary_only=True` calls. When staleness is detected on a `summary_only` call, `_first_call_done` is reset but `_ensure_init()` is NOT called — the actual `run_sync` is deferred to the next non-`summary_only` call. This is intentional: `summary_only` was designed to be Ollama-free (ADR-037); running `run_sync` inline would embed files and break that guarantee. Consequence: a process that only ever issues `summary_only` calls will detect staleness repeatedly but never self-heal. This is an accepted limitation documented in LOG-053. An INFO log is emitted when staleness is detected ("re-sync scheduled on next embedding call") so the operator has a signal.
+
 ## Amendment History
 
 | Date | Change | Author |
 |---|---|---|
 | 2026-04-17 | Initial record | speckit.plan |
 | 2026-04-18 | Architecture revised: staleness check moved from `_ensure_init()` to `memory_recall()` via `_check_staleness()` helper to fix `summary_only` staleness gap (H2, task-gate review). ADR title and Decision body updated. | speckit.analyze |
+| 2026-04-18 | Fixed "no additional I/O" prose to match FR-007 wording; added summary_only carve-out section (LOG-053); added INFO log on staleness trigger. Code review findings S-2, S-3. | speckit.codereview |

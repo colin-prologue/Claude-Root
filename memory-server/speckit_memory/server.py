@@ -98,6 +98,12 @@ def _check_staleness() -> None:
         last_sync = manifest.get("last_sync_ts", 0)
         if time.time() - last_sync > _MEMORY_STALENESS_THRESHOLD:
             _first_call_done = False
+            print(
+                f"[speckit-memory] INFO: staleness threshold exceeded "
+                f"(age={(time.time() - last_sync):.0f}s, threshold={_MEMORY_STALENESS_THRESHOLD:.0f}s); "
+                "re-sync scheduled on next embedding call",
+                file=sys.stderr,
+            )
     except Exception as exc:
         print(f"[speckit-memory] WARNING: staleness check failed: {exc}", file=sys.stderr)
 
@@ -275,7 +281,15 @@ def memory_store(
     content: str,
     metadata: dict,
 ) -> dict[str, Any]:
-    """Embed content and store it as a chunk (for skill-generated summaries)."""
+    """Embed content and store it as a chunk (for skill-generated summaries).
+
+    _ensure_init() is intentionally absent here (LOG-038, dc28b8a): calling it before
+    _embed_text doubles the Ollama timeout budget when the server is unavailable, violating
+    SC-002. memory_store initialises the table directly via init_table(). The accepted
+    tradeoff: a synthetic chunk stored before the first memory_recall on a cold process
+    may be wiped if the subsequent recall triggers a full run_sync (e.g. version migration).
+    The memory-convention.md recall-before / store-after pattern avoids this sequence.
+    """
     try:
         raw_vec = _embed_text(content)
     except (ConnectionError, OSError, httpx.TransportError, ollama_sdk.ResponseError) as exc:

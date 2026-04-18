@@ -844,6 +844,11 @@ def patched_embed(fake_embedder):
 
 @contextmanager
 def patched_index_dir(tmp_index):
+    import time as _time
+    from speckit_memory.index import load_manifest, save_manifest
+    manifest = load_manifest(tmp_index)
+    manifest.setdefault("last_sync_ts", _time.time())
+    save_manifest(tmp_index, manifest)
     with patch("speckit_memory.server._index_dir", return_value=tmp_index):
         yield
 

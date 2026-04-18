@@ -226,3 +226,82 @@ def test_memory_convention_has_constitution_gate():
         "absent-field default-to-true behavior not documented (FR-009)"
     assert "unparseable" in content, \
         "unparseable constitution fallback not documented (FR-011)"
+
+
+# ---------------------------------------------------------------------------
+# T016: boundary — last_sync_ts exactly at threshold is NOT stale (strict >)
+# ---------------------------------------------------------------------------
+
+def test_check_staleness_boundary_exact_threshold_not_stale():
+    """Elapsed time exactly equal to threshold is NOT stale — implementation uses strict >."""
+    import speckit_memory.server as s
+
+    frozen_now = 10000.0
+    exact_ts = frozen_now - 3600.0  # elapsed == threshold exactly
+    manifest = {"version": "2", "entries": {}, "last_sync_ts": exact_ts}
+
+    with patch("speckit_memory.server._MEMORY_STALENESS_THRESHOLD", 3600.0), \
+         patch("speckit_memory.server._first_call_done", True), \
+         patch("speckit_memory.server.load_manifest", return_value=manifest), \
+         patch("speckit_memory.server._index_dir", return_value=MagicMock()), \
+         patch("speckit_memory.server.time") as mock_time_module:
+        mock_time_module.time.return_value = frozen_now
+        s._check_staleness()
+        assert s._first_call_done is True  # boundary is NOT stale — strict > only
+
+
+# ---------------------------------------------------------------------------
+# T017: FR-006 negative — last_sync_ts NOT written when embed fails mid-sync
+# ---------------------------------------------------------------------------
+
+def test_run_sync_does_not_write_last_sync_ts_on_embed_failure(tmp_path):
+    """last_sync_ts is NOT written when embed_fn raises during sync (FR-006 negative path)."""
+    from speckit_memory.sync import run_sync
+    from speckit_memory.index import load_manifest
+
+    # Create a file matching default index globs so the embed loop executes
+    memory_dir = tmp_path / ".specify" / "memory"
+    memory_dir.mkdir(parents=True)
+    (memory_dir / "ADR_001_test.md").write_text("# Test ADR\n\nContent that triggers embedding.")
+
+    def failing_embed(text: str) -> list:
+        raise ConnectionError("Ollama down")
+
+    with pytest.raises(ConnectionError):
+        run_sync(
+            index_dir=tmp_path,
+            repo_root=tmp_path,
+            embed_fn=failing_embed,
+            model_name="test-model",
+            full=True,
+        )
+
+    manifest = load_manifest(tmp_path)
+    assert "last_sync_ts" not in manifest, (
+        "last_sync_ts must NOT be written when sync fails mid-way (FR-006). "
+        "If this fails, last_sync_ts was written before sync completed, which would "
+        "suppress legitimate re-sync attempts after a partial failure."
+    )
+
+
+# ---------------------------------------------------------------------------
+# T018: constitution gate check in recall-required skills (M-1 audit, LOG-054)
+# ---------------------------------------------------------------------------
+
+def test_recall_store_skills_reference_constitution_gate():
+    """Skills listed in memory-convention.md as recall/store-required reference the gate check (LOG-054)."""
+    convention_path = Path(__file__).parents[3] / ".claude" / "rules" / "memory-convention.md"
+    commands_dir = Path(__file__).parents[3] / ".claude" / "commands"
+
+    # Skills that must recall or store per memory-convention.md
+    gated_skills = ["speckit.plan.md", "speckit.review.md", "speckit.audit.md"]
+
+    for skill_file in gated_skills:
+        skill_path = commands_dir / skill_file
+        if not skill_path.exists():
+            continue  # skill not present in this install — skip
+        content = skill_path.read_text(encoding="utf-8")
+        assert "memory_enabled" in content or "constitution" in content.lower(), (
+            f"{skill_file} is a recall/store skill but does not reference the constitution gate "
+            "(memory_enabled check). Add the gate check per memory-convention.md (LOG-054)."
+        )

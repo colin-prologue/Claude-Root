@@ -65,7 +65,7 @@ A developer clones the speckit template into a new project that does not use the
 **Staleness Detection (Option A)**
 
 - **FR-001**: The memory index manifest MUST record the Unix timestamp of the most recent successful sync completion as a `last_sync_ts` field.
-- **FR-002**: On every `memory_recall` call after initial sync, the server MUST compare the current time against `last_sync_ts`. If the elapsed time exceeds the staleness threshold, the server MUST trigger an incremental re-sync before returning results.
+- **FR-002**: On every `memory_recall` call after initial sync, the server MUST compare the current time against `last_sync_ts`. If the elapsed time exceeds the staleness threshold, the server MUST trigger an incremental re-sync before returning results. **Exception**: when `summary_only=True`, the staleness flag is reset (priming re-sync for the next non-summary call) but the sync itself is deferred — running sync inline would require Ollama embedding, violating the Ollama-free guarantee of the summary_only path (ADR-037, LOG-053).
 - **FR-003**: The staleness threshold MUST default to 3600 seconds (1 hour) and MUST be configurable via the `MEMORY_STALENESS_THRESHOLD` environment variable.
 - **FR-004**: A threshold value of 0 MUST disable staleness checking entirely — no timestamp comparison is made and no automatic re-sync is triggered.
 - **FR-005**: When `last_sync_ts` is absent from the manifest (pre-008 manifest or first-ever sync), the server MUST treat the index as stale and trigger a re-sync.
