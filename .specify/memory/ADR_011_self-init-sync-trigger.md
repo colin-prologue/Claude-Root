@@ -54,3 +54,4 @@ Claude Code's hook system is tool-centric, not session-centric, so Option B cann
 | Date | Change | Author |
 |---|---|---|
 | 2026-04-06 | Initial record | speckit.plan |
+| 2026-04-17 | Feature 008 (ADR-050): `_ensure_init` can now fire more than once per process lifetime. After first sync, each call checks if `time.time() - last_sync_ts > MEMORY_STALENESS_THRESHOLD`. If stale, `_first_call_done` is reset and re-sync runs on the next call. "Once per process lifetime" is no longer accurate — corrected to "once per staleness window." | speckit.plan |
