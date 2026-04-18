@@ -48,6 +48,8 @@ If no Project Context section exists, warn the user and recommend running `/spec
 
 **Do NOT instruct agents to re-read constitution.md.** Inject `CALIBRATION_BLOCK` directly into each agent's prompt in Step 4. This avoids redundant file reads across the panel.
 
+**Memory gate + recall**: Parse `memory_enabled` from the constitution front-matter just loaded. If `memory_enabled: false`, skip all `memory_recall` and `memory_store` calls in this skill run. Otherwise call `memory_recall("prior review findings open risks architectural decisions")` and use surfaced prior decisions as context for panel reviewers.
+
 ### 2.5. Initialize Review State File
 
 Determine the current feature name from the artifact paths detected in Step 1 (e.g., `003-memory-server-hardening` from `specs/003-memory-server-hardening/spec.md`). If no feature can be inferred, use `unknown`.
@@ -214,6 +216,8 @@ Display the synthesis report to the user. Then:
    - For each unresolved item in the synthesis report, offer to create a `LOG_NNN_*.md` with type QUESTION or CHALLENGE
    - For each architectural decision surfaced, offer to create an `ADR_NNN_*.md`
    - Update the feature's Decision Records table in spec.md or plan.md with back-references
+
+4. **Memory store**: Call `memory_store` with a 2-5 sentence summary of the synthesis report's majority findings, key dissents, and recommended ADRs/LOGs (unless memory gate disabled — step 2). Use `source_file: "synthetic"`, `section: "speckit.review synthesis"`, feature and tags per `memory-convention.md`.
 
 ### 6. Gate Decision
 

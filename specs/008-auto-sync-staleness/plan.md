@@ -5,14 +5,14 @@
 
 ## Summary
 
-Add timestamp-based index staleness detection to `_ensure_init()` so the memory server automatically re-syncs when the index is more than `MEMORY_STALENESS_THRESHOLD` seconds old (default 3600s), and add a `memory_enabled` flag to the constitution front-matter so speckit skills can be explicitly disabled for projects that do not use the memory server.
+Add timestamp-based index staleness detection via `_check_staleness()` in `memory_recall()` so the memory server automatically re-syncs when the index is more than `MEMORY_STALENESS_THRESHOLD` seconds old (default 3600s), and add a `memory_enabled` flag to the constitution front-matter so speckit skills can be explicitly disabled for projects that do not use the memory server.
 
 ## Decision Records
 
 | # | Type | File | Title | Status |
 |---|---|---|---|---|
 | LOG-049 | Question | LOG_049_speckit-memory-coupling.md | Speckit Skills Implicitly Require Memory Server | Open → drives this feature |
-| ADR-050 | Decision | ADR_050_timestamp-staleness-detection.md | Timestamp-Based Staleness Detection in `_ensure_init` | Accepted |
+| ADR-050 | Decision | ADR_050_timestamp-staleness-detection.md | Timestamp-Based Staleness Detection via `_check_staleness()` in `memory_recall` | Accepted |
 | ADR-051 | Decision | ADR_051_constitution-memory-gate.md | Constitution Front-Matter as Memory Opt-In Gate | Accepted |
 
 ## Technical Context

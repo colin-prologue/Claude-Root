@@ -70,7 +70,7 @@ A developer clones the speckit template into a new project that does not use the
 - **FR-004**: A threshold value of 0 MUST disable staleness checking entirely — no timestamp comparison is made and no automatic re-sync is triggered.
 - **FR-005**: When `last_sync_ts` is absent from the manifest (pre-008 manifest or first-ever sync), the server MUST treat the index as stale and trigger a re-sync.
 - **FR-006**: `last_sync_ts` MUST be written to the manifest only on successful sync completion, not on partial or failed syncs.
-- **FR-007**: The staleness check adds no new network calls or file I/O beyond reading the manifest (which is already loaded during `_ensure_init`).
+- **FR-007**: The staleness check adds no new network calls or file I/O beyond reading the manifest (which is already loaded during `_check_staleness`).
 
 **Constitution Opt-In Gate (Option C)**
 
@@ -96,7 +96,7 @@ A developer clones the speckit template into a new project that does not use the
 
 ## Assumptions
 
-- The existing `_ensure_init` sync mechanism (ADR-011) is the correct hook point for staleness detection. No new trigger point is introduced.
+- The staleness check runs in `memory_recall()` via `_check_staleness()` (not `_ensure_init`). `_ensure_init` remains the sync-runner; the trigger point is `memory_recall`. No new trigger point beyond that is introduced.
 - Sync is synchronous on the first post-staleness recall in this implementation. Background/async sync is explicitly deferred (noted in LOG-049 as "adds complexity — defer to implementation").
 - The constitution front-matter is YAML. Skills already read the constitution; reading a front-matter field is a minor extension of existing behavior.
 - `memory-convention.md` already contains the best-effort skip guidance (added 2026-04-17 as part of LOG-049 immediate mitigation) — the gate formalizes this into an explicit, configuration-driven skip rather than an error-handling fallback.

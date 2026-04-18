@@ -301,7 +301,7 @@ def test_recall_store_skills_reference_constitution_gate():
         if not skill_path.exists():
             continue  # skill not present in this install — skip
         content = skill_path.read_text(encoding="utf-8")
-        assert "memory_enabled" in content or "constitution" in content.lower(), (
+        assert "memory_enabled" in content, (
             f"{skill_file} is a recall/store skill but does not reference the constitution gate "
             "(memory_enabled check). Add the gate check per memory-convention.md (LOG-054)."
         )
