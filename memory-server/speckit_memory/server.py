@@ -5,6 +5,7 @@ import json
 import math
 import os
 import sys
+import time
 import urllib.parse
 import uuid
 from datetime import datetime, timezone
@@ -45,6 +46,13 @@ _OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "nomic-embed-text")
 _OLLAMA_TIMEOUT = float(os.environ.get("OLLAMA_TIMEOUT", "10"))
 _MEMORY_INDEX_PATH = os.environ.get("MEMORY_INDEX_PATH", "")
 
+try:
+    _MEMORY_STALENESS_THRESHOLD = float(os.environ.get("MEMORY_STALENESS_THRESHOLD", "3600"))
+    if _MEMORY_STALENESS_THRESHOLD <= 0:
+        _MEMORY_STALENESS_THRESHOLD = 0.0
+except (ValueError, TypeError):
+    _MEMORY_STALENESS_THRESHOLD = 0.0
+
 # Process-lifetime first-call flag (ADR-011 self-init sync)
 _first_call_done = False
 
@@ -78,6 +86,20 @@ def _embed_text(text: str) -> list[float]:
 
 def _crawl_files() -> list[Path]:
     return crawl_files(_repo_root(), _MEMORY_INDEX_PATH or None)
+
+
+def _check_staleness() -> None:
+    """Reset _first_call_done if index is older than threshold (ADR-050)."""
+    global _first_call_done
+    if _MEMORY_STALENESS_THRESHOLD <= 0:
+        return
+    try:
+        manifest = load_manifest(_index_dir())
+        last_sync = manifest.get("last_sync_ts", 0)
+        if time.time() - last_sync > _MEMORY_STALENESS_THRESHOLD:
+            _first_call_done = False
+    except Exception as exc:
+        print(f"[speckit-memory] WARNING: staleness check failed: {exc}", file=sys.stderr)
 
 
 def _ensure_init() -> None:
@@ -129,6 +151,8 @@ def memory_recall(
                 "recoverable": True,
             }
         }
+
+    _check_staleness()
 
     # LOG-038: skip _ensure_init on summary_only path — post-T007, _ensure_init retries
     # on every call when Ollama is down, adding ~10s latency to every summary_only call.
