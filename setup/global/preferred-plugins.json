@@ -1,0 +1,26 @@
+{
+  "_comment": "Canonical global plugin state. Used by /colin-setup to enable missing plugins and flag ones that should be disabled. Per-project plugins (e.g. vercel, supabase) are NOT listed here — they belong in project .claude/settings.json.",
+  "marketplace": "claude-plugins-official",
+  "enabled": [
+    "frontend-design",
+    "superpowers",
+    "context7",
+    "code-simplifier",
+    "github",
+    "playwright",
+    "skill-creator",
+    "claude-md-management",
+    "security-guidance",
+    "commit-commands",
+    "claude-code-setup",
+    "agent-sdk-dev",
+    "chrome-devtools-mcp",
+    "hookify",
+    "mcp-server-dev"
+  ],
+  "disabled": [
+    "atomic-agents",
+    "vercel",
+    "supabase"
+  ]
+}
