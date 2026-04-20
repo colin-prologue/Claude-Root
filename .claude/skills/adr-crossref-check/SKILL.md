@@ -24,7 +24,7 @@ Runs `.specify/scripts/bash/check-adr-crossrefs.sh`, which:
 
 Exit codes:
 - `0` — all records referenced.
-- `2` — one or more records missing references. The skill treats `2` as "report and surface to user," not a failure.
+- `2` — one or more records missing references. Surface findings to the user; do not block automatically. If the user is running this as a pre-merge gate, they treat exit 2 as a stop signal themselves.
 
 ## Usage
 
@@ -40,4 +40,4 @@ Read the output. For each missing record:
 
 - **In scope:** memory → specs direction, all ADR and LOG files regardless of status.
 - **Out of scope:** specs → memory reverse check, content-quality review, superseded-status validation, auto-fixing gaps.
-- **Related:** `/speckit.audit` performs broader bidirectional consistency auditing; run this skill as a pre-flight for that command.
+- **Related:** `/speckit.audit` performs broader bidirectional consistency auditing; run this skill as a pre-flight for that command. For each missing record, use the `writing-decision-records` skill to author the missing back-reference.
