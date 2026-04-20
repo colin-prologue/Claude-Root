@@ -21,6 +21,7 @@ changes to `sync.py`. No new technologies introduced.
 | ADR-030 | Decision | ADR_030_cleanup-detection-strategy.md | Crawl-based with direct-exists safety check | Accepted |
 | LOG-028 | Challenge | LOG_028_orphaned-chunks-non-atomic-cleanup.md | Orphaned chunks from non-atomic cleanup | Open (deferred) |
 | LOG-029 | Question | LOG_029_log018-unresolved-concerns.md | LOG-018 unresolved concerns: de-dupe and synthetic purge | Deferred |
+| LOG-031 | Challenge | LOG_031_codereview-005-fast-follows.md | Post-codereview fast-follow items (FF-001 through FF-004) | Open (FF-001, FF-002) / Resolved (FF-003, FF-004) |
 
 ## Technical Context
 
