@@ -14,6 +14,9 @@ Add timestamp-based index staleness detection via `_check_staleness()` in `memor
 | LOG-049 | Question | LOG_049_speckit-memory-coupling.md | Speckit Skills Implicitly Require Memory Server | Open → drives this feature |
 | ADR-050 | Decision | ADR_050_timestamp-staleness-detection.md | Timestamp-Based Staleness Detection via `_check_staleness()` in `memory_recall` | Accepted |
 | ADR-051 | Decision | ADR_051_constitution-memory-gate.md | Constitution Front-Matter as Memory Opt-In Gate | Accepted |
+| ADR-052 | Decision | ADR_052_component-model-manifest.md | Three-Component Model and `.speckit.json` Manifest (009 prereq, absorbed from retro) | Accepted |
+| LOG-052 | Challenge | LOG_052_memory-store-no-ensure-init.md | `memory_store` intentionally skips `_ensure_init` — store-before-recall race accepted | Resolved — accepted risk |
+| LOG-054 | Challenge | LOG_054_gate-enforcement-convention-risk.md | Constitution gate is convention-only — no server-side enforcement | Open — accepted risk with partial mitigation |
 
 ## Technical Context
 
