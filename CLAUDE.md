@@ -40,6 +40,7 @@ uv run --directory memory-server speckit-memory
 # OLLAMA_MODEL (default: nomic-embed-text)
 # OLLAMA_TIMEOUT (default: 10) — seconds before Ollama calls fail (006-ollama-fallback)
 # MEMORY_INDEX_PATH (default: .specify/memory/ADR_*.md,LOG_*.md,constitution.md + specs/*/spec.md,plan.md)
+# MEMORY_STALENESS_THRESHOLD (default: 3600) — seconds before index is re-synced on recall; 0 = disabled (008-auto-sync-staleness)
 ```
 
 ## Directory Structure
@@ -81,11 +82,13 @@ docs/                   # Long-form documentation
 - See `.specify/memory/constitution.md` for full governing principles
 
 ## Recent Changes
+- 008-auto-sync-staleness: Added Python 3.10+ + FastMCP 2.0+, LanceDB 0.13+, httpx, ollama SDK
 - 007-bm25-keyword-fallback: Complete — BM25 keyword fallback for memory_recall when Ollama unavailable; adds `degraded: true` envelope flag and normalized [0,1] TF score; FR-011 CONFIG_ERROR message includes bad URL
 - 006-ollama-fallback: Ollama resilience — ToolError raises, configurable timeout (`OLLAMA_TIMEOUT`), summary_only bypass via table scan, `_ensure_init` retry fix
-- 005-sync-stale-cleanup: Fixed scoped-sync mass-deletion bug (FR-001a), chunk-count bug in `deleted` stat (FR-008), hardened `find_deleted` against malformed/synthetic manifest keys (FR-007), added direct-exists safety check (ADR-030)
 
 <!-- Update this as features are completed -->
 
 
 ## Active Technologies
+- Python 3.10+ + FastMCP 2.0+, LanceDB 0.13+, httpx, ollama SDK (008-auto-sync-staleness)
+- Manifest JSON (`manifest.json`) in `.specify/memory/.index/`; LanceDB table (008-auto-sync-staleness)

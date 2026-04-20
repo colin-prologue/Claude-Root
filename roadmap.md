@@ -3,8 +3,8 @@
 **Project**: ClaudeTest / Speckit Template
 **Owner**: Colin Dwan (Prologue Games)
 **Purpose**: A spec-driven development template with multi-agent adversarial review, optional local vector memory, and bidirectional consistency auditing. Designed to be deployed into any project — every project should be able to use this pattern for scoping, clarifying, building, reviewing, and maintaining its repo.
-**Last Updated**: 2026-04-15
-**Status**: Phase 1 complete. Phase 2 active (2 of 3 items done).
+**Last Updated**: 2026-04-18
+**Status**: Phase 1 complete. Phase 2 complete. Phase 3 active (1 of 2 items done).
 
 ---
 
@@ -33,10 +33,12 @@ Speckit is composed of three independently-deployable components. Projects opt i
 | 004 | *(skipped — number reserved)* | — | — |
 | 005 | sync-stale-cleanup | Done | Stale chunk cleanup pass in `memory_sync`; fixes scoped-sync mass-deletion (FR-001a) and per-file deleted count (FR-008); ADR-027, ADR-030 |
 | 006 | ollama-fallback | Done | ToolError raises for all Ollama errors, configurable `OLLAMA_TIMEOUT`, `summary_only` bypass via table scan (`scan_chunks`), `_ensure_init` retry fix, `memory_delete` drops init call; ADR-032, ADR-033, ADR-037 |
+| 007 | bm25-keyword-fallback | Done | BM25/keyword fallback in `memory_recall` when Ollama unavailable; `degraded: true` envelope flag; normalized TF score (ADR-043); FR-011 CONFIG_ERROR message; error envelope consistency across tools; ADR-039–044 |
+| 008 | auto-sync-staleness | Done | Timestamp staleness detection via `_check_staleness()` in `memory_recall` (ADR-050); `MEMORY_STALENESS_THRESHOLD` env var; `memory_enabled` constitution gate (ADR-051); memory convention wired into speckit.plan/review/audit skills; LOG-052–054 accepted-risk |
 
-**ADRs created**: 21 (ADR-001–013, ADR-019, ADR-021–024, ADR-027, ADR-030, ADR-032, ADR-033, ADR-037)
-**LOGs open**: LOG-017 (partially addressed), LOG-020, LOG-028 (orphaned chunks, deferred), LOG-029 (de-dupe + synthetic purge, deferred), LOG-031 (005 fast-follows: FF-001 partial error, FF-002 absolute paths), LOG-038 (partial — `memory_delete` question closed; `OLLAMA_TIMEOUT` non-numeric open)
-**LOGs resolved**: LOG-014, LOG-015, LOG-016, LOG-018 (partially resolved by 005), LOG-025, LOG-026, LOG-034, LOG-035, LOG-036 (post-codereview amendment)
+**ADRs created**: 28 (ADR-001–013, ADR-019, ADR-021–024, ADR-027, ADR-030, ADR-032, ADR-033, ADR-037, ADR-039–044, ADR-050–051)
+**LOGs open**: LOG-020, LOG-028 (orphaned chunks, deferred), LOG-029 (de-dupe + synthetic purge, deferred), LOG-031 (005 fast-follows: FF-001, FF-002), LOG-038 (`OLLAMA_TIMEOUT` non-numeric), LOG-054 (convention-only gate enforcement risk)
+**LOGs resolved**: LOG-014–016, LOG-018 (partially), LOG-025–026, LOG-034–036, LOG-042, LOG-045–049, LOG-052–053
 
 ---
 
@@ -55,41 +57,24 @@ Speckit is composed of three independently-deployable components. Projects opt i
 
 ---
 
-### 007 · BM25 Keyword Fallback
+### ~~007 · BM25 Keyword Fallback~~ → Done (see Implementation Summary)
 
-**Summary**: After 006, `memory_recall` in semantic mode returns a structured error when Ollama is unavailable — but returns nothing useful. The original roadmap intent for feature 006 was that recall degrades gracefully to keyword search rather than failing. BM25 over `chunk.content` and `chunk.section` would let semantic recall return reduced-quality results instead of an error when Ollama is down. Deferred from 006 per ADR-032.
+**What it built**: In-process TF scoring (ADR-043) over `chunk.content` and `chunk.section` — no separate FTS index needed. `degraded: true` envelope flag on fallback results. FR-011 CONFIG_ERROR message in recall. Error envelope consistency across `memory_store` and `memory_delete`. ADR-039–044.
 
-**What it builds**: A BM25/keyword search path in `memory_recall`: if the Ollama embedding call fails (caught as `ToolError`), fall back to BM25 search over `chunk.content` and `chunk.section`. Returned results include a `degraded: true` flag so callers know quality is lower. Error handling infrastructure from 006 is a prerequisite — the fallback needs a clean error path to fall back *to*.
-
-**MoSCoW**: Must (completes the original 006 promise — tool works offline)
-**Effort**: S–M
-**Key assumption**: BM25 over the LanceDB table is achievable without a separate search index. LanceDB has FTS support; alternatively, simple scored substring match over content is sufficient for fallback quality.
-**Depends on**: 006 (ToolError infrastructure — done)
-**Reference**: LOG-017/GAP-1, ADR-032
-**Branch**: `007-bm25-fallback`
+**Branch**: `007-bm25-keyword-fallback`
 
 ---
 
 ## Phase 3 — Composability
 *Goal: Make speckit deployable into any project, with upgrade support for in-flight projects.*
 
-### 008 · Component Model + Graceful Degradation in Skills
+### ~~008 · Auto-Sync Staleness Detection + Memory Opt-In Gate~~ → Done (see Implementation Summary)
 
-**Summary**: Before building the init CLI, the component boundaries need to be formally defined and the skill layer needs to handle missing components gracefully. Currently, skills implicitly assume `speckit-memory` is always configured. A project using only `speckit-core` would break any skill that calls `memory_recall`.
+**What it built**: Timestamp-based staleness detection via `_check_staleness()` called at the top of `memory_recall()` — before the `summary_only` gate — so all recall paths trigger the check (ADR-050). `MEMORY_STALENESS_THRESHOLD` env var (default 3600s; 0 = disabled). Manifest gains `last_sync_ts` field written on successful sync. `memory_enabled: false` in constitution front-matter gates all skill `memory_recall`/`memory_store` calls (ADR-051). speckit.plan, speckit.review, and speckit.audit wired with recall-before/store-after per convention. LOG-052 (store-before-recall accepted risk), LOG-053 (summary_only staleness deferral accepted), LOG-054 (convention-only gate enforcement risk — open).
 
-**What it builds**:
-- An ADR defining the three-component model, component boundaries, and owned file sets
-- A `.speckit.json` manifest format (installed components + versions) — the basis for upgrade detection
-- Conditional MCP calls in skills: call `memory_recall` when `speckit-memory` is configured; skip gracefully when not
-- Convention: oracle tools (when present) are called alongside memory tools in plan/review skills
+**Scope note**: Roadmap 008 had also scoped a three-component model ADR and `.speckit.json` manifest format as a 009 prerequisite. Staleness detection was prioritized instead because it addressed active knowledge drift (LOG-049). The graceful degradation portion (conditional memory calls) was addressed via the constitution gate. The component model + manifest design was completed separately as ADR-052 (2026-04-18 retro).
 
-**Note (from 006 retro)**: `_ensure_init` was the source of three separate bugs in 006 (LOG-035 flag ordering, LOG-038 retry latency, S-02 double-timeout in write tools). Before building additional init paths in Phase 3, consider a simplification pass on `_ensure_init` — it is now conditionally skipped by multiple tools and its behavior on failure has become non-obvious.
-
-**MoSCoW**: Must (prerequisite for 009)
-**Effort**: S
-**Key assumption**: Skills can check for MCP availability at call time; the Claude Code harness doesn't fail on missing MCP tool references, it just returns an error the skill can handle.
-**Depends on**: Nothing
-**Note**: This is primarily a design + ADR task with small code changes. Do not over-engineer.
+**Branch**: `008-auto-sync-staleness`
 
 ---
 
@@ -108,10 +93,11 @@ Speckit is composed of three independently-deployable components. Projects opt i
 **MoSCoW**: Must
 **Effort**: L
 **Key assumptions**:
-- Component file ownership is tracked in `.speckit.json` (built in 008)
+- Component file ownership is tracked in `.speckit.json` (designed in Phase 3A of this feature)
 - "In-flight project on older version" means `.speckit.json` is absent or has an older version — upgrade detects this and offers a migration path
 - The CLI is a standalone script (Python or shell), not a published package — packaging for distribution is Phase 5+
-**Depends on**: 008 (component model + manifest format)
+**Depends on**: ADR-052 (component model + manifest schema — written 2026-04-18; see `.specify/memory/ADR_052_component-model-manifest.md`)
+**Phase 3A complete**: Three-component model ADR (ADR-052) defines owned file sets per component and `.speckit.json` schema. No server code changes needed — design prereq is done.
 
 ---
 
@@ -187,6 +173,7 @@ Speckit is composed of three independently-deployable components. Projects opt i
 | DB/manifest partial-state fix | research.md Finding 5 (006) | If sync crashes after chunks written to LanceDB but before `save_manifest`, chunks exist in DB without manifest records — re-embedded on next sync, creating duplicates until `full=True` rebuild. Pre-existing issue; deferred LOG never written in 006. |
 | `_ensure_init` simplification | 006 retro | Function caused three separate bugs in one feature (LOG-035, LOG-038, S-02). Now conditionally skipped by multiple tools. Simplification candidate before Phase 3 adds more init paths. |
 | OLLAMA_TIMEOUT non-numeric fallback | LOG-038 / 006 spec | Spec says warn + default on non-numeric value; impl raises `ValueError` at import. Open divergence. |
+| Skills have zero memory calls (aspirational convention drift) | 008 audit finding | speckit.plan, speckit.review, and speckit.audit contained no `memory_recall`/`memory_store` calls despite memory-convention.md documenting them as required. Test T018 passed by checking keyword presence, not behavioral wiring. Fixed in 008 post-audit; fix is 012 (Memory-Aware Skill Upgrades) for any future skills. OBS-003 in oracle. |
 
 ---
 
@@ -208,3 +195,4 @@ Speckit is composed of three independently-deployable components. Projects opt i
 | 2026-04-12 | Initial roadmap — drafted post-003 completion; incorporates component model, init+upgrade requirement, and export surface framing | /speckit.retro (stripped-down) |
 | 2026-04-14 | Mark 005 done; reconcile numbering (004 skipped); update ADR/LOG counts; add branch hint for 006 | /speckit.audit post-005 |
 | 2026-04-15 | Mark 006 done; insert 007 BM25 Fallback (deferred from 006 per ADR-032); renumber Phase 3–5 features (008–012); update ADR/LOG counts to 21 ADRs; add `_ensure_init` simplification note to Phase 3/008; add 3 raw idea pool entries (DB partial-state, `_ensure_init`, OLLAMA_TIMEOUT); Phase 2 now 2 of 3 | /speckit.retro post-006 |
+| 2026-04-18 | Mark 007 done; mark 008 done (scope shifted to staleness + constitution gate; component model absorbed into 009 Phase 3A); Phase 2 complete; Phase 3 1 of 2 done; update ADR count to 28; update open/resolved LOGs; add aspirational convention drift to raw idea pool; update 009 dependency note | /speckit.retro post-008 |

@@ -54,3 +54,4 @@ Claude Code's hook system is tool-centric, not session-centric, so Option B cann
 | Date | Change | Author |
 |---|---|---|
 | 2026-04-06 | Initial record | speckit.plan |
+| 2026-04-17 | Feature 008 (ADR-050): `_ensure_init` can now fire more than once per process lifetime (at most once per staleness window). The staleness check runs in `memory_recall()` via `_check_staleness()`, which resets `_first_call_done = False` when stale — causing `_ensure_init` to re-fire on the next recall. "Once per process lifetime" is no longer accurate — corrected to "at most once per staleness window." | speckit.plan |

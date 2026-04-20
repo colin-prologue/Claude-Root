@@ -1,3 +1,6 @@
+---
+memory_enabled: true
+---
 <!--
 SYNC IMPACT REPORT
 ==================

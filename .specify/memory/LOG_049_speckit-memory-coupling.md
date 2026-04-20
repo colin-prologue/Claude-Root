@@ -7,9 +7,9 @@ type: project
 # LOG-049: Speckit Skills Implicitly Require Memory Server
 
 **Date**: 2026-04-17
-**Status**: Open — partial mitigation applied; ADR-worthy decision pending
-**Feature**: cross-cutting (memory-convention.md)
-**Related ADRs**: ADR-011 (self-init sync), ADR-032 (scope boundary)
+**Status**: Resolved — ADR-050 (staleness detection) and ADR-051 (constitution gate) written; implemented in feature 008
+**Feature**: cross-cutting (memory-convention.md) → feature 008-auto-sync-staleness
+**Related ADRs**: ADR-011 (self-init sync, amended), ADR-032 (scope boundary), ADR-050 (staleness detection), ADR-051 (constitution gate)
 
 ---
 

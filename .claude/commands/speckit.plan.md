@@ -24,6 +24,8 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 2. **Load context**: Read FEATURE_SPEC and `.specify/memory/constitution.md`. Load IMPL_PLAN template (already copied).
 
+2.5. **Memory gate + recall** (per `memory-convention.md`): Parse `memory_enabled` from the front-matter of `.specify/memory/constitution.md` (already read in step 2). If `memory_enabled: false`, skip all `memory_recall` and `memory_store` calls in this skill run. Otherwise call `memory_recall("technology choices architecture decisions prior ADRs")` and use surfaced prior decisions as context for Phase 0 research.
+
 3. **Execute plan workflow**: Follow the structure in IMPL_PLAN template to:
    - Fill Technical Context (mark unknowns as "NEEDS CLARIFICATION")
    - Fill Constitution Check section from constitution
@@ -33,7 +35,7 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Phase 1: Update agent context by running the agent script
    - Re-evaluate Constitution Check post-design
 
-4. **Stop and report**: Command ends after Phase 2 planning. Report branch, IMPL_PLAN path, and generated artifacts.
+4. **Memory store + stop and report**: Call `memory_store` with a 2-5 sentence summary of the key technology choices and architectural decisions in the plan (unless memory gate disabled — step 2.5). Use `source_file: "synthetic"`, `section: "speckit.plan summary"`, feature and tags per `memory-convention.md`. Then report branch, IMPL_PLAN path, and generated artifacts.
 
 ## Phases
 

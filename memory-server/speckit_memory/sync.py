@@ -405,6 +405,7 @@ def run_sync(
     manifest["embedding_model"] = model_name
     manifest["embedding_dimension"] = EMBEDDING_DIMENSION
     manifest["version"] = "2"
+    manifest["last_sync_ts"] = time.time()
     save_manifest(index_dir, manifest)
 
     # Create ANN index when corpus is large enough; compact after full rebuild

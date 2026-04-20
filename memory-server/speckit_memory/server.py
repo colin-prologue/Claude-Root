@@ -5,6 +5,7 @@ import json
 import math
 import os
 import sys
+import time
 import urllib.parse
 import uuid
 from datetime import datetime, timezone
@@ -45,6 +46,13 @@ _OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "nomic-embed-text")
 _OLLAMA_TIMEOUT = float(os.environ.get("OLLAMA_TIMEOUT", "10"))
 _MEMORY_INDEX_PATH = os.environ.get("MEMORY_INDEX_PATH", "")
 
+try:
+    _MEMORY_STALENESS_THRESHOLD = float(os.environ.get("MEMORY_STALENESS_THRESHOLD", "3600"))
+    if _MEMORY_STALENESS_THRESHOLD <= 0:
+        _MEMORY_STALENESS_THRESHOLD = 0.0
+except (ValueError, TypeError):
+    _MEMORY_STALENESS_THRESHOLD = 0.0
+
 # Process-lifetime first-call flag (ADR-011 self-init sync)
 _first_call_done = False
 
@@ -78,6 +86,26 @@ def _embed_text(text: str) -> list[float]:
 
 def _crawl_files() -> list[Path]:
     return crawl_files(_repo_root(), _MEMORY_INDEX_PATH or None)
+
+
+def _check_staleness() -> None:
+    """Reset _first_call_done if index is older than threshold (ADR-050)."""
+    global _first_call_done
+    if _MEMORY_STALENESS_THRESHOLD <= 0:
+        return
+    try:
+        manifest = load_manifest(_index_dir())
+        last_sync = manifest.get("last_sync_ts", 0)
+        if time.time() - last_sync > _MEMORY_STALENESS_THRESHOLD:
+            _first_call_done = False
+            print(
+                f"[speckit-memory] INFO: staleness threshold exceeded "
+                f"(age={(time.time() - last_sync):.0f}s, threshold={_MEMORY_STALENESS_THRESHOLD:.0f}s); "
+                "re-sync scheduled on next embedding call",
+                file=sys.stderr,
+            )
+    except Exception as exc:
+        print(f"[speckit-memory] WARNING: staleness check failed: {exc}", file=sys.stderr)
 
 
 def _ensure_init() -> None:
@@ -129,6 +157,8 @@ def memory_recall(
                 "recoverable": True,
             }
         }
+
+    _check_staleness()
 
     # LOG-038: skip _ensure_init on summary_only path — post-T007, _ensure_init retries
     # on every call when Ollama is down, adding ~10s latency to every summary_only call.
@@ -251,7 +281,15 @@ def memory_store(
     content: str,
     metadata: dict,
 ) -> dict[str, Any]:
-    """Embed content and store it as a chunk (for skill-generated summaries)."""
+    """Embed content and store it as a chunk (for skill-generated summaries).
+
+    _ensure_init() is intentionally absent here (LOG-038, dc28b8a): calling it before
+    _embed_text doubles the Ollama timeout budget when the server is unavailable, violating
+    SC-002. memory_store initialises the table directly via init_table(). The accepted
+    tradeoff: a synthetic chunk stored before the first memory_recall on a cold process
+    may be wiped if the subsequent recall triggers a full run_sync (e.g. version migration).
+    The memory-convention.md recall-before / store-after pattern avoids this sequence.
+    """
     try:
         raw_vec = _embed_text(content)
     except (ConnectionError, OSError, httpx.TransportError, ollama_sdk.ResponseError) as exc:
