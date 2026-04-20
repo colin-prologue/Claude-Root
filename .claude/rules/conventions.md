@@ -9,6 +9,10 @@
 - PRs target ≤300 LOC (calibrated by constitution; may be 200 or 500 depending on project context)
 - No credentials or secrets in source — use environment variables
 
+## Shell args with single quotes
+
+When invoking bash scripts with `$ARGUMENTS` that may contain single quotes, either double-quote the arg (`"I'm Groot"`) or use escape syntax (`'I'\''m Groot'`).
+
 ## Decision Records
 
 All architectural decisions and significant challenges are tracked in `.specify/memory/`:

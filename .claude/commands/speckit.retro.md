@@ -234,7 +234,3 @@ being killed or reprioritized is a sign of healthy project management, not failu
 This command does NOT delete completed specs, plans, or tasks. It only updates
 `roadmap.md` and `brainstorm-notes.md`. Existing artifacts remain as the historical
 record of what was built and why.
-
-## Context
-
-$ARGUMENTS

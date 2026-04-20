@@ -35,8 +35,6 @@ Run `.specify/scripts/bash/check-prerequisites.sh --json` from repo root to dete
 
 If the user specifies a gate in `$ARGUMENTS` (e.g., "review the plan", "review tasks"), use that gate regardless of available artifacts.
 
-For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot").
-
 ### 2. Load Constitution & Calibration
 
 Read `.specify/memory/constitution.md` once. Extract and store as `CALIBRATION_BLOCK`:
@@ -48,7 +46,7 @@ If no Project Context section exists, warn the user and recommend running `/spec
 
 **Do NOT instruct agents to re-read constitution.md.** Inject `CALIBRATION_BLOCK` directly into each agent's prompt in Step 4. This avoids redundant file reads across the panel.
 
-**Memory gate + recall**: Parse `memory_enabled` from the constitution front-matter just loaded. If `memory_enabled: false`, skip all `memory_recall` and `memory_store` calls in this skill run. Otherwise call `memory_recall("prior review findings open risks architectural decisions")` and use surfaced prior decisions as context for panel reviewers.
+**Memory recall** (apply gate per `memory-convention.md`): if enabled, call `memory_recall("prior review findings open risks architectural decisions")` and use surfaced decisions as context for panel reviewers.
 
 ### 2.5. Initialize Review State File
 
@@ -217,7 +215,7 @@ Display the synthesis report to the user. Then:
    - For each architectural decision surfaced, offer to create an `ADR_NNN_*.md`
    - Update the feature's Decision Records table in spec.md or plan.md with back-references
 
-4. **Memory store**: Call `memory_store` with a 2-5 sentence summary of the synthesis report's majority findings, key dissents, and recommended ADRs/LOGs (unless memory gate disabled — step 2). Use `source_file: "synthetic"`, `section: "speckit.review synthesis"`, feature and tags per `memory-convention.md`.
+4. **Memory store**: If memory is enabled (per `memory-convention.md`), call `memory_store` with a 2-5 sentence summary of the synthesis report's majority findings, key dissents, and recommended ADRs/LOGs; use `section: "speckit.review synthesis"` and metadata per `memory-convention.md`.
 
 ### 6. Gate Decision
 
@@ -259,7 +257,3 @@ Minority findings are preserved in the synthesis report even when other reviewer
 ### Reviews are Non-Destructive
 
 This command NEVER modifies spec.md, plan.md, or tasks.md. It produces a report and offers to create decision records (ADRs/LOGs). All artifact changes happen in subsequent commands or manual edits.
-
-## Context
-
-$ARGUMENTS

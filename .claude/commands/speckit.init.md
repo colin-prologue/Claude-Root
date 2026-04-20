@@ -257,7 +257,3 @@ When the user runs `/speckit.init update`:
 - Always present a summary before making changes in update mode
 - Custom agents, rules, and commands (files that don't match template names) are always preserved
 - If the setup script exists and is functional, prefer using it over manual file operations
-
-## Context
-
-$ARGUMENTS

@@ -32,8 +32,6 @@ If `$ARGUMENTS` specifies a feature (e.g., "audit 001-user-auth"), use that feat
 
 Otherwise, run `.specify/scripts/bash/check-prerequisites.sh --json` to detect the active feature. If no active feature, offer to audit the full repository (CLAUDE.md, constitution, global structure).
 
-For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot").
-
 Determine what's available:
 
 | Available | Audit Mode |
@@ -59,7 +57,7 @@ Read these files (as available):
 - `.specify/memory/LOG_*.md` — all existing LOGs
 - `CLAUDE.md` — project context and stack info
 
-**Memory gate + recall**: Parse `memory_enabled` from the constitution front-matter (`.specify/memory/constitution.md`, listed above). If `memory_enabled: false`, skip all `memory_recall` and `memory_store` calls in this skill run. Otherwise call `memory_recall("ADR decisions architectural patterns prior audit findings")` and use surfaced prior decisions as context for the auditor.
+**Memory recall** (apply gate per `memory-convention.md`): if enabled, call `memory_recall("ADR decisions architectural patterns prior audit findings")` and use surfaced decisions as context for the auditor.
 
 **Code artifacts:**
 - `src/` — all source files (scan structure and key files)
@@ -195,7 +193,7 @@ Update the feature's Decision Records table in spec.md/plan.md with new entries.
 
 ### 7.5. Memory Store
 
-Call `memory_store` with a 2-5 sentence summary covering the overall health grade, critical and high findings, and any new ADRs/LOGs created or recommended (unless memory gate disabled — Step 2). Use `source_file: "synthetic"`, `section: "speckit.audit findings"`, feature and tags per `memory-convention.md`.
+If memory is enabled (per `memory-convention.md`), call `memory_store` with a 2-5 sentence summary covering the overall health grade, critical and high findings, and any new ADRs/LOGs created or recommended; use `section: "speckit.audit findings"` and metadata per `memory-convention.md`.
 
 ### 8. Update CLAUDE.md (if freshness issues found)
 
@@ -258,7 +256,3 @@ Only checks documentation accuracy (CLAUDE.md, stack versions, structure). Fast 
 /speckit.audit compliance
 ```
 Only checks documented decisions against code (Pass 1). Fast mode for ADR compliance verification.
-
-## Context
-
-$ARGUMENTS

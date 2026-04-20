@@ -31,8 +31,6 @@ Run `.specify/scripts/bash/check-prerequisites.sh --json` from repo root to dete
 
 If `$ARGUMENTS` specifies a feature (e.g., `001-user-auth`) or a branch, use that. Otherwise use the active feature.
 
-For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot").
-
 ### 2. Collect Code Artifacts
 
 Run these commands and store output as `CODE_CONTEXT`:
@@ -233,7 +231,3 @@ These commands are complementary, not redundant:
 | `/speckit.audit` | Do the docs and code tell the same story? |
 
 Run `/speckit.codereview` first (catches bugs), then `/speckit.audit` (catches drift and untracked decisions).
-
-## Context
-
-$ARGUMENTS
