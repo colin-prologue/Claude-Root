@@ -1,6 +1,6 @@
 # Agent Personas
 
-Twelve agent personas live in `.claude/agents/` for use with Agent Teams.
+Thirteen agent personas live in `.claude/agents/` for use with Agent Teams.
 
 ## Review Agents (spawned by `/speckit.review`)
 
