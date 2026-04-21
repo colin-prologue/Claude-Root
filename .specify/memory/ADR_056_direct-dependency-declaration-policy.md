@@ -1,7 +1,7 @@
 # ADR-056: Declare Direct Imports in `pyproject.toml`
 
 **Date**: 2026-04-20
-**Status**: Proposed
+**Status**: Accepted
 **Decision Made In**: speckit.audit full-repo findings (2026-04-20) § MEDIUM M4
 **Related Logs**: None yet
 
@@ -80,3 +80,4 @@ README describing the declare-what-you-import rule.
 | Date | Change | Author |
 |---|---|---|
 | 2026-04-20 | Initial record — surfaced by /speckit.audit (full-repo, M4) | Claude (speckit.audit) |
+| 2026-04-21 | Accepted + implemented: `httpx>=0.27` and `pyarrow>=15.0` added to `memory-server/pyproject.toml` dependencies; `uv lock` refreshed | Claude |
