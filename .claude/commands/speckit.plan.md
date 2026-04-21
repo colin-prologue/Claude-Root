@@ -24,7 +24,7 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 2. **Load context**: Read FEATURE_SPEC and `.specify/memory/constitution.md`. Load IMPL_PLAN template (already copied).
 
-2.5. **Memory recall** (apply gate per `memory-convention.md`): if enabled, call `memory_recall("technology choices architecture decisions prior ADRs")` and use surfaced decisions as context for Phase 0 research.
+2.5. **Memory recall**: Read `.specify/memory/constitution.md` and parse its YAML front-matter block (lines between the opening `---` and the next `---`). If the key `memory_enabled` is present and its value is exactly `false`, skip all `memory_recall` and `memory_store` calls in this skill run. If the key is absent or the file cannot be read, proceed normally (treat as `memory_enabled: true`). When enabled, call `memory_recall("technology choices architecture decisions prior ADRs")` and use surfaced decisions as context for Phase 0 research.
 
 3. **Execute plan workflow**: Follow the structure in IMPL_PLAN template to:
    - Fill Technical Context (mark unknowns as "NEEDS CLARIFICATION")
@@ -35,7 +35,7 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Phase 1: Update agent context by running the agent script
    - Re-evaluate Constitution Check post-design
 
-4. **Memory store + stop and report**: If memory is enabled (per `memory-convention.md`), call `memory_store` with a 2-5 sentence summary of the key technology choices and architectural decisions in the plan; use `section: "speckit.plan summary"` and metadata per `memory-convention.md`. Then report branch, IMPL_PLAN path, and generated artifacts.
+4. **Memory store + stop and report**: If `memory_enabled` was not `false` in step 2.5, call `memory_store` with a 2-5 sentence summary of the key technology choices and architectural decisions in the plan; use `section: "speckit.plan summary"` and metadata per `memory-convention.md`. Then report branch, IMPL_PLAN path, and generated artifacts.
 
 ## Phases
 

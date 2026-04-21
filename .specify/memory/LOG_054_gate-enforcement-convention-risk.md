@@ -30,6 +30,10 @@ ADR-051 § Alternatives Considered: server-side enforcement would require the se
 - `memory-convention.md` updated with explicit gate-check template and cross-reference guidance
 - Code review checklist: any new skill that is added to the recall/store table in `memory-convention.md` must be verified to include the gate check block
 
+## Impact
+
+- 2026-04-21: The gate check is no longer convention-only at the three gated skill sites (`speckit.plan.md`, `speckit.review.md`, `speckit.audit.md`). The full front-matter parse + `memory_enabled` check is inlined at each recall site, making the gate locally inspectable in each command file and eliminating the "aspirational reference" risk previously flagged here (/speckit.audit 2026-04-20 T018).
+
 ## Open Questions
 
 1. Should the gate check be extracted into a reusable prompt fragment (e.g., a separate `.claude/rules/gate-check.md` that is included in skill prompts) to reduce copy-paste drift?

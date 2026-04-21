@@ -57,7 +57,7 @@ Read these files (as available):
 - `.specify/memory/LOG_*.md` — all existing LOGs
 - `CLAUDE.md` — project context and stack info
 
-**Memory recall** (apply gate per `memory-convention.md`): if enabled, call `memory_recall("ADR decisions architectural patterns prior audit findings")` and use surfaced decisions as context for the auditor.
+**Memory recall**: Read `.specify/memory/constitution.md` and parse its YAML front-matter block (lines between the opening `---` and the next `---`). If the key `memory_enabled` is present and its value is exactly `false`, skip all `memory_recall` and `memory_store` calls in this skill run. If the key is absent or the file cannot be read, proceed normally (treat as `memory_enabled: true`). When enabled, call `memory_recall("ADR decisions architectural patterns prior audit findings")` and use surfaced decisions as context for the auditor.
 
 **Code artifacts:**
 - `src/` — all source files (scan structure and key files)
@@ -193,7 +193,7 @@ Update the feature's Decision Records table in spec.md/plan.md with new entries.
 
 ### 7.5. Memory Store
 
-If memory is enabled (per `memory-convention.md`), call `memory_store` with a 2-5 sentence summary covering the overall health grade, critical and high findings, and any new ADRs/LOGs created or recommended; use `section: "speckit.audit findings"` and metadata per `memory-convention.md`.
+If `memory_enabled` was not `false` in the earlier gate check, call `memory_store` with a 2-5 sentence summary covering the overall health grade, critical and high findings, and any new ADRs/LOGs created or recommended; use `section: "speckit.audit findings"` and metadata per `memory-convention.md`.
 
 ### 8. Update CLAUDE.md (if freshness issues found)
 
