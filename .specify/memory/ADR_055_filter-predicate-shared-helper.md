@@ -1,7 +1,7 @@
 # ADR-055: Metadata Filter Predicate — Shared Helper vs. Accepted Duplication
 
 **Date**: 2026-04-20
-**Status**: Proposed
+**Status**: Accepted
 **Decision Made In**: speckit.audit full-repo findings (2026-04-20) § HIGH H3
 **Related Logs**: None yet
 
@@ -86,3 +86,4 @@ Accepted and the Amendment History records the implementation commit.
 | Date | Change | Author |
 |---|---|---|
 | 2026-04-20 | Initial record — surfaced by /speckit.audit (full-repo, H3) | Claude (speckit.audit) |
+| 2026-04-21 | Accepted + implemented: `_build_filter_predicate` and `_build_filter_sql` helpers added to `memory-server/speckit_memory/index.py`; `scan_chunks`, `vector_search`, `keyword_search` refactored to call them. Unit tests in `tests/unit/test_filter_predicate.py` (14 tests) drive the same spec through both variants to guard against drift. | Claude |
