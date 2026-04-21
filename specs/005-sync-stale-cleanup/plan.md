@@ -26,7 +26,7 @@ changes to `sync.py`. No new technologies introduced.
 ## Technical Context
 
 **Language/Version**: Python 3.10+
-**Primary Dependencies**: FastMCP 2.0+, LanceDB 0.13+, PyArrow, Ollama nomic-embed-text
+**Primary Dependencies**: FastMCP 3.2+, LanceDB 0.13+, PyArrow, Ollama nomic-embed-text
 **Storage**: LanceDB embedded (`.specify/memory/.index/chunks.lance/`) + `manifest.json`
 **Testing**: pytest + pytest-asyncio (unit: no Ollama; integration: requires Ollama)
 **Target Platform**: macOS/Linux (local developer tool)

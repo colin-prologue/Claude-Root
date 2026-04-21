@@ -21,7 +21,7 @@ Add timestamp-based index staleness detection via `_check_staleness()` in `memor
 ## Technical Context
 
 **Language/Version**: Python 3.10+
-**Primary Dependencies**: FastMCP 2.0+, LanceDB 0.13+, httpx, ollama SDK
+**Primary Dependencies**: FastMCP 3.2+, LanceDB 0.13+, httpx, ollama SDK
 **Storage**: Manifest JSON (`manifest.json`) in `.specify/memory/.index/`; LanceDB table
 **Testing**: pytest + pytest-asyncio 8.0+
 **Target Platform**: macOS / Linux (local development)

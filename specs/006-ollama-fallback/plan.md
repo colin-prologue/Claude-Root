@@ -23,7 +23,7 @@ Harden the memory server against Ollama unavailability by: (1) raising `ToolErro
 ## Technical Context
 
 **Language/Version**: Python 3.10+
-**Primary Dependencies**: FastMCP 2.0+, LanceDB 0.13+, `ollama` Python SDK, `httpx` (transitive dependency of ollama SDK)
+**Primary Dependencies**: FastMCP 3.2+, LanceDB 0.13+, `ollama` Python SDK, `httpx` (transitive dependency of ollama SDK)
 **Storage**: LanceDB embedded (`.specify/memory/.index/chunks.lance/`) + `manifest.json`
 **Testing**: pytest + pytest-asyncio 8.0+
 **Target Platform**: Local MCP server (single process, invoked by Claude Code via `.mcp.json`)

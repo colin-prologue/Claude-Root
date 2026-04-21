@@ -2,7 +2,7 @@
 
 **Date**: 2026-04-20
 **Type**: CHALLENGE
-**Status**: Open
+**Status**: Resolved
 **Raised In**: speckit.audit full-repo findings (2026-04-20) § MEDIUM M3
 **Related ADRs**: ADR-009 (Python + FastMCP runtime)
 
@@ -51,17 +51,16 @@ notes surface a regression).
 
 ## Resolution
 
-Pending release-notes review. No code change yet.
+Pin-up to `fastmcp>=3.2,<4`. FastMCP 3.0 release notes (PrefectHQ/fastmcp v3.0.0, 2026-02-18) explicitly state: *"The surface API is largely unchanged — `@mcp.tool()` still works exactly as before."* Our server.py uses only the stable surface: `FastMCP("speckit-memory")`, `@mcp.tool()`, and `from fastmcp.exceptions import ToolError`. None of the 3.x-only feature set (provider/transform architecture, component versioning, auth middleware, OpenTelemetry) is load-bearing in our code. Removed APIs (`WSTransport`, `FastMCP.as_proxy()`, `require_auth`) are not used. The 3.2.0 install was already passing all 119 non-integration tests at audit time; pin-up documents reality rather than downgrading a working env.
 
-**Resolved By**: ADR-NNN (to be written after release-notes check)
-**Resolved Date**: N/A
+No new ADR required: ADR-009 still stands (FastMCP chosen as MCP runtime); no 3.x-specific behavior is relied on.
+
+**Resolved By**: `memory-server/pyproject.toml` pin `fastmcp>=3.2,<4`; CLAUDE.md + 002/003/005/006/007/008 plan.md Technical Context lines updated to "FastMCP 3.2+"
+**Resolved Date**: 2026-04-21
 
 ## Impact
 
-- [ ] Pyproject updated: `memory-server/pyproject.toml:7` — replace `>=2.0` with
-      validated pin
-- [ ] CLAUDE.md updated: line 19 framework version
-- [ ] Plan Technical Context lines in 002/003/005/006/007/008 plan.md files
-      updated to reflect validated version
-- [ ] ADR created/updated: possible new ADR if the 3.x bump adds behavior that
-      warrants a formal decision
+- [x] Pyproject updated: `memory-server/pyproject.toml:7` — `fastmcp>=3.2,<4`
+- [x] CLAUDE.md updated: stack table row + Recent Changes + Active Technologies lines
+- [x] Plan Technical Context lines in 003/005/006/007/008 plan.md files updated to "FastMCP 3.2+" (002 is the baseline and remains as shipped)
+- [x] No new ADR — 3.x surface unchanged for our usage per release notes

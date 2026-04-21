@@ -14,7 +14,7 @@ Keep it lean — detailed rules live in `.claude/rules/`.
 | Layer | Technology | Version |
 |---|---|---|
 | Language | Python | 3.10+ |
-| Framework | FastMCP (MCP server) | 2.0+ |
+| Framework | FastMCP (MCP server) | 3.2+ |
 | Database | LanceDB (embedded vector DB) | 0.13+ |
 | Embedding | Ollama nomic-embed-text | 768 dims |
 | Testing | pytest + pytest-asyncio | 8.0+ |
@@ -83,7 +83,7 @@ docs/                   # Long-form documentation
 - See `.specify/memory/constitution.md` for full governing principles
 
 ## Recent Changes
-- 008-auto-sync-staleness: Added Python 3.10+ + FastMCP 2.0+, LanceDB 0.13+, httpx, ollama SDK
+- 008-auto-sync-staleness: Added Python 3.10+ + FastMCP 3.2+, LanceDB 0.13+, httpx, ollama SDK
 - 007-bm25-keyword-fallback: Complete — BM25 keyword fallback for memory_recall when Ollama unavailable; adds `degraded: true` envelope flag and normalized [0,1] TF score; FR-011 CONFIG_ERROR message includes bad URL
 - 006-ollama-fallback: Ollama resilience — ToolError raises, configurable timeout (`OLLAMA_TIMEOUT`), summary_only bypass via table scan, `_ensure_init` retry fix
 
@@ -91,5 +91,5 @@ docs/                   # Long-form documentation
 
 
 ## Active Technologies
-- Python 3.10+ + FastMCP 2.0+, LanceDB 0.13+, httpx, ollama SDK (008-auto-sync-staleness)
+- Python 3.10+ + FastMCP 3.2+, LanceDB 0.13+, httpx, ollama SDK (008-auto-sync-staleness)
 - Manifest JSON (`manifest.json`) in `.specify/memory/.index/`; LanceDB table (008-auto-sync-staleness)
