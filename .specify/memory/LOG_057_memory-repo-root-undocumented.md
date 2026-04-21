@@ -2,7 +2,7 @@
 
 **Date**: 2026-04-20
 **Type**: UPDATE
-**Status**: Open
+**Status**: Resolved
 **Raised In**: speckit.audit full-repo findings (2026-04-20) § HIGH H2
 **Related ADRs**: ADR-052 (component model — this env var is the primary
 relocation hook for non-canonical deployments)
@@ -45,17 +45,19 @@ namespaced by `MEMORY_` which is consistent with the other env vars on the serve
 
 ## Resolution
 
-Proposed (pending): add a CLAUDE.md entry and fix the 006 data-model description.
-No code change. Status stays Open until the doc edit lands.
+Added `MEMORY_REPO_ROOT` to the CLAUDE.md env-var table and corrected the 006
+data-model description to note it is an explicit override for out-of-tree
+deployments. No code change needed.
 
-**Resolved By**: N/A (open)
-**Resolved Date**: N/A
+**Resolved By**: inline edit
+**Resolved Date**: 2026-04-20
 
 ## Impact
 
-- [ ] CLAUDE.md updated: env-var table — add `MEMORY_REPO_ROOT (default:
+- [x] CLAUDE.md updated: env-var table — `MEMORY_REPO_ROOT (default:
       auto-derived from server.py location) — override repo root for out-of-tree
-      deployments`
-- [ ] Spec updated: `specs/006-ollama-fallback/data-model.md:80` — replace
-      "auto-detected" with "auto-detected; override via MEMORY_REPO_ROOT"
+      deployments (LOG-057)`
+- [x] Spec updated: `specs/006-ollama-fallback/data-model.md:80` — replaced
+      "_(auto-detected)_" with "_(auto-detected from server.py location)_" +
+      explicit-override language
 - [ ] ADR created/updated: None

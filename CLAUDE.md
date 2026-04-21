@@ -41,6 +41,7 @@ uv run --directory memory-server speckit-memory
 # OLLAMA_TIMEOUT (default: 10) — seconds before Ollama calls fail (006-ollama-fallback)
 # MEMORY_INDEX_PATH (default: .specify/memory/ADR_*.md,LOG_*.md,constitution.md + specs/*/spec.md,plan.md)
 # MEMORY_STALENESS_THRESHOLD (default: 3600) — seconds before index is re-synced on recall; 0 = disabled (008-auto-sync-staleness)
+# MEMORY_REPO_ROOT (default: auto-derived from server.py location) — override repo root for out-of-tree deployments (LOG-057)
 ```
 
 ## Directory Structure
