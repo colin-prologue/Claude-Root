@@ -4,6 +4,20 @@
 **Date**: 2026-04-06
 **Server**: `memory` (configured in `.mcp.json`)
 
+> ⚠️ **Superseded in part — see LOG-059.** This document captures the tool surface
+> as shipped in feature 002. Later features added parameters, response fields, and
+> changed the error channel. When reading the current surface, consult these delta
+> contracts **in addition to this file**:
+>
+> | Feature | Delta contract(s) | What changed |
+> |---|---|---|
+> | 003-memory-server-hardening | [`memory_recall.md`](../../003-memory-server-hardening/contracts/memory_recall.md), [`memory_store.md`](../../003-memory-server-hardening/contracts/memory_store.md), [`memory_delete.md`](../../003-memory-server-hardening/contracts/memory_delete.md) | Added `max_chars`, `filter_source_file`, `summary_only` inputs; added `token_estimate`, `budget_exhausted`, `truncated` response fields |
+> | 006-ollama-fallback | [`tool-error-contract.md`](../../006-ollama-fallback/contracts/tool-error-contract.md) | Errors now raise `ToolError` (not envelope dicts); `summary_only` bypasses embedding (ADR-037); `synthetic` flag on result items |
+> | 007-bm25-keyword-fallback | [`memory_recall.md`](../../007-bm25-keyword-fallback/contracts/memory_recall.md) | Added `degraded` flag on response envelope |
+>
+> Each delta contract above is self-contained for the field(s) it introduces. When
+> implementing a client, merge the 002 baseline here with all active deltas.
+
 These are the four stable tool contracts exposed by the memory MCP server. Skills and commands MUST use only these interfaces — no direct DB access.
 
 ---

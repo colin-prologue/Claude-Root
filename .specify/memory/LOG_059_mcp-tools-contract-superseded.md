@@ -2,7 +2,7 @@
 
 **Date**: 2026-04-20
 **Type**: UPDATE
-**Status**: Open
+**Status**: Resolved
 **Raised In**: speckit.audit full-repo findings (2026-04-20) § HIGH H1
 **Related ADRs**: None (contract lifecycle, not architectural)
 
@@ -63,16 +63,18 @@ isolation. No backfill of the 002 base.
 
 ## Resolution
 
-Pending banner addition. No code change.
+Added a "Superseded in part — see LOG-059" banner at the top of
+`specs/002-vector-memory-mcp/contracts/mcp-tools.md` listing all three delta
+contracts (003, 006, 007) with the fields they each introduce. No code change.
 
-**Resolved By**: inline edit (banner) when the user approves
-**Resolved Date**: N/A
+**Resolved By**: inline edit (banner added)
+**Resolved Date**: 2026-04-21
 
 ## Impact
 
-- [ ] Spec updated: `specs/002-vector-memory-mcp/contracts/mcp-tools.md` — add
-      "Superseded by" banner listing 003, 006, 007 delta contracts
-- [ ] Delta contracts audited: confirm `specs/003-memory-server-hardening/contracts/`,
-      `specs/006-ollama-fallback/contracts/`, `specs/007-bm25-keyword-fallback/contracts/`
-      are each self-contained
+- [x] Spec updated: `specs/002-vector-memory-mcp/contracts/mcp-tools.md` — added
+      "Superseded in part" banner with a delta-contracts table
+- [x] Delta contracts verified present: `003/contracts/memory_recall.md`,
+      `memory_store.md`, `memory_delete.md`; `006/contracts/tool-error-contract.md`;
+      `007/contracts/memory_recall.md` (self-containment not re-audited field-by-field)
 - [ ] ADR created/updated: None

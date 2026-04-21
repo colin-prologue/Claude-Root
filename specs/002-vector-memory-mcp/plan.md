@@ -19,9 +19,9 @@ Build a local MCP server that exposes four stable tools (`memory_recall`, `memor
 | LOG-015 | Update | [LOG_015_unimplemented-error-codes.md](../../.specify/memory/LOG_015_unimplemented-error-codes.md) | Unimplemented error codes (`NO_EMBEDDER_CONFIGURED`, `INDEX_CORRUPT`) in MCP tool contract | Open |
 | LOG-016 | Update | [LOG_016_claude-md-placeholder-text.md](../../.specify/memory/LOG_016_claude-md-placeholder-text.md) | CLAUDE.md template placeholders unfilled (raised during 002 audit) | Resolved |
 | ADR-055 | Decision | [ADR_055_filter-predicate-shared-helper.md](../../.specify/memory/ADR_055_filter-predicate-shared-helper.md) | Metadata filter predicate — shared helper vs. accepted duplication (Rule of Three hit in `index.py`) | Proposed |
-| ADR-056 | Decision | [ADR_056_direct-dependency-declaration-policy.md](../../.specify/memory/ADR_056_direct-dependency-declaration-policy.md) | Declare direct imports (`httpx`, `pyarrow`) in `pyproject.toml` | Proposed |
+| ADR-056 | Decision | [ADR_056_direct-dependency-declaration-policy.md](../../.specify/memory/ADR_056_direct-dependency-declaration-policy.md) | Declare direct imports (`httpx`, `pyarrow`) in `pyproject.toml` | Accepted |
 | LOG-058 | Challenge | [LOG_058_fastmcp-2x-3x-version-drift.md](../../.specify/memory/LOG_058_fastmcp-2x-3x-version-drift.md) | FastMCP 2.x → 3.x installed-version drift vs. declared range | Open |
-| LOG-059 | Update | [LOG_059_mcp-tools-contract-superseded.md](../../.specify/memory/LOG_059_mcp-tools-contract-superseded.md) | 002 `mcp-tools.md` superseded by 003/006/007/008 deltas — needs banner | Open |
+| LOG-059 | Update | [LOG_059_mcp-tools-contract-superseded.md](../../.specify/memory/LOG_059_mcp-tools-contract-superseded.md) | 002 `mcp-tools.md` superseded by 003/006/007/008 deltas — banner added | Resolved |
 
 ## Technical Context
 
