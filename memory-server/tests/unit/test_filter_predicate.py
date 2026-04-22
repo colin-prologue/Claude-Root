@@ -47,37 +47,50 @@ FIXTURE_ROWS = [
 ]
 
 
+def _id(idx: int) -> str:
+    return f"00000000-0000-0000-0000-{idx:012d}"
+
+
+ALL_IDS = {_id(i) for i in range(len(FIXTURE_ROWS))}
+
+
+# Each tuple: (label, spec, expected_ids). Explicit expected_ids catch a class
+# of drift the set-equality-only assertion (python_ids == sql_ids) could miss:
+# a regression that breaks both builders identically would pass the agreement
+# check while silently returning the wrong rows.
 SPECS = [
-    ("empty", {}),
-    ("type_only", {"filter_type": "adr"}),
-    ("feature_only", {"filter_feature": "002"}),
-    ("single_tag", {"filter_tags": ["memory"]}),
-    ("multi_tag_all_match", {"filter_tags": ["memory", "vector"]}),
-    ("multi_tag_none_match", {"filter_tags": ["memory", "nonexistent"]}),
-    ("source_file", {"filter_source_file": ".specify/memory/LOG_014.md"}),
-    ("type_plus_feature", {"filter_type": "adr", "filter_feature": "002"}),
-    ("type_plus_tag", {"filter_type": "adr", "filter_tags": ["filters"]}),
+    ("empty", {}, ALL_IDS),
+    ("type_only", {"filter_type": "adr"}, {_id(0), _id(2)}),
+    ("feature_only", {"filter_feature": "002"}, {_id(0), _id(1), _id(4)}),
+    ("single_tag", {"filter_tags": ["memory"]}, {_id(0), _id(1), _id(2)}),
+    ("multi_tag_all_match", {"filter_tags": ["memory", "vector"]}, {_id(0)}),
+    ("multi_tag_none_match", {"filter_tags": ["memory", "nonexistent"]}, set()),
+    ("source_file", {"filter_source_file": ".specify/memory/LOG_014.md"}, {_id(1)}),
+    ("type_plus_feature", {"filter_type": "adr", "filter_feature": "002"}, {_id(0)}),
+    ("type_plus_tag", {"filter_type": "adr", "filter_tags": ["filters"]}, {_id(2)}),
     ("all_fields", {
         "filter_type": "adr",
         "filter_feature": "002",
         "filter_tags": ["memory"],
         "filter_source_file": ".specify/memory/ADR_008.md",
-    }),
-    ("no_match", {"filter_type": "nonexistent"}),
+    }, {_id(0)}),
+    ("no_match", {"filter_type": "nonexistent"}, set()),
 ]
 
 
-@pytest.mark.parametrize("label,spec", SPECS, ids=[s[0] for s in SPECS])
-def test_predicate_and_sql_agree(tmp_index, label, spec):
-    """Python predicate and SQL WHERE fragment return the same row set for a spec."""
+@pytest.mark.parametrize("label,spec,expected_ids", SPECS, ids=[s[0] for s in SPECS])
+def test_predicate_and_sql_agree(tmp_index, label, spec, expected_ids):
+    """Predicate and SQL WHERE both return the expected row set for a spec.
+
+    Asserts `python_ids == expected_ids == sql_ids` — a parallel regression that
+    breaks both builders identically would fail the expected-set arm.
+    """
     table = init_table(tmp_index)
     insert_chunks_batch(table, FIXTURE_ROWS)
 
-    # Python path — drive fixture rows through the predicate
     pred = _build_filter_predicate(spec)
     python_ids = {r["id"] for r in FIXTURE_ROWS if pred(r)}
 
-    # SQL path — drive the same spec through the SQL builder and LanceDB
     where = _build_filter_sql(spec)
     if where:
         sql_rows = table.search().where(where).limit(100).to_list()
@@ -85,9 +98,23 @@ def test_predicate_and_sql_agree(tmp_index, label, spec):
         sql_rows = table.to_arrow().to_pylist()
     sql_ids = {r["id"] for r in sql_rows}
 
-    assert python_ids == sql_ids, (
-        f"Drift for spec '{label}': predicate matched {python_ids}, SQL matched {sql_ids}"
+    assert python_ids == expected_ids, (
+        f"Predicate drift for spec '{label}': matched {python_ids}, expected {expected_ids}"
     )
+    assert sql_ids == expected_ids, (
+        f"SQL drift for spec '{label}': matched {sql_ids}, expected {expected_ids}"
+    )
+
+
+def test_predicate_handles_none_tags():
+    """Predicate treats a row with tags=None the same as tags=[] (guarded by `or []`)."""
+    pred = _build_filter_predicate({"filter_tags": ["memory"]})
+    row_none = {"type": "adr", "feature": "002", "tags": None, "source_file": "x"}
+    row_empty = {"type": "adr", "feature": "002", "tags": [], "source_file": "x"}
+    assert pred(row_none) is False
+    assert pred(row_empty) is False
+    # Must not raise on None.tags
+    assert pred({"type": "adr", "feature": "002", "tags": None, "source_file": "x"}) is False
 
 
 def test_empty_spec_matches_all():
