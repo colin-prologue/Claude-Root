@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": ".specify/scripts/hooks/pytest-memory-server.sh"
+            "command": ".specify/scripts/hooks/pytest-memory-server-notify.sh"
           }
         ]
       }
