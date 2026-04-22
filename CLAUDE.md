@@ -83,6 +83,7 @@ docs/                   # Long-form documentation
 - See `.specify/memory/constitution.md` for full governing principles
 
 ## Recent Changes
+- skill-plugin-optimization: Project-scope hooks (`.claude/settings.json` — block `.index/` edits, post-edit pytest), `adr-crossref-check` skill + helper script, ADR-055 filter-predicate helpers (`_build_filter_predicate` / `_build_filter_sql`), ADR-056 httpx/pyarrow as direct deps, LOG-058 fastmcp pinned `>=3.2,<4`, guardrail against `.decisions/` vocabulary drift
 - 008-auto-sync-staleness: Added Python 3.10+ + FastMCP 3.2+, LanceDB 0.13+, httpx, ollama SDK
 - 007-bm25-keyword-fallback: Complete — BM25 keyword fallback for memory_recall when Ollama unavailable; adds `degraded: true` envelope flag and normalized [0,1] TF score; FR-011 CONFIG_ERROR message includes bad URL
 - 006-ollama-fallback: Ollama resilience — ToolError raises, configurable timeout (`OLLAMA_TIMEOUT`), summary_only bypass via table scan, `_ensure_init` retry fix
