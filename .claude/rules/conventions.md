@@ -25,6 +25,13 @@ All architectural decisions and significant challenges are tracked in `.specify/
 Both types share a sequential counter. Cross-references between records and
 spec/plan artifacts are mandatory (Principle VII).
 
+**Scope boundary — local vs. oracle memory.** This repo uses **ADR + LOG only**.
+Meta-patterns (cross-project philosophies, architectural wisdom that applies
+beyond Claude-Root) belong in the **oracle bank**, not this repo — capture them
+with `/oracle-observe`. Do not create `.decisions/`, `phi/`, `cdrs/`, or `obs/`
+directories here; that vocabulary is oracle-native and `.decisions/` is
+gitignored as a guardrail.
+
 ## Spec-Kit Artifacts
 
 Each feature lives in `specs/[###-feature-name]/` with:
