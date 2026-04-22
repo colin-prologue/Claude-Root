@@ -69,6 +69,17 @@ eliminating the two literal duplicates. The spec-dict intermediate ensures any n
 filter field is added once and flows to both variants. Option B's regression is
 disqualifying; Option C defers the cost without eliminating it.
 
+**Scope note (2026-04-22, post code-review):** The call-site count is 2+1 (two
+Python consumers, one SQL consumer), which is borderline for Rule of Three. The
+extraction's load-bearing value is not call-site reuse — it is the **testability
+of a cross-cutting invariant**. Extracting the two builders enables the drift-guard
+test (`test_filter_predicate.py`) to drive the same spec dict through both paths
+and assert they return identical row sets; an inline version of this invariant
+would not be testable. Read that way, the helper size is appropriate: two ~20-line
+builders exist to be independently verifiable. If the two paths ever collapse (e.g.,
+LanceDB drops SQL push-down or we abandon the Python scan path), this ADR should
+be superseded and the helpers inlined.
+
 ## Consequences
 
 **Positive**: New filter fields are single-site edits; `scan_chunks` and
@@ -87,3 +98,4 @@ Accepted and the Amendment History records the implementation commit.
 |---|---|---|
 | 2026-04-20 | Initial record — surfaced by /speckit.audit (full-repo, H3) | Claude (speckit.audit) |
 | 2026-04-21 | Accepted + implemented: `_build_filter_predicate` and `_build_filter_sql` helpers added to `memory-server/speckit_memory/index.py`; `scan_chunks`, `vector_search`, `keyword_search` refactored to call them. Unit tests in `tests/unit/test_filter_predicate.py` (14 tests) drive the same spec through both variants to guard against drift. | Claude |
+| 2026-04-22 | Rationale clarification added (/speckit.codereview dissent): extraction is justified by testability of the drift invariant, not by call-site reuse (2+1 is borderline for Rule of Three). Drift-guard test hardened to assert expected row sets per spec (not just predicate↔SQL agreement). | Claude |

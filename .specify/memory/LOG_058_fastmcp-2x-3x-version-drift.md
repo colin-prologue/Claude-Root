@@ -58,6 +58,15 @@ No new ADR required: ADR-009 still stands (FastMCP chosen as MCP runtime); no 3.
 **Resolved By**: `memory-server/pyproject.toml` pin `fastmcp>=3.2,<4`; CLAUDE.md + 002/003/005/006/007/008 plan.md Technical Context lines updated to "FastMCP 3.2+"
 **Resolved Date**: 2026-04-21
 
+**Pin scope clarification (2026-04-22, post code-review)**: the `<4` upper bound is
+**semver-conservative, not empirically validated**. Validation was performed against
+FastMCP 3.2.0; 3.3+ release notes have not been reviewed. A future `uv lock --upgrade`
+could pull an untested 3.x minor. Mitigations if confidence matters more than
+ergonomics: (a) tighten to `>=3.2,<3.3` and bump explicitly on each minor, or
+(b) add a scheduled `uv sync` CI job that installs from pyproject weekly and runs
+the test suite. Current decision: accept the `<4` bound; treat any 3.x upgrade as a
+separate review event rather than automatic.
+
 ## Impact
 
 - [x] Pyproject updated: `memory-server/pyproject.toml:7` — `fastmcp>=3.2,<4`
