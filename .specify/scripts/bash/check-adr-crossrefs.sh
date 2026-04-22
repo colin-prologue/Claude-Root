@@ -25,7 +25,10 @@ for f in "$MEMORY_DIR"/ADR_*.md "$MEMORY_DIR"/LOG_*.md; do
   base=$(basename "$f" .md)
   key=$(echo "$base" | grep -oE '^(ADR|LOG)_[0-9]+')
   dashed=${key/_/-}
-  if ! grep -rqE "${key}|${dashed}" "$SPECS_DIR" 2>/dev/null; then
+  # Word-boundary anchors avoid false matches:
+  #   - ADR_055 inside ADR_1055 (dormant until 4-digit IDs exist)
+  #   - ADR_055 inside an unrelated substring like 123ADR_055abc (live today)
+  if ! grep -rqE "(^|[^A-Za-z0-9_])(${key}|${dashed})([^0-9]|$)" "$SPECS_DIR" 2>/dev/null; then
     missing+=("$base")
   fi
 done
