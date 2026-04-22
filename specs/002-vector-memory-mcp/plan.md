@@ -22,11 +22,14 @@ Build a local MCP server that exposes four stable tools (`memory_recall`, `memor
 | ADR-056 | Decision | [ADR_056_direct-dependency-declaration-policy.md](../../.specify/memory/ADR_056_direct-dependency-declaration-policy.md) | Declare direct imports (`httpx`, `pyarrow`) in `pyproject.toml` | Accepted |
 | LOG-058 | Challenge | [LOG_058_fastmcp-2x-3x-version-drift.md](../../.specify/memory/LOG_058_fastmcp-2x-3x-version-drift.md) | FastMCP 2.x → 3.x installed-version drift vs. declared range | Resolved |
 | LOG-059 | Update | [LOG_059_mcp-tools-contract-superseded.md](../../.specify/memory/LOG_059_mcp-tools-contract-superseded.md) | 002 `mcp-tools.md` superseded by 003/006/007/008 deltas — banner added | Resolved |
+| LOG-060 | Question | [LOG_060_validate-uuid-error-type-inconsistency.md](../../.specify/memory/LOG_060_validate-uuid-error-type-inconsistency.md) | `_validate_uuid` raises `ValueError` vs. module-wide `ToolError` (deferred) | Open |
+| LOG-061 | Challenge | [LOG_061_memory-repo-root-auto-derive-layout.md](../../.specify/memory/LOG_061_memory-repo-root-auto-derive-layout.md) | `MEMORY_REPO_ROOT` auto-derive assumes source-tree layout; breaks on pip-install (deferred) | Open |
+| LOG-062 | Question | [LOG_062_drift-guard-test-methodology.md](../../.specify/memory/LOG_062_drift-guard-test-methodology.md) | Codify expected-set pattern for cross-path invariants (deferred) | Open |
 
 ## Technical Context
 
 **Language/Version**: Python 3.10+
-**Primary Dependencies**: FastMCP (MCP server framework), LanceDB (vector DB), ollama (embedding client — calls local Ollama HTTP API)
+**Primary Dependencies**: FastMCP 3.2+ (MCP server framework — see LOG-058), LanceDB (vector DB), ollama (embedding client — calls local Ollama HTTP API)
 **Storage**: LanceDB embedded (`.specify/memory/.index/chunks.lance/`) + JSON manifest (`.specify/memory/.index/manifest.json`) — both gitignored
 **Embedding model**: Ollama `nomic-embed-text` (768 dims, global system install, no cloud API account required — ADR-010)
 **Testing**: pytest + pytest-asyncio; contract tests against the MCP tool interface; integration tests against a real LanceDB instance (no mocks)
