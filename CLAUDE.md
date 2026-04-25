@@ -74,6 +74,13 @@ specs/                  # Feature specifications (one folder per feature)
 docs/                   # Long-form documentation
 ```
 
+## Skills
+
+| Skill | Trigger | Purpose |
+|---|---|---|
+| `adr-crossref-check` | "check ADR cross-references", "verify Principle VII" | Audits every ADR/LOG in `.specify/memory/` for at least one inbound reference from `specs/` |
+| `writing-decision-records` | "write an ADR", "create a LOG" | Guided authoring of ADR/LOG files with correct format and cross-references |
+
 ## Key Conventions
 
 - Branch naming: `###-feature-name` (e.g., `001-user-auth`)
