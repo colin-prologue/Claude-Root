@@ -3,7 +3,7 @@
 **Date**: 2026-04-03
 **Type**: QUESTION
 **Status**: Resolved
-**Raised In**: specs/000-review-benchmark/spec.md — spec gate review (CF-3)
+**Raised In**: benchmarks/review-panel/spec.md — spec gate review (CF-3)
 **Related ADRs**: None
 
 ---
@@ -64,7 +64,7 @@ averaging is a known future improvement.
 
 ## Impact
 
-- [x] Spec updated: `specs/000-review-benchmark/spec.md` — FR-006 (deterministic scoring), Assumptions (variance caveat)
+- [x] Spec updated: `benchmarks/review-panel/spec.md` — FR-006 (deterministic scoring), Assumptions (variance caveat)
 - [ ] Plan updated: N/A (pre-planning)
 - [ ] ADR created/updated: None
 - [ ] Tasks revised: N/A

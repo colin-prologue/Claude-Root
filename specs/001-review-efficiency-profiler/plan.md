@@ -28,12 +28,12 @@ actually reduce overlap without losing signal.
 
 ### 1. Benchmark Artifact Set
 
-Location: `specs/000-review-benchmark/`
+Location: `benchmarks/review-panel/`
 
 A canonical spec/plan/tasks triplet with **deliberately planted issues** of known types.
 Agents never see the key file; it's only used to score results afterward.
 
-#### `specs/000-review-benchmark/spec.md`
+#### `benchmarks/review-panel/spec.md`
 
 Scenario: a simple user notification preferences feature for a web app.
 
@@ -48,7 +48,7 @@ Scenario: a simple user notification preferences feature for a web app.
 - `FALSE-1` — A requirement that looks ambiguous but is actually intentionally scoped narrow.
   Any agent raising this as a gap is a false positive.
 
-#### `specs/000-review-benchmark/plan.md`
+#### `benchmarks/review-panel/plan.md`
 
 Scenario: REST API + React frontend for notification preferences.
 
@@ -64,7 +64,7 @@ Scenario: REST API + React frontend for notification preferences.
 - `FALSE-2` — Architecture decision that looks underspecified but is intentionally deferred
   to a documented ADR (reference included). Any agent raising this as a gap is a false positive.
 
-#### `specs/000-review-benchmark/tasks.md`
+#### `benchmarks/review-panel/tasks.md`
 
 **Planted issues:**
 - `DEL-1` (HIGH) — Test tasks for User Story 2 are written AFTER the implementation tasks
@@ -77,7 +77,7 @@ Scenario: REST API + React frontend for notification preferences.
 - `FALSE-3` — A task that looks like it's missing a test but the test is covered by an
   integration task two IDs later (clearly referenced). False positive if raised.
 
-#### `specs/000-review-benchmark/benchmark-key.md`
+#### `benchmarks/review-panel/benchmark-key.md`
 
 ```markdown
 # Benchmark Key (NOT visible to review agents)
@@ -111,7 +111,7 @@ efficiency report to the synthesis output.
 
 1. Tags each Phase A finding with `[AGENT_NAME]` as it collects outputs
 2. After synthesis, runs a second pass over all Phase A outputs to build the overlap matrix
-3. Scores each agent against the benchmark key (if reviewing `000-review-benchmark`)
+3. Scores each agent against the benchmark key (if reviewing `benchmarks/review-panel`)
 4. Appends the Panel Efficiency Report to the synthesis output
 
 #### Panel Efficiency Report format
@@ -119,7 +119,7 @@ efficiency report to the synthesis output.
 ```markdown
 ## Panel Efficiency Report
 
-**Mode**: [Benchmark / Live — benchmark if reviewing 000-review-benchmark]
+**Mode**: [Benchmark / Live — benchmark if reviewing benchmarks/review-panel]
 **Panel**: [agent names]
 **Gate**: [spec / plan / task / pre-implementation]
 
@@ -167,7 +167,7 @@ meaningful signal loss.
 
 ## Implementation Order
 
-1. **Create `specs/000-review-benchmark/`** — spec.md, plan.md, tasks.md, benchmark-key.md
+1. **Create `benchmarks/review-panel/`** — spec.md, plan.md, tasks.md, benchmark-key.md
    - Write realistic-looking artifacts (not obviously synthetic)
    - Plant issues subtly enough that agents have to actually reason, not pattern-match
    - Each false positive should be a genuine trap, not obviously fine
@@ -197,7 +197,7 @@ meaningful signal loss.
 ## Files to Create
 
 ```
-specs/000-review-benchmark/
+benchmarks/review-panel/
   spec.md
   plan.md
   tasks.md

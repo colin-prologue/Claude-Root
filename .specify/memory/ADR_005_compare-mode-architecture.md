@@ -2,7 +2,7 @@
 
 **Date**: 2026-04-03
 **Status**: Accepted
-**Decision Made In**: specs/000-review-benchmark/plan.md § Phase 0 Research
+**Decision Made In**: benchmarks/review-panel/plan.md § Phase 0 Research
 **Related Logs**: None
 
 ---

@@ -34,6 +34,8 @@ Keep it lean — detailed rules live in `.claude/rules/`.
   scripts/
     bash/               # check-adr-crossrefs.sh and other helpers
 specs/                  # Feature specifications (one folder per feature)
+benchmarks/             # Persistent benchmark fixtures (re-run to track improvement over time)
+  review-panel/         # Panel efficiency benchmark — fixture + key + runs/
 docs/                   # Long-form documentation
 ```
 
@@ -48,3 +50,4 @@ docs/                   # Long-form documentation
 ## Recent Changes
 - 009-remove-memory-server: Extracted memory server to `archive/memory-server` branch + `v1.0-with-memory` tag; template now ships without MCP server dependency
 - skill-plugin-optimization: `adr-crossref-check` skill + helper script, ADR-055 filter-predicate helpers, guardrail against `.decisions/` vocabulary drift
+- benchmark-reorganization: Moved `specs/000-review-benchmark/` → `benchmarks/review-panel/`; benchmark is a persistent fixture (re-run to track reviewer score trends), not a one-shot feature; `results.md` written in `specs/001-review-efficiency-profiler/`

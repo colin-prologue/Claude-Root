@@ -2,7 +2,7 @@
 
 **Date**: 2026-04-02
 **Status**: Accepted
-**Decision Made In**: specs/000-review-benchmark/spec.md § Clarifications (Q3 — 2026-04-02)
+**Decision Made In**: benchmarks/review-panel/spec.md § Clarifications (Q3 — 2026-04-02)
 **Related Logs**: None
 
 ---
