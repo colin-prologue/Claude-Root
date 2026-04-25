@@ -46,7 +46,6 @@ If no Project Context section exists, warn the user and recommend running `/spec
 
 **Do NOT instruct agents to re-read constitution.md.** Inject `CALIBRATION_BLOCK` directly into each agent's prompt in Step 4. This avoids redundant file reads across the panel.
 
-**Memory recall**: Read `.specify/memory/constitution.md` and parse its YAML front-matter block (lines between the opening `---` and the next `---`). If the key `memory_enabled` is present and its value is exactly `false`, skip all `memory_recall` and `memory_store` calls in this skill run. If the key is absent or the file cannot be read, proceed normally (treat as `memory_enabled: true`). When enabled, call `memory_recall("prior review findings open risks architectural decisions")` and use surfaced decisions as context for panel reviewers.
 
 ### 2.5. Initialize Review State File
 
@@ -215,7 +214,7 @@ Display the synthesis report to the user. Then:
    - For each architectural decision surfaced, offer to create an `ADR_NNN_*.md`
    - Update the feature's Decision Records table in spec.md or plan.md with back-references
 
-4. **Memory store**: If `memory_enabled` was not `false` in the earlier gate check, call `memory_store` with a 2-5 sentence summary of the synthesis report's majority findings, key dissents, and recommended ADRs/LOGs; use `section: "speckit.review synthesis"` and metadata per `memory-convention.md`.
+4. **Present synthesis report** to the user.
 
 ### 6. Gate Decision
 

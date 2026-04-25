@@ -4,7 +4,7 @@
 # Git worktrees
 worktrees/
 
-# Vector memory index (volatile cache — never commit)
+# LanceDB index (volatile cache — delete and regenerate via memory_sync if restored)
 .specify/memory/.index/
 
 # Oracle artifacts — meta-patterns belong in oracle bank, not this repo
