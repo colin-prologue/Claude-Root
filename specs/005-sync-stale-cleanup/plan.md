@@ -21,11 +21,12 @@ changes to `sync.py`. No new technologies introduced.
 | ADR-030 | Decision | ADR_030_cleanup-detection-strategy.md | Crawl-based with direct-exists safety check | Accepted |
 | LOG-028 | Challenge | LOG_028_orphaned-chunks-non-atomic-cleanup.md | Orphaned chunks from non-atomic cleanup | Open (deferred) |
 | LOG-029 | Question | LOG_029_log018-unresolved-concerns.md | LOG-018 unresolved concerns: de-dupe and synthetic purge | Deferred |
+| LOG-031 | Challenge | LOG_031_codereview-005-fast-follows.md | Post-codereview fast-follow items (FF-001 through FF-004) | Open (FF-001, FF-002) / Resolved (FF-003, FF-004) |
 
 ## Technical Context
 
 **Language/Version**: Python 3.10+
-**Primary Dependencies**: FastMCP 2.0+, LanceDB 0.13+, PyArrow, Ollama nomic-embed-text
+**Primary Dependencies**: FastMCP 3.2+, LanceDB 0.13+, PyArrow, Ollama nomic-embed-text
 **Storage**: LanceDB embedded (`.specify/memory/.index/chunks.lance/`) + `manifest.json`
 **Testing**: pytest + pytest-asyncio (unit: no Ollama; integration: requires Ollama)
 **Target Platform**: macOS/Linux (local developer tool)

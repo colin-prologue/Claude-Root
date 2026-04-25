@@ -7,6 +7,9 @@ worktrees/
 # Vector memory index (volatile cache — never commit)
 .specify/memory/.index/
 
+# Oracle artifacts — meta-patterns belong in oracle bank, not this repo
+.decisions/
+
 # Python
 __pycache__/
 *.pyc

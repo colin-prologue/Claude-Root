@@ -77,4 +77,4 @@ Process-level flag. After fix (LOG-035):
 | `OLLAMA_MODEL` | `nomic-embed-text` | Embedding model name |
 | `OLLAMA_TIMEOUT` | `10` | Seconds before Ollama call fails (new in 006) |
 | `MEMORY_INDEX_PATH` | _(glob patterns)_ | Files to index |
-| `MEMORY_REPO_ROOT` | _(auto-detected)_ | Repo root path |
+| `MEMORY_REPO_ROOT` | _(auto-detected from server.py location)_ | Repo root path; explicit override for out-of-tree deployments (LOG-057) |

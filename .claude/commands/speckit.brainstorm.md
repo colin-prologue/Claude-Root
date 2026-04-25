@@ -464,7 +464,3 @@ Suggested first feature: [highest priority, lowest effort, no dependencies]
 - Preserve ALL raw ideas in the roadmap — even rejected ones. Future brainstorms may revisit them.
 - Write `brainstorm-notes.md` incrementally after each phase for session continuity.
 - Scope feedback is advisory — inform the user of risks but respect their decisions.
-
-## Context
-
-$ARGUMENTS

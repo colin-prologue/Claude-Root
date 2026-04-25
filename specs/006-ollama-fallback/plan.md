@@ -18,11 +18,12 @@ Harden the memory server against Ollama unavailability by: (1) raising `ToolErro
 | 036 | LOG | LOG_036_httpx-timeout-exception-catch-gap.md | `httpx.TimeoutException` escapes current catch clauses — FR-004 blocker | Resolved → plan.md |
 | 037 | ADR | ADR_037_summary-only-scan-strategy.md | summary_only bypass: table scan without vector | Accepted |
 | 038 | LOG | LOG_038_ensure-init-retry-non-embed-tools.md | `_ensure_init` retry-on-every-call adds ~10s latency to `summary_only`/delete after T007 | Open |
+| 057 | LOG | LOG_057_memory-repo-root-undocumented.md | `MEMORY_REPO_ROOT` env var introduced here is undocumented in CLAUDE.md | Resolved |
 
 ## Technical Context
 
 **Language/Version**: Python 3.10+
-**Primary Dependencies**: FastMCP 2.0+, LanceDB 0.13+, `ollama` Python SDK, `httpx` (transitive dependency of ollama SDK)
+**Primary Dependencies**: FastMCP 3.2+, LanceDB 0.13+, `ollama` Python SDK, `httpx` (transitive dependency of ollama SDK)
 **Storage**: LanceDB embedded (`.specify/memory/.index/chunks.lance/`) + `manifest.json`
 **Testing**: pytest + pytest-asyncio 8.0+
 **Target Platform**: Local MCP server (single process, invoked by Claude Code via `.mcp.json`)

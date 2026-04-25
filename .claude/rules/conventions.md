@@ -9,6 +9,10 @@
 - PRs target ≤300 LOC (calibrated by constitution; may be 200 or 500 depending on project context)
 - No credentials or secrets in source — use environment variables
 
+## Shell args with single quotes
+
+When invoking bash scripts with `$ARGUMENTS` that may contain single quotes, either double-quote the arg (`"I'm Groot"`) or use escape syntax (`'I'\''m Groot'`).
+
 ## Decision Records
 
 All architectural decisions and significant challenges are tracked in `.specify/memory/`:
@@ -20,6 +24,13 @@ All architectural decisions and significant challenges are tracked in `.specify/
 
 Both types share a sequential counter. Cross-references between records and
 spec/plan artifacts are mandatory (Principle VII).
+
+**Scope boundary — local vs. oracle memory.** This repo uses **ADR + LOG only**.
+Meta-patterns (cross-project philosophies, architectural wisdom that applies
+beyond Claude-Root) belong in the **oracle bank**, not this repo — capture them
+with `/oracle-observe`. Do not create `.decisions/`, `phi/`, `cdrs/`, or `obs/`
+directories here; that vocabulary is oracle-native and `.decisions/` is
+gitignored as a guardrail.
 
 ## Spec-Kit Artifacts
 

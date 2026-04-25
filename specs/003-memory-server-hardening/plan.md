@@ -30,7 +30,7 @@ No schema changes to the LanceDB table. No new dependencies.
 ## Technical Context
 
 **Language/Version**: Python 3.10+
-**Primary Dependencies**: FastMCP 2.0+, LanceDB 0.13+, PyArrow, Ollama nomic-embed-text
+**Primary Dependencies**: FastMCP 3.2+, LanceDB 0.13+, PyArrow, Ollama nomic-embed-text
 **Storage**: LanceDB embedded (`.specify/memory/.index/chunks.lance/`) — no schema changes
 **Testing**: pytest + pytest-asyncio; fake embedder fixture (no Ollama required for unit/contract)
 **Target Platform**: Local MCP server, macOS / Linux

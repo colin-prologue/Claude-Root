@@ -14,7 +14,7 @@ Keep it lean — detailed rules live in `.claude/rules/`.
 | Layer | Technology | Version |
 |---|---|---|
 | Language | Python | 3.10+ |
-| Framework | FastMCP (MCP server) | 2.0+ |
+| Framework | FastMCP (MCP server) | 3.2+ |
 | Database | LanceDB (embedded vector DB) | 0.13+ |
 | Embedding | Ollama nomic-embed-text | 768 dims |
 | Testing | pytest + pytest-asyncio | 8.0+ |
@@ -41,6 +41,7 @@ uv run --directory memory-server speckit-memory
 # OLLAMA_TIMEOUT (default: 10) — seconds before Ollama calls fail (006-ollama-fallback)
 # MEMORY_INDEX_PATH (default: .specify/memory/ADR_*.md,LOG_*.md,constitution.md + specs/*/spec.md,plan.md)
 # MEMORY_STALENESS_THRESHOLD (default: 3600) — seconds before index is re-synced on recall; 0 = disabled (008-auto-sync-staleness)
+# MEMORY_REPO_ROOT (default: auto-derived from server.py location) — override repo root for out-of-tree deployments (LOG-057)
 ```
 
 ## Directory Structure
@@ -73,6 +74,13 @@ specs/                  # Feature specifications (one folder per feature)
 docs/                   # Long-form documentation
 ```
 
+## Skills
+
+| Skill | Trigger | Purpose |
+|---|---|---|
+| `adr-crossref-check` | "check ADR cross-references", "verify Principle VII" | Audits every ADR/LOG in `.specify/memory/` for at least one inbound reference from `specs/` |
+| `writing-decision-records` | "write an ADR", "create a LOG" | Guided authoring of ADR/LOG files with correct format and cross-references |
+
 ## Key Conventions
 
 - Branch naming: `###-feature-name` (e.g., `001-user-auth`)
@@ -82,7 +90,8 @@ docs/                   # Long-form documentation
 - See `.specify/memory/constitution.md` for full governing principles
 
 ## Recent Changes
-- 008-auto-sync-staleness: Added Python 3.10+ + FastMCP 2.0+, LanceDB 0.13+, httpx, ollama SDK
+- skill-plugin-optimization: Project-scope hooks (`.claude/settings.json` — block `.index/` edits, post-edit pytest), `adr-crossref-check` skill + helper script, ADR-055 filter-predicate helpers (`_build_filter_predicate` / `_build_filter_sql`), ADR-056 httpx/pyarrow as direct deps, LOG-058 fastmcp pinned `>=3.2,<4`, guardrail against `.decisions/` vocabulary drift
+- 008-auto-sync-staleness: Added Python 3.10+ + FastMCP 3.2+, LanceDB 0.13+, httpx, ollama SDK
 - 007-bm25-keyword-fallback: Complete — BM25 keyword fallback for memory_recall when Ollama unavailable; adds `degraded: true` envelope flag and normalized [0,1] TF score; FR-011 CONFIG_ERROR message includes bad URL
 - 006-ollama-fallback: Ollama resilience — ToolError raises, configurable timeout (`OLLAMA_TIMEOUT`), summary_only bypass via table scan, `_ensure_init` retry fix
 
@@ -90,5 +99,5 @@ docs/                   # Long-form documentation
 
 
 ## Active Technologies
-- Python 3.10+ + FastMCP 2.0+, LanceDB 0.13+, httpx, ollama SDK (008-auto-sync-staleness)
+- Python 3.10+ + FastMCP 3.2+, LanceDB 0.13+, httpx, ollama SDK (008-auto-sync-staleness)
 - Manifest JSON (`manifest.json`) in `.specify/memory/.index/`; LanceDB table (008-auto-sync-staleness)

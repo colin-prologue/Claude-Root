@@ -118,16 +118,18 @@ Review panels scale based on the project's governance calibration:
 
 ## Agent Personas
 
-Eleven agent personas in `.claude/agents/`:
+Thirteen agent personas in `.claude/agents/`:
 
 | Agent | Role | Used By |
 |---|---|---|
 | `product-strategist` | User value, requirements completeness | `/speckit.review` |
 | `systems-architect` | Scalability, modularity, technical design | `/speckit.review` |
-| `security-reviewer` | Vulnerabilities, threat modeling, data protection | `/speckit.review` |
+| `security-reviewer` | Vulnerabilities, threat modeling, data protection | `/speckit.review`, `/speckit.codereview` |
 | `delivery-reviewer` | Dependencies, risk, test coverage | `/speckit.review` |
-| `devils-advocate` | Assumption challenges, hidden risks (always FULL rigor) | `/speckit.review` |
+| `operational-reviewer` | Observability, failure modes, rollback, on-call burden | `/speckit.review` |
+| `devils-advocate` | Assumption challenges, hidden risks (always FULL rigor) | `/speckit.review`, `/speckit.codereview` |
 | `synthesis-judge` | Integrates findings, preserves dissent | `/speckit.review` |
+| `code-reviewer` | Correctness, test quality, ADR compliance, maintainability | `/speckit.codereview` |
 | `consistency-auditor` | Bidirectional doc-code drift, decision discovery | `/speckit.audit` |
 | `visionary` | Unconstrained creative ideation | `/speckit.brainstorm` |
 | `user-advocate` | Daily user needs and pain points | `/speckit.brainstorm` |
@@ -148,9 +150,10 @@ Eleven agent personas in `.claude/agents/`:
 
 ```
 .claude/
-  commands/             # Spec-Kit slash commands (13 total)
-  agents/               # Agent persona definitions (11 total)
+  commands/             # Spec-Kit slash commands (16 total)
+  agents/               # Agent persona definitions (13 total)
   rules/                # Modular instruction files (loaded automatically)
+  skills/               # Claude Skills (e.g., adr-crossref-check, writing-decision-records)
   settings.local.json   # Local settings (not committed)
 .specify/
   memory/
@@ -160,7 +163,6 @@ Eleven agent personas in `.claude/agents/`:
   templates/            # Document templates for all artifacts
   scripts/              # Helper scripts used by commands
 specs/
-  roadmap.md            # Feature roadmap (from /speckit.brainstorm)
   ###-feature-name/
     spec.md             # User stories & requirements
     plan.md             # Technical approach & architecture
@@ -168,9 +170,12 @@ specs/
     research.md         # Research findings
     data-model.md       # Entity definitions & relationships
     contracts/          # API contracts & interface specs
-src/                    # Application source code
-tests/                  # Test suite
+memory-server/          # Python MCP server (FastMCP + LanceDB + Ollama)
+  speckit_memory/       # Package source (index, sync, server)
+  tests/                # contract / integration / unit tests
+  pyproject.toml        # uv-managed dependency manifest
 docs/                   # Long-form documentation
+roadmap.md              # Feature roadmap (from /speckit.brainstorm)
 CLAUDE.md               # Project context for Claude (lean — details in .claude/rules/)
 ```
 

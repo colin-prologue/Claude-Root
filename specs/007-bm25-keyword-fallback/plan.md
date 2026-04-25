@@ -25,7 +25,7 @@
 ## Technical Context
 
 **Language/Version**: Python 3.10+
-**Primary Dependencies**: FastMCP 2.0+, LanceDB 0.13+, pyarrow, httpx, ollama SDK — **no new dependencies**
+**Primary Dependencies**: FastMCP 3.2+, LanceDB 0.13+, pyarrow, httpx, ollama SDK — **no new dependencies**
 **Storage**: LanceDB embedded (`.specify/memory/.index/chunks.lance/`) — unchanged
 **Testing**: pytest + pytest-asyncio 8.0+
 **Target Platform**: Local MCP server (macOS/Linux)

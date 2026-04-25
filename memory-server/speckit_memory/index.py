@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 import re as _re
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import lancedb
 import pyarrow as pa
@@ -61,6 +61,59 @@ def _validate_uuid(value: str) -> str:
     if not _UUID_RE.match(value):
         raise ValueError(f"Not a valid UUID: {value!r}")
     return value
+
+
+# ---------------------------------------------------------------------------
+# Metadata filter helpers (ADR-055)
+# ---------------------------------------------------------------------------
+
+# FilterSpec keys: filter_type, filter_feature, filter_tags, filter_source_file.
+# A missing or falsy value means "no filter on this field". Used by both the
+# Python predicate builder (scan_chunks / keyword_search) and the SQL WHERE
+# builder (vector_search) so the two code paths share a single filter surface.
+FilterSpec = dict
+
+
+def _build_filter_predicate(spec: FilterSpec) -> Callable[[dict], bool]:
+    """Return a Python predicate that returns True iff a row matches all filters in spec."""
+    filter_type = spec.get("filter_type")
+    filter_feature = spec.get("filter_feature")
+    filter_tags = spec.get("filter_tags")
+    filter_source_file = spec.get("filter_source_file")
+
+    def _match(row: dict) -> bool:
+        if filter_type and row.get("type") != filter_type:
+            return False
+        if filter_feature and row.get("feature") != filter_feature:
+            return False
+        if filter_tags and not all(t in (row.get("tags") or []) for t in filter_tags):
+            return False
+        if filter_source_file and row.get("source_file") != filter_source_file:
+            return False
+        return True
+
+    return _match
+
+
+def _build_filter_sql(spec: FilterSpec) -> str:
+    """Return a LanceDB WHERE fragment for the spec. Returns '' when no filters."""
+    conditions: list[str] = []
+    filter_type = spec.get("filter_type")
+    filter_feature = spec.get("filter_feature")
+    filter_tags = spec.get("filter_tags")
+    filter_source_file = spec.get("filter_source_file")
+
+    if filter_type:
+        conditions.append(f"type = '{_sql_escape(filter_type)}'")
+    if filter_feature:
+        conditions.append(f"feature = '{_sql_escape(filter_feature)}'")
+    if filter_tags:
+        for tag in filter_tags:
+            conditions.append(f"array_has(tags, '{_sql_escape(tag)}')")
+    if filter_source_file:
+        conditions.append(f"source_file = '{_sql_escape(filter_source_file)}'")
+
+    return " AND ".join(conditions)
 
 
 def _db(index_dir: Path) -> lancedb.DBConnection:
@@ -146,15 +199,13 @@ def scan_chunks(
 ) -> list[dict[str, Any]]:
     """Return chunks via table scan without vector search. Used for summary_only bypass (ADR-037)."""
     rows = table.to_arrow().to_pylist()
-    if filter_type:
-        rows = [r for r in rows if r.get("type") == filter_type]
-    if filter_feature:
-        rows = [r for r in rows if r.get("feature") == filter_feature]
-    if filter_tags:
-        rows = [r for r in rows if all(t in (r.get("tags") or []) for t in filter_tags)]
-    if filter_source_file:
-        rows = [r for r in rows if r.get("source_file") == filter_source_file]
-    return rows[:top_k]
+    pred = _build_filter_predicate({
+        "filter_type": filter_type,
+        "filter_feature": filter_feature,
+        "filter_tags": filter_tags,
+        "filter_source_file": filter_source_file,
+    })
+    return [r for r in rows if pred(r)][:top_k]
 
 
 def vector_search(
@@ -174,20 +225,14 @@ def vector_search(
     """
     q = table.search(query_vector, vector_column_name="vector")
 
-    # Build pre-filter conditions (AND-combined; multiple tags require ALL to match)
-    conditions: list[str] = []
-    if filter_type:
-        conditions.append(f"type = '{_sql_escape(filter_type)}'")
-    if filter_feature:
-        conditions.append(f"feature = '{_sql_escape(filter_feature)}'")
-    # tags filter: check array containment (LanceDB SQL dialect)
-    if filter_tags:
-        for tag in filter_tags:
-            conditions.append(f"array_has(tags, '{_sql_escape(tag)}')")
-    if filter_source_file:
-        conditions.append(f"source_file = '{_sql_escape(filter_source_file)}'")
-    if conditions:
-        q = q.where(" AND ".join(conditions))
+    where = _build_filter_sql({
+        "filter_type": filter_type,
+        "filter_feature": filter_feature,
+        "filter_tags": filter_tags,
+        "filter_source_file": filter_source_file,
+    })
+    if where:
+        q = q.where(where)
 
     q = q.limit(top_k * 4)  # over-fetch to allow score threshold filtering
     rows = q.to_list()  # list[dict] — no pandas dependency at runtime
@@ -240,14 +285,13 @@ def keyword_search(
     inflate scores; callers should strip punctuation and avoid stop words.
     """
     rows = table.to_arrow().to_pylist()
-    if filter_type:
-        rows = [r for r in rows if r.get("type") == filter_type]
-    if filter_feature:
-        rows = [r for r in rows if r.get("feature") == filter_feature]
-    if filter_tags:
-        rows = [r for r in rows if all(t in (r.get("tags") or []) for t in filter_tags)]
-    if filter_source_file:
-        rows = [r for r in rows if r.get("source_file") == filter_source_file]
+    pred = _build_filter_predicate({
+        "filter_type": filter_type,
+        "filter_feature": filter_feature,
+        "filter_tags": filter_tags,
+        "filter_source_file": filter_source_file,
+    })
+    rows = [r for r in rows if pred(r)]
 
     query_terms = query.lower().split() if query.strip() else []
 
