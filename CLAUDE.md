@@ -48,6 +48,6 @@ docs/                   # Long-form documentation
 - See `.specify/memory/constitution.md` for full governing principles
 
 ## Recent Changes
+- 010-autonomous-workflow: `/speckit.run` orchestrator (in progress) — slash command + bash helpers (`.specify/scripts/bash/run-*.sh`); canonical `decisions-log.md` + JSONL sidecar at `.run/control-flow.log`; bats unit + smoke tiers; V1 BLOCKING-everywhere
 - 009-remove-memory-server: Extracted memory server to `archive/memory-server` branch + `v1.0-with-memory` tag; template now ships without MCP server dependency
 - skill-plugin-optimization: `adr-crossref-check` skill + helper script, ADR-055 filter-predicate helpers, guardrail against `.decisions/` vocabulary drift
-- benchmark-reorganization: Moved `specs/000-review-benchmark/` → `benchmarks/review-panel/`; benchmark is a persistent fixture (re-run to track reviewer score trends), not a one-shot feature; `results.md` written in `specs/001-review-efficiency-profiler/`

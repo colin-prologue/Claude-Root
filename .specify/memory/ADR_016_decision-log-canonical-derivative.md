@@ -17,16 +17,31 @@ When two writers have asymmetric durability — one canonical, one derivative �
 
 ## Decision
 
-**The subagent's per-stage record is the canonical content of `decisions-log.md`.** The orchestrator does not append directly; it maintains an in-memory or sidecar log of control-flow events during the run, and at clean termination either (a) appends a single coalesced control-flow summary to the log, or (b) writes its events to a separate `specs/[###]/.run/control-flow.log` that is treated as a regenerable cache.
+**The subagent's per-stage record is the canonical content of `decisions-log.md`.** The orchestrator does not append directly during stage execution; it writes control-flow events to a sidecar at `specs/[###]/.run/control-flow.log` (regenerable cache; ADR-020 specifies the JSONL format).
 
-This eliminates the two-writer concurrency problem. Within a run, only the dispatched subagent writes to `decisions-log.md`. The orchestrator's role is to dispatch, read, route, and (at termination) append a closing summary if needed.
+This eliminates the two-writer concurrency problem. Within a run, only the dispatched subagent writes to `decisions-log.md`. The orchestrator's role during stage execution is to dispatch, read, and route.
+
+**Coalesced summary requirement (amended 2026-04-26 post-plan-review)**: At termination, the orchestrator MUST append a coalesced control-flow summary entry to `decisions-log.md` for the following termination paths:
+- **Halt** (semantic / permission / temporal failure per FR-019).
+- **Abort** (sentinel detected or subagent emitted abort entry).
+- **Permission failure** (sandbox audit violation per FR-020).
+- **Clean termination** at end of pipeline.
+
+The coalesce write uses the **stage-then-rename idiom** (LOG-012): read current `decisions-log.md` into a same-directory temp file, append the summary block, `mv -f` over the canonical file. This makes the write atomic on macOS/Linux same-filesystem semantics; partial-write failure modes (process death mid-coalesce) leave the canonical log unchanged plus an orphan `.tmp` swept by `run-lock.sh acquire` on the next run.
 
 V1 implementation:
 - Subagent writes its per-stage record to `decisions-log.md` before exit. This is the only canonical write during stage execution.
-- Orchestrator records control-flow events (stage-start, stage-skip-criterion, routing-choice, abort-reason) to a sidecar at `specs/[###]/.run/control-flow.log` during the run.
-- On clean termination, the orchestrator appends a single summary entry to `decisions-log.md` consolidating its sidecar events. If the run is interrupted, the sidecar persists at `.run/control-flow.log` and can be reviewed; the subagent records remain authoritative.
+- Orchestrator records control-flow events (stage-start, stage-skip-criterion, routing-choice, abort-reason) to the sidecar at `specs/[###]/.run/control-flow.log` during the run.
+- On every termination (halt, abort, permission-failure, clean), the orchestrator MUST append a single coalesced summary entry to `decisions-log.md` via stage-then-rename. The sidecar persists either way until the next run begins.
 
-This protocol is locking-free: only one writer holds `decisions-log.md` at any given moment (the active subagent during dispatch; the orchestrator only at termination, when no subagent is running).
+**Exception — orchestrator-authored canonical entries during stage execution**: the verdict-receipt protocol (ADR-022) requires `run-emit-event.sh` and `run-serialize.sh` to write semantic-failure entries directly to `decisions-log.md` at the moment a protocol violation is detected, not at termination. Three entry types are exempt from "subagent is the only canonical writer during stage execution":
+- `verdict-mismatch` — written by `run-emit-event.sh` when the asserted event does not match the receipt (forgery detection, ADR-022 step 3).
+- `verdict-omitted` — written by `run-decide-next.sh` when a prior verdict is unconsumed at start of next invocation (omission detection, ADR-022 step 5).
+- `pipeline-incomplete` — written by `run-serialize.sh` when a stage record lacks a sidecar routing event at termination (completeness invariant, ADR-022 step 6).
+
+These exceptions exist because the audit substrate's value depends on detected protocol violations being durable, not just observable. They share the canonical-write path (`_emit_canonical_entry` in `run-common.sh`) and inherit its stage-then-rename atomicity. Concurrency is not a concern: each fires only when no subagent is dispatched (between stages or at termination).
+
+This protocol is locking-free: only one writer holds `decisions-log.md` at any given moment (the active subagent during dispatch; the orchestrator only at termination, when no subagent is running). The MUST-coalesce strengthening ensures the canonical log carries the orchestrator's reasoning at the moment a developer needs to retrigger — the original MAY-coalesce left halt/abort terminations with reasoning split across two surfaces.
 
 ## Alternatives Considered
 
@@ -71,3 +86,5 @@ Option A's terminal-sentinel protocol becomes appropriate only when the system g
 | Date | Change | Author |
 |---|---|---|
 | 2026-04-26 | Initial record (post-second-spec-review revision; oracle-sharpened canonical/derivative reframe) | Claude (synthesis-judge for spec 010 re-review) |
+| 2026-04-26 | Strengthened MAY-coalesce → MUST-coalesce on halt/abort/permission-failure terminations; specified stage-then-rename idiom; cross-referenced LOG-012 for the partial-write tradeoff | Claude (synthesis-judge for spec 010 plan-gate revision) |
+| 2026-04-26 | Plan-gate re-review (S-2 / Principle VII drift): documented orchestrator-authored canonical-entry exceptions (`verdict-mismatch`, `verdict-omitted`, `pipeline-incomplete`) introduced by ADR-022's expanded protocol | Claude (synthesis-judge for spec 010 plan-gate re-review) |
