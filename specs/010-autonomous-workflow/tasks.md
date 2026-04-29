@@ -46,6 +46,8 @@ description: "Task list for /speckit.run autonomous pipeline orchestrator (V1)"
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
+**Intra-phase ordering**: PR0 (T003, T004) and Shared helper utilities (T005) are **independent within Phase 2** — they share no code paths and may land in either order. PR0 is a separable precursor PR; T005 is pulled into PR1 in the PR-to-task mapping. Both must be in `main` before Phase 3 begins.
+
 ### PR0 — `check-prerequisites.sh --feature-dir` precursor
 
 - [ ] T003 Write bats tests for `--feature-dir` flag in `tests/unit/test_check_prereqs_feature_dir_flag.bats` covering: (a) `--feature-dir <matching>` honored, (b) `--feature-dir <non-matching-branch>` overrides branch derivation, (c) missing path errors with exit 1
