@@ -50,8 +50,8 @@ description: "Task list for /speckit.run autonomous pipeline orchestrator (V1)"
 
 ### PR0 — `check-prerequisites.sh --feature-dir` precursor
 
-- [ ] T003 Write bats tests for `--feature-dir` flag in `tests/unit/test_check_prereqs_feature_dir_flag.bats` covering: (a) `--feature-dir <matching>` honored, (b) `--feature-dir <non-matching-branch>` overrides branch derivation, (c) missing path errors with exit 1
-- [ ] T004 Extend `.specify/scripts/bash/check-prerequisites.sh` and `.specify/scripts/bash/common.sh::find_feature_dir_by_prefix()` to accept `--feature-dir <path>` overriding branch-name-derived default; preserve unknown-arg behavior for non-`--feature-dir` flags
+- [X] T003 Write bats tests for `--feature-dir` flag in `tests/unit/test_check_prereqs_feature_dir_flag.bats` covering: (a) `--feature-dir <matching>` honored, (b) `--feature-dir <non-matching-branch>` overrides branch derivation, (c) missing path errors with exit 1
+- [X] T004 Extend `.specify/scripts/bash/check-prerequisites.sh` and `.specify/scripts/bash/common.sh::find_feature_dir_by_prefix()` to accept `--feature-dir <path>` overriding branch-name-derived default; preserve unknown-arg behavior for non-`--feature-dir` flags
 
 ### Shared helper utilities
 

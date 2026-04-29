@@ -26,8 +26,10 @@ JSON_MODE=false
 REQUIRE_TASKS=false
 INCLUDE_TASKS=false
 PATHS_ONLY=false
+FEATURE_DIR_OVERRIDE=""
 
-for arg in "$@"; do
+while [[ $# -gt 0 ]]; do
+    arg="$1"
     case "$arg" in
         --json)
             JSON_MODE=true
@@ -41,6 +43,21 @@ for arg in "$@"; do
         --paths-only)
             PATHS_ONLY=true
             ;;
+        --feature-dir)
+            shift
+            if [[ -z "${1:-}" ]]; then
+                echo "ERROR: --feature-dir requires a path argument" >&2
+                exit 1
+            fi
+            FEATURE_DIR_OVERRIDE="$1"
+            ;;
+        --feature-dir=*)
+            FEATURE_DIR_OVERRIDE="${arg#--feature-dir=}"
+            if [[ -z "$FEATURE_DIR_OVERRIDE" ]]; then
+                echo "ERROR: --feature-dir requires a path argument" >&2
+                exit 1
+            fi
+            ;;
         --help|-h)
             cat << 'EOF'
 Usage: check-prerequisites.sh [OPTIONS]
@@ -52,6 +69,7 @@ OPTIONS:
   --require-tasks     Require tasks.md to exist (for implementation phase)
   --include-tasks     Include tasks.md in AVAILABLE_DOCS list
   --paths-only        Only output path variables (no prerequisite validation)
+  --feature-dir PATH  Override branch-derived feature directory (used by /speckit.run helpers)
   --help, -h          Show this help message
 
 EXAMPLES:
@@ -72,6 +90,7 @@ EOF
             exit 1
             ;;
     esac
+    shift
 done
 
 # Source common functions
@@ -82,7 +101,22 @@ source "$SCRIPT_DIR/common.sh"
 _paths_output=$(get_feature_paths) || { echo "ERROR: Failed to resolve feature paths" >&2; exit 1; }
 eval "$_paths_output"
 unset _paths_output
-check_feature_branch "$CURRENT_BRANCH" "$HAS_GIT" || exit 1
+
+# --feature-dir override: replaces branch-derived FEATURE_DIR and recomputes
+# every path that derives from it. Used by /speckit.run helpers (run-postcheck.sh)
+# where the active feature is not implied by the current branch.
+if [[ -n "$FEATURE_DIR_OVERRIDE" ]]; then
+    FEATURE_DIR="$FEATURE_DIR_OVERRIDE"
+    FEATURE_SPEC="$FEATURE_DIR/spec.md"
+    IMPL_PLAN="$FEATURE_DIR/plan.md"
+    TASKS="$FEATURE_DIR/tasks.md"
+    RESEARCH="$FEATURE_DIR/research.md"
+    DATA_MODEL="$FEATURE_DIR/data-model.md"
+    QUICKSTART="$FEATURE_DIR/quickstart.md"
+    CONTRACTS_DIR="$FEATURE_DIR/contracts"
+else
+    check_feature_branch "$CURRENT_BRANCH" "$HAS_GIT" || exit 1
+fi
 
 # If paths-only mode, output paths and exit (support JSON + paths-only combined)
 if $PATHS_ONLY; then
