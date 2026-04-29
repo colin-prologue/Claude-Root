@@ -46,6 +46,7 @@ When `entry_type=subagent-record`, three named sub-blocks MUST follow the ration
 
 - halt: <true | false>
 - reason: <required if halt=true; omitted if false>
+- failure_class: <required if halt=true; one of `temporal`, `semantic`, `permission` per FR-019; omitted if false>
 ```
 
 `decisions_made` is a list of YAML-style nested entries. Empty `decisions_made` is permitted (e.g., a stage that produced no architectural decisions); the heading and an empty list (`-`) MUST still appear so readers can distinguish "stage produced no decisions" from "stage failed to record decisions."
@@ -65,7 +66,7 @@ Validation MUST check:
 3. `status` ∈ {`success`, `halt`, `error`}.
 4. `author` matches `^orchestrator$` or `^subagent:<canonical-stage>$`.
 5. If `entry_type=subagent-record`: all three sub-blocks (`artifacts_written`, `decisions_made`, `halt_directive`) present.
-6. If `halt_directive.halt=true`: a non-empty `reason` follows.
+6. If `halt_directive.halt=true`: a non-empty `reason` follows AND `failure_class` ∈ {`temporal`, `semantic`, `permission`} (FR-019 three-class taxonomy). Missing or unrecognized `failure_class` is a schema violation.
 
 Validation MUST NOT check:
 - Rationale content (free text by design).

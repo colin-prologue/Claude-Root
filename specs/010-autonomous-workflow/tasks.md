@@ -78,7 +78,7 @@ description: "Task list for /speckit.run autonomous pipeline orchestrator (V1)"
 
 ### PR2a — Schema validation (FR-006)
 
-- [ ] T012 [US1] Write `tests/unit/test_validate_entry.bats` (~6–10 cases at 15–20 LOC each) covering decision-log-entry.md §Validation contract: heading regex, required key-value fields, `status` enum, `author` regex, subagent-record three-sub-block requirement, `halt_directive.halt=true` reason requirement, malformed-entry diagnostics
+- [ ] T012 [US1] Write `tests/unit/test_validate_entry.bats` (~6–10 cases at 15–20 LOC each) covering decision-log-entry.md §Validation contract: heading regex, required key-value fields, `status` enum, `author` regex, subagent-record three-sub-block requirement, `halt_directive.halt=true` reason requirement, **`halt_directive.failure_class` ∈ {`temporal`, `semantic`, `permission`} when `halt=true` (FR-019 three-class taxonomy) — missing or unrecognized class fails validation**, malformed-entry diagnostics
 - [ ] T013 [US1] Implement `.specify/scripts/bash/run-validate-entry.sh` per decision-log-entry.md §Validation contract (depends on T005, T012)
 
 ### PR2b — Verdict-receipt triplet (ADR-019, ADR-020, ADR-022; constitutional exception per plan.md PR2b)
@@ -142,7 +142,7 @@ description: "Task list for /speckit.run autonomous pipeline orchestrator (V1)"
 **Independent Test**: Given a pipeline run that completed `specify→review→clarify` before being interrupted, when the developer restarts and requests resume, the orchestrator picks up at `plan` without re-running the first three stages, and the existing `spec.md` and decision log are preserved. (Matches spec.md US-4 Independent Test.)
 
 - [ ] T035 [US4] Write `tests/unit/test_resume_skip_complete_artifacts.bats` exercising US-4 Acceptance Scenario 1: fixture with complete `spec.md` + `plan.md` (passes FR-026) ⇒ orchestrator detects complete state, identifies next uncompleted stage, dispatches there; artifact mtimes unchanged after resume (SC-003 verification)
-- [ ] T036 [US4] Write `tests/unit/test_resume_scan_filter.bats` exercising the canonical-exception filter on resume (FR-023, RC-5): fixture log ending with `pipeline-incomplete` and/or `verdict-mismatch` ⇒ resume anchors on the latest valid stage record (`stage-start`/`stage-end`/`halt`/`abort`/`stage-skip`/`route`/`break-lock`), never on a canonical-exception entry; mid-stage interruption (US-4 Acceptance Scenario 2) re-runs the incomplete stage from the beginning rather than reconstructing partial output; temporal-failure halt entry surfaces failure-class + retrigger command (US-4 Acceptance Scenario 3)
+- [ ] T036 [US4] Write `tests/unit/test_resume_scan_filter.bats` exercising the canonical-exception filter on resume (FR-023, RC-5): fixture log ending with `pipeline-incomplete` and/or `verdict-mismatch` ⇒ resume anchors on the latest valid stage record (`stage-start`/`stage-end`/`halt`/`abort`/`stage-skip`/`route`/`break-lock`), never on a canonical-exception entry; mid-stage interruption (US-4 Acceptance Scenario 2) re-runs the incomplete stage from the beginning rather than reconstructing partial output; **all three FR-019 failure classes surface failure-class + retrigger command on resume — fixtures cover (a) `temporal` (rate-limit halt), (b) `semantic` (schema-violation halt), and (c) `permission` (sandbox-violation per FR-020 halt)** (US-4 Acceptance Scenario 3)
 
 **Checkpoint**: User Story 4 verifiable independently against resume fixtures
 
