@@ -55,7 +55,7 @@ description: "Task list for /speckit.run autonomous pipeline orchestrator (V1)"
 
 ### Shared helper utilities
 
-- [ ] T005 Implement `.specify/scripts/bash/run-common.sh` providing `_run_lock_dir`, `_atomic_rename_into`, `_emit_canonical_entry`, `_sweep_tmp`, `_run_id_of_lock`, `_hash_input` per helper-contracts.md §`run-common.sh`. No dedicated bats file (tested indirectly via consumers per ADR-019 single-purpose convention)
+- [X] T005 Implement `.specify/scripts/bash/run-common.sh` providing `_run_lock_dir`, `_atomic_rename_into`, `_emit_canonical_entry`, `_sweep_tmp`, `_run_id_of_lock`, `_hash_input` per helper-contracts.md §`run-common.sh`. No dedicated bats file (tested indirectly via consumers per ADR-019 single-purpose convention)
 
 **Checkpoint**: Foundation ready — user story 1 implementation can now begin
 
