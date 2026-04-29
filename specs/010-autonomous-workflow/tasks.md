@@ -35,8 +35,8 @@ description: "Task list for /speckit.run autonomous pipeline orchestrator (V1)"
 
 **Purpose**: Establish the new `tests/` test root (the project's first) and document tier conventions.
 
-- [ ] T001 Create directory `tests/unit/` and `tests/smoke/fixtures/` at repo root
-- [ ] T002 Create `tests/README.md` documenting Tier 1 (bats unit, pre-commit) vs Tier 2 (smoke, pre-merge, cost-capped) per ADR-017 and how to run each locally
+- [X] T001 Create directory `tests/unit/` and `tests/smoke/fixtures/` at repo root
+- [X] T002 Create `tests/README.md` documenting Tier 1 (bats unit, pre-commit) vs Tier 2 (smoke, pre-merge, cost-capped) per ADR-017 and how to run each locally
 
 ---
 
