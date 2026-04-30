@@ -1,7 +1,7 @@
 # Implementation Progress — `/speckit.run` (Spec 010)
 
 **Branch**: `010-autonomous-workflow`
-**Last update**: 2026-04-30 (mid-implementation — PR1 complete, PR2a next)
+**Last update**: 2026-04-30 (mid-implementation — PR2a complete, PR2b next)
 
 This file is the cross-session handoff for `/speckit.implement` on spec 010. It exists
 because the implementation is multi-PR and a `/clear` between segments otherwise
@@ -10,7 +10,7 @@ a fast on-ramp.
 
 ---
 
-## ✅ Done (4 commits, 53/53 bats green)
+## ✅ Done (5 commits, 75/75 bats green)
 
 | Commit | PR | Tasks | What landed |
 |---|---|---|---|
@@ -18,31 +18,14 @@ a fast on-ramp.
 | `300295d` | PR0     | T003, T004 | `check-prerequisites.sh --feature-dir <path>` override (precursor for `run-postcheck.sh`) — 4 bats cases |
 | `bda3c6c` | Phase 2 | T005      | `.specify/scripts/bash/run-common.sh` shared utilities (`_run_lock_dir`, `_atomic_rename_into`, `_emit_canonical_entry`, `_sweep_tmp`, `_run_id_of_lock`, `_hash_input`, `_utc_now`) |
 | `b941691` | PR1     | T006–T011 | `run-lock.sh` (12 cases), `run-target.sh` (20 cases), `run-completeness.sh` (17 cases) |
+| _next_   | PR2a    | T012, T013 | `run-validate-entry.sh` (153 LOC) + `test_validate_entry.bats` (22 cases). LOG-024 filed: `run_id` format check is presence-only; contract loose, deferred. |
 
 **bats install**: `brew install bats-core` (already installed locally, v1.13.0).
-**Smoke check**: `cd /tmp && bats /Users/colindwan/Developer/Claude-Root/tests/unit/` → 53/53 ok.
+**Smoke check**: `cd /tmp && bats /Users/colindwan/Developer/Claude-Root/tests/unit/` → 75/75 ok.
 
 ---
 
-## ⏭ Next — PR2a (T012–T013) ~150 LOC
-
-Schema validator: `run-validate-entry.sh`.
-
-- **T012** — `tests/unit/test_validate_entry.bats` (~6–10 cases at 15–20 LOC each).
-  Coverage from `decision-log-entry.md §Validation contract`: heading regex, required key-value
-  fields (`author`/`status`/`run_id`), `status` enum, `author` regex, three sub-blocks
-  required when `entry_type=subagent-record`, `halt_directive.halt=true` ⇒ non-empty `reason` AND
-  `failure_class ∈ {temporal, semantic, permission}` (FR-019 — missing/unrecognized fails),
-  malformed-entry diagnostics.
-- **T013** — implement `.specify/scripts/bash/run-validate-entry.sh` per the validation contract.
-  Inputs: `<path-to-decisions-log.md> <byte-offset>`. Exit codes: 0 pass, 1 violation (one diagnostic per
-  line on stdout: `field: <name>; problem: <description>`), 2 usage error.
-
-Then commit as `feat(010): PR2a — schema validation (run-validate-entry.sh + tests)`.
-
----
-
-## ⏭ Then — PR2b (T014–T019) ~500–600 LOC, **CONSTITUTIONAL EXCEPTION**
+## ⏭ Next — PR2b (T014–T019) ~500–600 LOC, **CONSTITUTIONAL EXCEPTION**
 
 Verdict-receipt triplet: `run-decide-next.sh` + `run-emit-event.sh` + `run-serialize.sh`. Per
 plan.md PR2b and ADR-022, these three helpers + their tests ship as a coherent unit because the

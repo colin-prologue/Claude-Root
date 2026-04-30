@@ -62,7 +62,7 @@ Exit codes:
 
 Validation MUST check:
 1. Heading matches `^## (stage-start|stage-end|stage-skip|escalate|route|abort|subagent-record):(<canonical-stage>) [·-] <ISO-8601-UTC>$`.
-2. Required key-value fields (`author`, `status`, `run_id`) present and well-formed.
+2. Required key-value fields (`author`, `status`, `run_id`) present and well-formed. *(`run_id` format is currently checked for presence only — see LOG-024 for the open question on whether to enforce `^run-<ISO-8601-UTC>-[a-f0-9]{6}$`.)*
 3. `status` ∈ {`success`, `halt`, `error`}.
 4. `author` matches `^orchestrator$` or `^subagent:<canonical-stage>$`.
 5. If `entry_type=subagent-record`: all three sub-blocks (`artifacts_written`, `decisions_made`, `halt_directive`) present.
