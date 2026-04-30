@@ -71,12 +71,12 @@ description: "Task list for /speckit.run autonomous pipeline orchestrator (V1)"
 
 > **TDD ordering**: each helper's bats file is written and verified to fail before the helper is implemented. Helper/test pairs land as commit pairs per plan.md "Intra-PR commit discipline."
 
-- [ ] T006 [P] [US1] Write `tests/unit/test_lock.bats` covering acquire/release/break (FR-027/FR-028, ADR-018), atomic abort-sentinel cleanup, stale-receipt wipe on acquire (ADR-022), `.run/*.tmp` sweep on acquire (LOG-012), exit-code matrix per helper-contracts.md §`run-lock.sh`
-- [ ] T007 [US1] Implement `.specify/scripts/bash/run-lock.sh` (commands: `acquire | release | break | check-sentinel`) per helper-contracts.md §`run-lock.sh` (depends on T005, T006)
-- [ ] T008 [P] [US1] Write `tests/unit/test_target.bats` covering FR-009 contiguous-subsequence validation, the review-contiguity grammar (data-model.md E-6: review allowed between non-code stages, at most one per gap, never adjacent to code-action stages, never at start/end), and `next` exhaustion sentinel `__END__`
-- [ ] T009 [US1] Implement `.specify/scripts/bash/run-target.sh` (commands: `validate | next`) per helper-contracts.md §`run-target.sh` (depends on T005, T008)
-- [ ] T010 [P] [US1] Write `tests/unit/test_completeness.bats` covering FR-026 V1 predicates per data-model.md E-7: `specify`/`plan`/`tasks`/`review`/`clarify`/`analyze`/`implement`/`codereview`/`audit` (last three unconditionally `incomplete`)
-- [ ] T011 [US1] Implement `.specify/scripts/bash/run-completeness.sh <feature-dir> <stage>` per helper-contracts.md §`run-completeness.sh` (depends on T005, T010)
+- [X] T006 [P] [US1] Write `tests/unit/test_lock.bats` covering acquire/release/break (FR-027/FR-028, ADR-018), atomic abort-sentinel cleanup, stale-receipt wipe on acquire (ADR-022), `.run/*.tmp` sweep on acquire (LOG-012), exit-code matrix per helper-contracts.md §`run-lock.sh`
+- [X] T007 [US1] Implement `.specify/scripts/bash/run-lock.sh` (commands: `acquire | release | break | check-sentinel`) per helper-contracts.md §`run-lock.sh` (depends on T005, T006)
+- [X] T008 [P] [US1] Write `tests/unit/test_target.bats` covering FR-009 contiguous-subsequence validation, the review-contiguity grammar (data-model.md E-6: review allowed between non-code stages, at most one per gap, never adjacent to code-action stages, never at start/end), and `next` exhaustion sentinel `__END__`
+- [X] T009 [US1] Implement `.specify/scripts/bash/run-target.sh` (commands: `validate | next`) per helper-contracts.md §`run-target.sh` (depends on T005, T008)
+- [X] T010 [P] [US1] Write `tests/unit/test_completeness.bats` covering FR-026 V1 predicates per data-model.md E-7: `specify`/`plan`/`tasks`/`review`/`clarify`/`analyze`/`implement`/`codereview`/`audit` (last three unconditionally `incomplete`)
+- [X] T011 [US1] Implement `.specify/scripts/bash/run-completeness.sh <feature-dir> <stage>` per helper-contracts.md §`run-completeness.sh` (depends on T005, T010)
 
 ### PR2a — Schema validation (FR-006)
 
