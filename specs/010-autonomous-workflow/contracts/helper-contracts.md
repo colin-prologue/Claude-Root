@@ -33,6 +33,7 @@ Tier 1 unit tests cover: matched emission consumes the receipt; mismatched emiss
 - `_sweep_tmp <dir>` — remove orphan `.tmp` files left by an interrupted prior run.
 - `_run_id_of_lock <feature-dir>` — read `run_id=` line from the lock file.
 - `_hash_input <data>` — short hash for verdict-receipt input field.
+- `_latest_routable_anchor <feature-dir>` — outputs `<entry_type>:<stage>:<lineno>` for the latest entry in `decisions-log.md` that is a valid resume anchor (FR-023 / RC-5 filter — skips `verdict-mismatch`, `verdict-omitted`, `pipeline-incomplete`). Used by `run-decide-next.sh` (mints input_hash) and `run-emit-event.sh` (recomputes input_hash for receipt validation). Shared recipe guarantees both helpers see the same input under single-writer-at-a-time semantics.
 
 **Test surface**: covered indirectly via the helpers that source it; no dedicated bats file (per ADR-019 single-purpose convention — `run-common.sh` is infrastructure, not a routing primitive).
 
@@ -145,13 +146,26 @@ run-decide-next.sh <feature-dir>
 
 **Contract**: see `sidecar-event.md` for the wire format.
 
-**Verdict-receipt enforcement** (ADR-022): for events in the routing-decision set (`route`, `stage-skip`, `abort`, `halt-*`), the helper MUST:
+**Verdict-receipt enforcement** (ADR-022): for events in the routing-decision set (V1: `route`, `stage-skip`, `abort` — `halt-*` reserved for V2 per LOG-025), the helper MUST:
 1. Read `.run/last-verdict`.
-2. Compare verdict, `run_id`, and `input_hash` to the event being emitted.
-3. On match: append the JSONL line to `.run/control-flow.log`, then truncate `.run/last-verdict` to 0 bytes.
-4. On mismatch or missing receipt: refuse emission (exit 1), append a `verdict-mismatch` entry to `decisions-log.md` via `_emit_canonical_entry` (run-common.sh), and write a diagnostic line to stderr.
+2. Verify `run_id` (receipt) matches `run_id` in the active `run-lock`.
+3. Verify the receipt verdict matches the event being emitted, per the table below.
+4. Recompute `input_hash` from current decisions-log state via `_latest_routable_anchor` + `_hash_input` and compare to the receipt's `input_hash`.
+5. On match: append the JSONL line to `.run/control-flow.log` first, **then** truncate `.run/last-verdict` to 0 bytes (this order ensures the receipt invariant is preserved if the append fails — the next emission will refuse and surface the FS issue rather than hide it).
+6. On any mismatch or missing receipt: refuse emission (exit 1), append a `verdict-mismatch` entry to `decisions-log.md` via `_emit_canonical_entry` (run-common.sh), and write a diagnostic line to stderr.
+
+**Verdict↔event mapping** (V1):
+
+| Receipt verdict | Required event | Required field constraint |
+|---|---|---|
+| `continue`      | `route`      | — |
+| `skip:<stage>`  | `stage-skip` | `stage` arg MUST equal `<stage>` from the verdict |
+| `abort`         | `abort`      | — |
+| `halt:<reason>` | (none in V1) | rejected with `verdict-mismatch` (LOG-025); orchestrator MUST proceed to `run-serialize.sh halt` |
 
 Events outside the routing-decision set (`stage-start`, `break-lock`, `budget-exhausted`) are emitted without receipt requirement.
+
+**Shared helper note**: `run-decide-next.sh` and `run-emit-event.sh` both source `_latest_routable_anchor` and `_hash_input` from `run-common.sh`. Single-source-of-truth for the resume-scan filter + hash recipe avoids drift; under single-writer-at-a-time semantics (ADR-016) the log state is identical between the two helpers' invocations, so the hash recomputation always matches in the happy path.
 
 **Exit codes**:
 - `0` — event emitted; receipt consumed (if applicable).

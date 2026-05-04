@@ -90,3 +90,45 @@ _hash_input() {
 _utc_now() {
     date -u +"%Y-%m-%dT%H:%M:%SZ"
 }
+
+# _latest_routable_anchor <feature-dir>
+# Identify the latest entry in decisions-log.md that is a valid resume anchor.
+# Skips orchestrator-authored canonical-exception entries (verdict-mismatch,
+# verdict-omitted, pipeline-incomplete) per FR-023 / RC-5.
+#
+# Output (stdout): single line `<entry_type>:<stage>:<lineno>` on success.
+# Exit codes: 0 — anchor found; 1 — no anchor (missing/empty log or all
+# entries filtered); 2 — usage error.
+#
+# Used by run-decide-next.sh (to mint receipt input_hash) and run-emit-event.sh
+# (to recompute input_hash for receipt validation). Sharing a single recipe
+# guarantees both helpers compute the same hash from the same log state.
+_latest_routable_anchor() {
+    local feature_dir="$1"
+    [[ -n "$feature_dir" ]] || { echo "ERROR: _latest_routable_anchor requires <feature-dir>" >&2; return 2; }
+    local log="$feature_dir/decisions-log.md"
+    [[ -f "$log" && -s "$log" ]] || return 1
+
+    local latest_heading="" latest_lineno=0
+    while IFS= read -r line_with_no; do
+        local lineno="${line_with_no%%:*}"
+        local line="${line_with_no#*:}"
+        local tail_after="${line#\#\# }"
+        local etype="${tail_after%%:*}"
+        case "$etype" in
+            verdict-mismatch|verdict-omitted|pipeline-incomplete) continue ;;
+            stage-start|stage-end|stage-skip|escalate|route|abort|subagent-record)
+                latest_heading="$line"
+                latest_lineno="$lineno"
+                ;;
+            *) continue ;;
+        esac
+    done < <(grep -nE '^## ' "$log" || true)
+
+    [[ -n "$latest_heading" ]] || return 1
+    local heading_tail="${latest_heading#\#\# }"
+    local entry_type="${heading_tail%%:*}"
+    local rest="${heading_tail#*:}"
+    local stage="${rest%% *}"
+    printf '%s:%s:%s' "$entry_type" "$stage" "$latest_lineno"
+}

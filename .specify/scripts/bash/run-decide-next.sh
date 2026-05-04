@@ -73,50 +73,15 @@ if [[ ! -f "$log" || ! -s "$log" ]]; then
 fi
 
 # ----- Step 3: locate latest resume-anchor entry (FR-023 / RC-5 filter) -----
-# Skip orchestrator-authored canonical-exception entries (verdict-mismatch,
-# verdict-omitted, pipeline-incomplete) — they are bookkeeping, not resume
-# anchors. The most recent entry whose entry_type is in the routable set
-# becomes the routing input.
-#
-# Routable entry types: stage-start | stage-end | stage-skip | escalate |
-# route | abort | subagent-record (matches contracts/decision-log-entry.md).
-
-# Read all "## " heading lines with their entry_type.
-# We scan in order and remember the line number of the most recent routable one.
-latest_heading=""
-latest_lineno=0
-while IFS= read -r line_with_no; do
-    lineno="${line_with_no%%:*}"
-    line="${line_with_no#*:}"
-    # Strip "## " prefix and trailing timestamp.
-    tail_after="${line#\#\# }"
-    etype="${tail_after%%:*}"
-    case "$etype" in
-        verdict-mismatch|verdict-omitted|pipeline-incomplete)
-            # Skip canonical-exception entries.
-            continue
-            ;;
-        stage-start|stage-end|stage-skip|escalate|route|abort|subagent-record)
-            latest_heading="$line"
-            latest_lineno="$lineno"
-            ;;
-        *)
-            # Unknown entry type — treat as non-anchor (skip).
-            continue
-            ;;
-    esac
-done < <(grep -nE '^## ' "$log" || true)
-
-if [[ -z "$latest_heading" ]]; then
+# Shared with run-emit-event.sh via _latest_routable_anchor (run-common.sh).
+anchor="$(_latest_routable_anchor "$feature_dir")" || {
     echo "ERROR: decisions-log.md has no routable entry (filtered scan empty)" >&2
     exit 1
-fi
-
-# Extract entry_type and stage from latest heading.
-heading_tail="${latest_heading#\#\# }"
-entry_type="${heading_tail%%:*}"
-rest="${heading_tail#*:}"
-stage="${rest%% *}"
+}
+entry_type="${anchor%%:*}"
+rest="${anchor#*:}"
+stage="${rest%%:*}"
+latest_lineno="${rest##*:}"
 
 # ----- Step 4: derive verdict (sentinel takes precedence) -----
 verdict=""
@@ -161,7 +126,7 @@ fi
 
 # ----- Step 5: mint receipt + write stdout -----
 ts="$(_utc_now)"
-input_hash="$(_hash_input "${entry_type}:${stage}:${latest_lineno}")"
+input_hash="$(_hash_input "$anchor")"
 mkdir -p "$run_dir"
 printf '%s\t%s\t%s\t%s' "$verdict" "$run_id" "$input_hash" "$ts" > "$receipt"
 
