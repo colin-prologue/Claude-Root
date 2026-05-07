@@ -50,15 +50,34 @@ The full resolution requires a constitution amendment (or LOG-graduating-to-ADR)
 
 ## Resolution
 
-**Open.** V1 mitigation is the 600-LOC re-justification gate in plan.md PR2b. Long-term resolution requires deciding whether constitutional exceptions auto-expire when their underlying ADR is amended.
+**Open — pattern confirmed (closure condition #1).** PR2b landed in 6 commits (4 TDD pairs across decide-next, emit-event, serialize) at the following actual diff sizes:
 
-This LOG should be re-evaluated when **any one** of the following conditions is met:
+| Component | LOC | Notes |
+|---|---|---|
+| `run-decide-next.sh` (T017) | 134 | Pre-flight omission + sentinel fold-in + routing matrix + receipt mint |
+| `run-emit-event.sh` (T018) | 251 | Receipt validation (run_id + verdict↔event mapping + input_hash recompute), JSON build via jq, append-then-truncate ordering, `verdict-mismatch` canonical write |
+| `run-serialize.sh` (T019) | 264 | Two-branch invariant + truncation-tolerant sidecar parse + last-halt exemption + cold-start support |
+| `run-common.sh` (shared anchor extract) | 42 | `_latest_routable_anchor` extracted to share recipe between decide-next and emit-event |
+| **Helpers subtotal** | **691** | **vs. 600-LOC re-justification gate ⇒ overrun ratio 1.15×** |
+| Tests (3 bats files, 62 cases) | 828 | TDD-mandated; ~13 LOC/case |
+| Docs (LOG-025 + helper-contracts.md) | 66 | LOG-025 records halt-* sidecar deferral surfaced during T018 |
+| **PR2b total** | **1585** | |
 
-1. PR2b implementation lands and the actual LOC count is recorded — confirms or refutes the 500–600 estimate.
+**The estimate was wrong even excluding tests.** The 500–600 budget was set after Re-Review #3's M-2 amendment but did not account for two further sources of LOC growth that surfaced only at implementation time:
+
+1. **Verdict↔event mapping needed an explicit table** in `helper-contracts.md` and code (added during T018 — ADR-022 step 2 said "matches the verdict" without enumerating what that meant for each verdict family). The mapping table itself plus the per-verdict case in `run-emit-event.sh` ≈ 40 LOC not in the estimate.
+2. **`halt-*` doc inconsistency** (ADR-022 vs sidecar-event.md) required LOG-025 + a rejection branch in `run-emit-event.sh` (8 LOC of code + 48 LOC of LOG-025). Surfaced only when implementation forced reconciling the two contracts.
+3. **Bash 3.2 array-safety guards + trailing-newline-detect idiom** in `run-serialize.sh` ≈ 30 LOC of defensive scaffolding the estimate didn't price.
+
+The **method failure** confirmed by this round: estimates were taken against contracts as written *at the time of the estimate*. Each subsequent ADR amendment OR each implementation-discovered contract gap added LOC that was never re-priced. The 600-LOC gate caught the overrun but only after the fact — it didn't prevent it.
+
+This LOG remains open until **any one** of:
+
+1. ✅ ~~PR2b implementation lands and the actual LOC count is recorded~~ — **done; documented above. Pattern confirmed: 691 helper LOC vs 600 gate.**
 2. A subsequent feature triggers the same pattern (ADR amendment → unscheduled LOC growth in a constitutional-exception PR) — promotes this from "feature 010 anomaly" to "recurring failure mode."
-3. The constitution is amended (or a successor LOG/ADR proposes amendment) to handle exception lifecycles around amendments.
+3. The constitution is amended (or a successor LOG/ADR proposes amendment) to handle exception lifecycles around amendments AND/OR to require contract-completeness sweeps before LOC sizing.
 
-**Resolved By**: TBD — candidates are (a) a constitution amendment, (b) a meta-ADR on exception lifecycle, or (c) closure-by-evidence if the actual PR2b implementation lands at or below 600 LOC and the pattern does not recur.
+**Resolved By**: TBD — candidates are (a) a constitution amendment requiring re-sizing on amendment, (b) a meta-ADR on exception lifecycle, or (c) closure-by-evidence if the pattern does not recur in subsequent features.
 **Resolved Date**: N/A
 
 ## Impact
