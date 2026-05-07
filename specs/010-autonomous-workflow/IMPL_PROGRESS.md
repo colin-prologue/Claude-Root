@@ -1,12 +1,64 @@
 # Implementation Progress — `/speckit.run` (Spec 010)
 
 **Branch**: `010-autonomous-workflow`
-**Last update**: 2026-05-06 (PR2b complete — paused before PR3a)
+**Last update**: 2026-05-07 (PR2b complete locally — paused mid-decision on pre-push review)
 
 This file is the cross-session handoff for `/speckit.implement` on spec 010. It exists
 because the implementation is multi-PR and a `/clear` between segments otherwise
 discards in-flight context. Source of truth is still `tasks.md` — this file is just
 a fast on-ramp.
+
+---
+
+## 🟡 In-flight: pre-push review of PR2b
+
+**Status**: PR2b's six commits are landed locally. Branch is twelve commits ahead of `main`,
+clean tree, unpushed. A docs commit (`df1790a`) updates this file and `LOG_014` with the
+landing tally.
+
+**The open question:** the diff is 1,585 lines (helpers + tests + docs). The plan said
+500–600 with a re-justification gate at 600. Helpers alone are 691 — about 15% over.
+The user asked whether a fresh-perspective review could find a shorter path before we
+open the PR.
+
+**A draft PR description with a re-justification paragraph already exists.** It's not
+written to a file yet — it's in the conversation history. If you `/clear` before pushing,
+re-derive it from this state plus the commit messages of `77faf8d` through `bdc128e`
+(the pattern is: what landed, why the size is justified, test plan, related ADRs/LOGs).
+
+**Four paths under consideration:**
+
+1. **Cold re-read by Claude first (recommended).** I re-read the three helper scripts
+   side-by-side, looking for duplicated argument-parsing, defensive code that doesn't
+   earn its place, and whether the 264-line termination check could be cut. Output is
+   a list of safe cuts with line counts. Cheapest move; biased because I wrote the code,
+   so unlikely to challenge the design itself.
+
+2. **Two specialist sub-reviewers in parallel.** Dispatch a code-simplifier subagent
+   (hunts duplication and dead defenses) and a devils-advocate subagent (challenges
+   whether the protocol itself is necessary). Fresh perspective; ~5min per agent.
+   Risks rubber-stamp if briefing prompts aren't adversarial enough — the mitigation
+   is to give them the LOC tally and ask explicitly "what would you cut and why."
+
+3. **Full `/speckit.codereview` panel.** Heavier — covers correctness, test quality,
+   ADR compliance, and maintainability. Useful if we want bug-scrutiny too, but the
+   user's question was about size, not correctness, so this is overkill for the ask.
+
+4. **Skip review and push.** Open the PR with the re-justification paragraph and let
+   the GitHub review process handle scope challenges. Fastest path to a reviewable
+   diff; loses the "shorter path?" question.
+
+**Recommended sequence:** Path 1 first as a pre-filter. If it surfaces 200+ lines of
+safe cuts, push the smaller PR and skip the rest. If it surfaces nothing, escalate to
+Path 2 (the design-level challenge is the actual question at that point). Skip Path 3
+unless we explicitly want correctness scrutiny.
+
+**Resume protocol for this decision specifically:**
+1. Read this section.
+2. `git log --oneline -13` — confirm `df1790a` (docs commit) is at HEAD; the six PR2b
+   commits are immediately below it.
+3. `bats tests/unit/` — confirm 137 cases still pass.
+4. Ask the user which of the four paths to take. Default to Path 1 if no answer needed.
 
 ---
 
