@@ -29,9 +29,7 @@ _atomic_rename_into() {
 
 # _emit_canonical_entry <feature-dir> <entry-markdown-on-stdin>
 # Append a markdown section to decisions-log.md via stage-then-rename.
-# Used by run-emit-event.sh (verdict-mismatch), run-decide-next.sh (verdict-omitted),
-# and run-serialize.sh (coalesced summary, pipeline-incomplete) — the three
-# orchestrator-authored canonical-entry exceptions per ADR-016.
+# Used by run-serialize.sh for the coalesced termination summary (ADR-016).
 _emit_canonical_entry() {
     local feature_dir="$1"
     if [[ -z "$feature_dir" ]]; then
@@ -76,14 +74,6 @@ _run_id_of_lock() {
         return 1
     fi
     printf '%s' "$id"
-}
-
-# _hash_input <data>
-# Short hash for verdict-receipt input field. shasum is universally available on
-# macOS/Linux; truncated to 12 hex chars for log-readability.
-_hash_input() {
-    local data="$1"
-    printf '%s' "$data" | shasum -a 256 | cut -c1-12
 }
 
 # _utc_now — print ISO-8601 UTC with Z suffix (used for entry/event timestamps).
