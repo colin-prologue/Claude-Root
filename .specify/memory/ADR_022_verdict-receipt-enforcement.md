@@ -1,7 +1,7 @@
 # ADR-022: Verdict-Receipt Enforcement Between `run-decide-next.sh` and `run-emit-event.sh`
 
 **Date**: 2026-04-26
-**Status**: Proposed
+**Status**: Superseded by LOG-026 (2026-05-13) — receipt protocol eliminated; `run-decide-next.sh` deleted; routing collapsed into `run-route.sh`.
 **Decision Made In**: specs/010-autonomous-workflow/plan.md § Project Structure (post-plan-review revision)
 **Related ADRs**: ADR-019 (deterministic core boundary), ADR-016 (canonical/derivative model), ADR-020 (sidecar JSONL format)
 **Related Logs**: LOG-011 (BLOCKING-gate rubber-stamping risk)

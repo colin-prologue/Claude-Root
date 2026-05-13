@@ -2,21 +2,15 @@
 
 Every helper has a single purpose, a defined invocation, and exit-code semantics suitable for use from the slash-command markdown. Output goes to stdout; diagnostics to stderr; exit code is the routing input.
 
-Source of truth: ADR-019 (deterministic core boundary), plus the FRs each helper implements. ADR-022 (verdict-receipt enforcement) and ADR-023 (pre-route postcheck) extend the deterministic core; their helper contracts appear below.
+Source of truth: ADR-019 (deterministic core boundary), plus the FRs each helper implements. ADR-022 rev.1 (single-helper routing — LOG-026) and ADR-023 (pre-route postcheck) extend the deterministic core; their helper contracts appear below.
 
-## Verdict-Receipt Protocol (ADR-022)
+## Single-Helper Routing (ADR-022 rev.1)
 
-`run-decide-next.sh`, `run-emit-event.sh`, and `run-serialize.sh` cooperate via a one-shot on-disk receipt and a termination-time completeness invariant to **structurally detect** both forgery (LLM authors a route event without invoking the helper) and omission (LLM invokes one helper but skips the other) of the deterministic-core protocol:
+`run-route.sh` handles routing decisions atomically: it reads `decisions-log.md`, derives the verdict, and emits the appropriate sidecar event in a single process. No on-disk receipt is written or consumed.
 
-1. `run-decide-next.sh` writes its verdict to `specs/[###]/.run/last-verdict` as a single line: `<verdict>\t<run_id>\t<input_hash>\t<ts>` (tab-separated). **Before minting**, it checks the existing receipt size — if non-empty, a prior verdict was minted but never consumed, the helper exits non-zero and writes a `verdict-omitted` semantic-failure entry to `decisions-log.md` (in-band omission detection per ADR-022 step 5).
-2. `run-emit-event.sh`, when emitting any event in the **routing-decision set** (`route`, `stage-skip`, `abort`, `halt-*`), MUST read `.run/last-verdict` and assert that the event matches the verdict, `run_id`, and `input_hash`. **Missing-receipt is treated identically to mismatched-receipt** (the LLM either bypassed `run-decide-next.sh` or attempted a second emission after the first consumed the receipt).
-3. On match: emission proceeds; the receipt is consumed (truncated to 0 bytes).
-4. On mismatch or missing receipt: emission refuses (exit 1), no sidecar line is written, and a `verdict-mismatch` semantic-failure entry is appended to `decisions-log.md` via the same canonical write path the subagent uses.
-5. Events outside the routing-decision set (`stage-start`, `break-lock`, `budget-exhausted`) emit without receipt requirement.
-6. `run-lock.sh acquire` wipes any stale receipt; `run-lock.sh release` wipes the receipt as part of cleanup.
-7. **Pipeline completeness invariant** (ADR-022 step 6, termination-time): `run-serialize.sh`, before appending the coalesced summary, asserts (a) `.run/last-verdict` is empty and (b) `.run/control-flow.log` contains at least one routing-decision event for every stage that has a per-stage record in `decisions-log.md`. On mismatch, it writes a `pipeline-incomplete` semantic-failure entry to the canonical log before the coalesced summary, surfacing the omission in the durable audit trail. This catches the case where the LLM skips both `run-decide-next.sh` and `run-emit-event.sh` for a stage (neither in-band check fires).
+The original two-step verdict-receipt protocol (`run-decide-next.sh` → `.run/last-verdict` → `run-emit-event.sh` validation) was eliminated in LOG-026. The sole remaining defense against helper bypass is the PR3b-ii static-grep test asserting that `speckit.run.md` invokes `run-route.sh` at every routing point.
 
-Tier 1 unit tests cover: matched emission consumes the receipt; mismatched emission refuses and writes the canonical `verdict-mismatch` entry; second emission attempt without fresh verdict fails identically; stale cross-run receipt fails on `run_id` mismatch; **`run-decide-next.sh` refuses to mint when prior receipt is unconsumed and writes `verdict-omitted`**; **`run-serialize.sh` writes `pipeline-incomplete` when sidecar lacks a routing event for a stage record**. Plus a **static-grep test** asserting `.claude/commands/speckit.run.md` invokes `run-decide-next.sh` and `run-emit-event.sh` for every routing point in the prescribed sequence (catches authoring drift before runtime).
+Tier 1 unit tests cover: continue/halt/skip/abort routing matrix; no-receipt invariant (sequential calls succeed without pre-flight check); resume-scan filter (FR-023); FR-024 criterion enforcement; usage errors.
 
 ---
 
@@ -29,11 +23,10 @@ Tier 1 unit tests cover: matched emission consumes the receipt; mismatched emiss
 **Provides**:
 - `_run_lock_dir <feature-dir>` — canonical path to `.run/`.
 - `_atomic_rename_into <src> <dst>` — `mv -f` wrapper with stderr capture for stage-then-rename writes (LOG-012).
-- `_emit_canonical_entry <feature-dir> <entry-markdown>` — append a markdown section to `decisions-log.md` via stage-then-rename. Used by `run-emit-event.sh` for `verdict-mismatch` entries, by `run-decide-next.sh` for `verdict-omitted` entries, and by `run-serialize.sh` for the coalesced summary and `pipeline-incomplete` entries (the three orchestrator-authored canonical-entry exceptions per ADR-016).
+- `_emit_canonical_entry <feature-dir> <entry-markdown>` — append a markdown section to `decisions-log.md` via stage-then-rename. Used by `run-serialize.sh` for the coalesced termination summary (ADR-016).
 - `_sweep_tmp <dir>` — remove orphan `.tmp` files left by an interrupted prior run.
 - `_run_id_of_lock <feature-dir>` — read `run_id=` line from the lock file.
-- `_hash_input <data>` — short hash for verdict-receipt input field.
-- `_latest_routable_anchor <feature-dir>` — outputs `<entry_type>:<stage>:<lineno>` for the latest entry in `decisions-log.md` that is a valid resume anchor (FR-023 / RC-5 filter — skips `verdict-mismatch`, `verdict-omitted`, `pipeline-incomplete`). Used by `run-decide-next.sh` (mints input_hash) and `run-emit-event.sh` (recomputes input_hash for receipt validation). Shared recipe guarantees both helpers see the same input under single-writer-at-a-time semantics.
+- `_latest_routable_anchor <feature-dir>` — outputs `<entry_type>:<stage>:<lineno>` for the latest entry in `decisions-log.md` that is a valid resume anchor (FR-023 / RC-5 filter). Used by `run-route.sh` to locate the routing anchor.
 
 **Test surface**: covered indirectly via the helpers that source it; no dedicated bats file (per ADR-019 single-purpose convention — `run-common.sh` is infrastructure, not a routing primitive).
 
@@ -52,10 +45,10 @@ run-lock.sh check-sentinel <feature-dir>
 ```
 
 **Behavior**:
-- `acquire` — atomic `mkdir`-based create; on conflict, prints lock contents to stdout and exits non-zero. On success: wipes stale `.run/last-verdict` (ADR-022) and sweeps `.run/*.tmp` (LOG-012) before returning.
-- `release` — staged remove of `run-lock`, `abort` sentinel (if present), and `last-verdict` via temp-dir-rename idiom (FR-027 atomicity). MUST be invoked **after** `run-serialize.sh` has appended the coalesced summary on every termination path.
+- `acquire` — atomic `mkdir`-based create; on conflict, prints lock contents to stdout and exits non-zero. On success: sweeps `.run/*.tmp` (LOG-012) before returning.
+- `release` — staged remove of `run-lock` and `abort` sentinel (if present) via temp-dir-rename idiom (FR-027 atomicity). MUST be invoked **after** `run-serialize.sh` has appended the coalesced summary on every termination path.
 - `break` — same as `release` but tolerates absence of an active session; emits `break-lock` event to sidecar (per ADR-018).
-- `check-sentinel` — exit 0 if `abort` is absent; exit 1 if present. **Per ADR-019 b1 amendment** (sentinel fold-in), this command is no longer invoked by the orchestrator between dispatches; `run-decide-next.sh` consumes the sentinel state internally and emits the `abort` verdict. `check-sentinel` remains as a Tier 1 test surface and as a recovery utility (e.g., for `run-lock.sh break` flows that need to surface sentinel state to `break-lock` event payload).
+- `check-sentinel` — exit 0 if `abort` is absent; exit 1 if present. **Per ADR-019 b1 amendment** (sentinel fold-in), this command is no longer invoked by the orchestrator between dispatches; `run-route.sh` reads the sentinel internally. `check-sentinel` remains as a Tier 1 test surface and recovery utility.
 
 **Exit codes**:
 - `0` — success.
@@ -107,70 +100,71 @@ run-target.sh next <target-string> <last-completed-stage>
 
 ---
 
-## `run-decide-next.sh`
+## `run-route.sh`
 
-**Implements**: ADR-019 routing core; FRs 004, 021, 022, 023, 025.
+**Implements**: ADR-019 routing core; ADR-022 rev.1 (single-helper atomic routing); FRs 004, 021, 023, 024, 025.
 
 **Invocation**:
 ```
-run-decide-next.sh <feature-dir>
+run-route.sh <feature-dir> [key=value]...
 ```
 
-**State inputs** (read on every invocation): the latest entry in `decisions-log.md`, the existing `.run/last-verdict` size, and the **`.run/abort` sentinel file** (per ADR-019 b1 fold-in — sentinel detection is now part of the routing decision rather than a fast-path orchestrator check).
+**Required key=value by verdict** (all others ignored):
 
-**Behavior**:
-1. **Pre-flight omission check** (ADR-022 step 5): if `.run/last-verdict` is non-empty, a prior verdict was minted but never consumed by an emission. The helper refuses to mint, exits non-zero, writes a `verdict-omitted` semantic-failure entry to `decisions-log.md` via `_emit_canonical_entry`. No receipt is overwritten (the original unconsumed verdict remains as evidence).
-2. **Sentinel check** (ADR-019 b1 fold-in / FR-027): if `.run/abort` exists, the verdict is `abort`, written ahead of any other routing logic. Receipt is minted normally (so `run-emit-event.sh` can validate the `abort` event like every other route).
-3. **Routing logic**: Reads the latest **subagent record** in `decisions-log.md` (see resume-scan filter below), applies routing logic, outputs one of:
-   - `continue` — proceed to next target stage.
-   - `halt:<reason>` — halt and present to developer (subagent emitted `halt_directive=true`, OR validation failed, OR a checkpoint threshold reached).
-   - `skip:<stage>` — skip the named stage (predicate or empty-output condition met; FR-024).
-   - `abort` — abort sentinel detected (step 2 above) OR subagent emitted abort entry.
+| Verdict | Required fields |
+|---|---|
+| `continue` | `from=<stage>` `to=<stage>` `reason=<text>` |
+| `skip:<stage>` | `stage=<stage>` `criterion=<text>` |
+| `abort` | `triggered_by=<text>` |
+| `halt:<reason>` | (none — halt recorded via subagent canonical log) |
 
-   **Resume-scan filter** (Re-Review #2 RC-5 / FR-023): when locating the "latest entry" for routing, the helper MUST skip the three orchestrator-authored entry types (`verdict-mismatch`, `verdict-omitted`, `pipeline-incomplete` — see ADR-016 single-writer-at-a-time framing). These entries are violation/bookkeeping records, not stage-completion records, and are not valid resume anchors. The latest entry read for routing is the most recent entry with `entry_type ∈ {stage-start, stage-end, halt, abort, stage-skip, route, break-lock}` (i.e., a subagent-authored stage record OR an orchestrator-authored control-flow record, but never an orchestrator-authored canonical-exception record). Without this filter, a `pipeline-incomplete` written at the end of a prior crashed run becomes the resume anchor on the next `--resume`, producing wrong-stage resumption.
+**Behavior**: reads `decisions-log.md`, derives verdict from the latest routable anchor (FR-023 resume-scan filter), emits the appropriate sidecar event atomically. No receipt file is written or read.
 
-**Side effect** (ADR-022): on every successful invocation (including `abort`), writes the verdict to `.run/last-verdict` as `<verdict>\t<run_id>\t<input_hash>\t<ts>` (tab-separated, single line). The receipt is the structural prerequisite for the next `run-emit-event.sh` call in the routing-decision set.
+1. **Sentinel check** (ADR-019 b1 / FR-027): if `.run/abort` exists, verdict is `abort` regardless of log state.
+2. **Routing matrix** (latest routable anchor → verdict):
+   - `subagent-record` with `halt=true` → `halt:<reason>` (no sidecar event emitted)
+   - `subagent-record` with `halt=false` → `continue` → emits `route` event
+   - `abort` entry → `abort` → emits `abort` event
+   - `stage-skip:<stage>` entry → `skip:<stage>` → emits `stage-skip` event (FR-024: `criterion` required)
+   - other (`stage-start`, `stage-end`, `route`, `escalate`) → `continue` → emits `route` event
 
-**Reasons** (after `halt:`): `subagent-halt-directive`, `schema-violation`, `code-gate-blocking` (ADR-014), `multi-blocker-collected` (FR-021 — emitted only when a review stage's halt directive aggregates multiple blockers), `postcheck-failed` (ADR-023 — emitted when `run-postcheck.sh` exited non-zero), `verdict-mismatch` (ADR-022 — emitted by `run-emit-event.sh`'s canonical-write path when a prior emission was refused).
+3. **Resume-scan filter** (FR-023 / RC-5): skips orchestrator bookkeeping entries when scanning for the routing anchor. Valid anchor types: `subagent-record`, `stage-start`, `stage-end`, `stage-skip`, `route`, `abort`, `escalate`.
+
+**Output (stdout)**: `continue | halt:<reason> | skip:<stage> | abort`
+
+**Reasons** (after `halt:`): `subagent-halt-directive`, `schema-violation`, `code-gate-blocking` (ADR-014), `multi-blocker-collected` (FR-021), `postcheck-failed` (ADR-023), `unspecified` (halt=true with no reason field).
 
 **Exit codes**:
-- `0` — verdict written to stdout AND receipt written; LLM MUST obey verdict and invoke `run-emit-event.sh` next.
-- `1` — log unreadable / malformed beyond recovery (halts as semantic failure per FR-019), OR pre-flight omission detected (canonical `verdict-omitted` entry written; orchestrator MUST halt). No fresh receipt is written.
-- `2` — usage error. No receipt is written.
+- `0` — routing action completed (event emitted for continue/skip/abort; stdout carries verdict for halt).
+- `1` — semantic failure (log missing/unreadable, no routable anchor).
+- `2` — usage error (missing feature-dir, missing required field for derived verdict).
 
 ---
 
 ## `run-emit-event.sh`
 
-**Implements**: ADR-020 sidecar JSONL emission; ADR-022 verdict-receipt enforcement.
+**Implements**: ADR-020 sidecar JSONL emission (non-routing events only; ADR-022 rev.1).
 
 **Contract**: see `sidecar-event.md` for the wire format.
 
-**Verdict-receipt enforcement** (ADR-022): for events in the routing-decision set (V1: `route`, `stage-skip`, `abort` — `halt-*` reserved for V2 per LOG-025), the helper MUST:
-1. Read `.run/last-verdict`.
-2. Verify `run_id` (receipt) matches `run_id` in the active `run-lock`.
-3. Verify the receipt verdict matches the event being emitted, per the table below.
-4. Recompute `input_hash` from current decisions-log state via `_latest_routable_anchor` + `_hash_input` and compare to the receipt's `input_hash`.
-5. On match: append the JSONL line to `.run/control-flow.log` first, **then** truncate `.run/last-verdict` to 0 bytes (this order ensures the receipt invariant is preserved if the append fails — the next emission will refuse and surface the FS issue rather than hide it).
-6. On any mismatch or missing receipt: refuse emission (exit 1), append a `verdict-mismatch` entry to `decisions-log.md` via `_emit_canonical_entry` (run-common.sh), and write a diagnostic line to stderr.
+**Scope** (ADR-022 rev.1): handles only non-routing events — `stage-start`, `break-lock`, `budget-exhausted`. Routing events (`route`, `stage-skip`, `abort`) are now emitted by `run-route.sh`. Passing a routing event name exits 2.
 
-**Verdict↔event mapping** (V1):
+**Invocation**:
+```
+run-emit-event.sh <feature-dir> <event-name> [key=value]...
+```
 
-| Receipt verdict | Required event | Required field constraint |
-|---|---|---|
-| `continue`      | `route`      | — |
-| `skip:<stage>`  | `stage-skip` | `stage` arg MUST equal `<stage>` from the verdict |
-| `abort`         | `abort`      | — |
-| `halt:<reason>` | (none in V1) | rejected with `verdict-mismatch` (LOG-025); orchestrator MUST proceed to `run-serialize.sh halt` |
+**Required fields by event**:
 
-Events outside the routing-decision set (`stage-start`, `break-lock`, `budget-exhausted`) are emitted without receipt requirement.
-
-**Shared helper note**: `run-decide-next.sh` and `run-emit-event.sh` both source `_latest_routable_anchor` and `_hash_input` from `run-common.sh`. Single-source-of-truth for the resume-scan filter + hash recipe avoids drift; under single-writer-at-a-time semantics (ADR-016) the log state is identical between the two helpers' invocations, so the hash recomputation always matches in the happy path.
+| Event | Required |
+|---|---|
+| `stage-start` | `stage` |
+| `break-lock` | `prior_session`, `prior_ts` |
+| `budget-exhausted` | `tier`, `tokens` |
 
 **Exit codes**:
-- `0` — event emitted; receipt consumed (if applicable).
-- `1` — verdict-receipt mismatch or missing; canonical `verdict-mismatch` entry written; orchestrator MUST halt.
-- `2` — usage error or filesystem error.
+- `0` — JSONL line appended to `.run/control-flow.log`.
+- `2` — usage error, unknown/routing event name, or missing required field.
 
 ---
 
@@ -218,12 +212,12 @@ run-postcheck.sh <feature-dir> <stage>
 2. `check-prerequisites.sh --feature-dir <feature-dir>` **[PRECURSOR: PR0 — adds this flag; `check-prerequisites.sh` exits 1 on `--feature-dir` today]** — feature-dir invariants hold (spec.md, plan.md, tasks.md exist as required by the stage; constitution.md present). The `--feature-dir` flag is consumed positionally by `check-prerequisites.sh` and overrides the script's default branch-name-derived feature path. **Precursor task** (Re-Review #2 RC-2 / Re-Review #3 S-1): `check-prerequisites.sh` and the underlying `common.sh::find_feature_dir_by_prefix()` are extended in a 1-commit precursor (PR0) before PR3a to accept this flag; until that commit lands, the flag does not exist in the script and `run-postcheck.sh` cannot be implemented to satisfy this contract. The flag is required (not optional) because `run-postcheck.sh` may be invoked under `/speckit.run --resume --feature-dir=...` from a branch whose name does not encode the target feature directory; relying on the script's branch-derived default produces silent wrong-directory validation in that case.
 3. For `stage=implement` only: cross-check claimed test files in the subagent record against `git ls-files` — claimed-but-missing test paths are findings.
 
-**Invocation order**: MUST run **before** `run-decide-next.sh` so that postcheck failures suppress the route and surface findings inline in the BLOCKING-checkpoint payload.
+**Invocation order**: MUST run **before** `run-route.sh` so that postcheck failures suppress the route and surface findings inline in the BLOCKING-checkpoint payload.
 
 **Output (stdout)**: clean exit MUST emit the single neutral status line `postcheck: no findings` (no iconography, no color, no "✓"-style affirmation, no "all checks passed" phrasing). One finding per line (`<check>: <detail>`) on failure. **Rationale** (Re-Review #3 M-4 / LOG-013): an overtly affirmative no-findings banner converts ambiguity into reassurance and accelerates BLOCKING-gate rubber-stamping. The neutral phrasing is a normative MUST here (not a recommendation in LOG-013) so that the slash-command author and the static-grep test (PR3b-ii) have a single source of truth.
 
 **Exit codes**:
-- `0` — all checks passed; orchestrator proceeds to `run-decide-next.sh`.
+- `0` — all checks passed; orchestrator proceeds to `run-route.sh`.
 - `1` — one or more checks failed; orchestrator emits `halt:postcheck-failed` with the findings appended to the BLOCKING-checkpoint payload. Developer override (`proceed`) is captured as `route` event with `reason=postcheck-override`.
 - `2` — usage error or required linter unavailable.
 
@@ -241,11 +235,7 @@ run-serialize.sh <feature-dir> <termination-kind>
 **`<termination-kind>`**: one of `clean`, `halt`, `abort`, `permission-failure`.
 
 **Behavior**:
-1. **Pipeline completeness invariant** (ADR-022 step 6): before formatting the coalesced summary, assert that:
-   - `.run/last-verdict` is empty (no unconsumed verdict at termination), AND
-   - `.run/control-flow.log` contains at least one routing-decision event (`route`, `stage-skip`, `abort`, `halt-*`) for every stage that has a per-stage record in `decisions-log.md` (i.e., the LLM did not skip both `run-decide-next.sh` and `run-emit-event.sh` for any stage).
-   On invariant violation, write a `pipeline-incomplete` semantic-failure entry to `decisions-log.md` via `_emit_canonical_entry` **before** the coalesced summary, listing each missing-event stage. The coalesced summary still appends afterward; `pipeline-incomplete` becomes part of the durable audit trail rather than blocking termination.
-2. **Coalesce write**: Reads the sidecar at `.run/control-flow.log`, formats a single coalesced FR-006-conforming markdown section (including the termination kind, reason, and event summary), and appends it to `decisions-log.md` via the **stage-then-rename idiom** (LOG-012):
+1. **Coalesce write**: Reads the sidecar at `.run/control-flow.log`, formats a single coalesced FR-006-conforming markdown section (including the termination kind, reason, and event summary), and appends it to `decisions-log.md` via the **stage-then-rename idiom** (LOG-012):
    1. Read current `decisions-log.md` into a same-directory temp file (`decisions-log.md.<run_id>.tmp`).
    2. Append the coalesced summary block to the temp file.
    3. `mv -f` the temp file over `decisions-log.md` (atomic on macOS/Linux same-filesystem semantics).
