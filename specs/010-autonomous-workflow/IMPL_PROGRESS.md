@@ -1,7 +1,7 @@
 # Implementation Progress — `/speckit.run` (Spec 010)
 
 **Branch**: `010-autonomous-workflow`
-**Last update**: 2026-05-13 (PR2b redesigned + complete locally — ADR-022 receipt protocol eliminated; ready to push)
+**Last update**: 2026-05-16 (PR3a complete — run-check-sandbox.sh + run-postcheck.sh, 148/148 green)
 
 This file is the cross-session handoff for `/speckit.implement` on spec 010. It exists
 because the implementation is multi-PR and a `/clear` between segments otherwise
@@ -27,7 +27,7 @@ the overrun). Six redesign commits landed on top of the original PR2b commits.
 
 ---
 
-## ✅ Done (11 commits, 137/137 bats green)
+## ✅ Done (PR0–PR3a, 148/148 bats green)
 
 | Commit | PR | Tasks | What landed |
 |---|---|---|---|
@@ -36,35 +36,34 @@ the overrun). Six redesign commits landed on top of the original PR2b commits.
 | `bda3c6c` | Phase 2 | T005      | `run-common.sh` shared utilities (`_run_lock_dir`, `_atomic_rename_into`, `_emit_canonical_entry`, `_sweep_tmp`, `_run_id_of_lock`, `_hash_input`, `_utc_now`) |
 | `b941691` | PR1     | T006–T011 | `run-lock.sh` (12 cases), `run-target.sh` (20 cases), `run-completeness.sh` (17 cases) |
 | `ae99ac9` | PR2a    | T012, T013 | `run-validate-entry.sh` + `test_validate_entry.bats` (22 cases). LOG-024 filed. |
-| `77faf8d` / `139c845` | PR2b·1 | T014, T017 | `run-decide-next.sh` (134 LOC) + `test_decide_next.bats` (21 cases) |
-| `e8e953f` / `b3706e9` | PR2b·2 | T015, T018 | `run-emit-event.sh` (251 LOC) + `test_emit_event.bats` (21 cases). Shared `_latest_routable_anchor` extracted into `run-common.sh`. LOG-025 filed (halt-* sidecar events deferred to V2). |
-| `8449f72` / `bdc128e` | PR2b·3 | T016, T019 | `run-serialize.sh` (264 LOC) + `test_serialize.bats` (20 cases) |
+| `9925889` / `cd6b494` / `1e1a5d6` / `76a3011` | PR2b redesign | T014r–T019r | `run-route.sh` (172 LOC, 23 cases); `run-emit-event.sh` slimmed 251→106 LOC; `run-serialize.sh` slimmed 264→109 LOC; `run-decide-next.sh` deleted; LOG-026 filed (ADR-022 receipt protocol eliminated). |
+| `39ff1fc` / `1b49733` | PR3a | T020, T021 | `run-check-sandbox.sh` + `test_check_sandbox.bats` (15 cases). |
+| `caf2c30` / `cc91ba3` | PR3a | T022, T023 | `run-postcheck.sh` + `test_postcheck.bats` (15 cases). |
 
 **bats install**: `brew install bats-core` (v1.13.0+).
-**Smoke check**: `bats /Users/colindwan/Developer/Claude-Root/tests/unit/` → 137/137 ok.
+**Smoke check**: `bats /Users/colindwan/Developer/Claude-Root/tests/unit/` → 148/148 ok.
 The `cd /tmp` guard from earlier handoffs is stale — each test mktemps its own
 fixture, so bats works from any CWD.
 
 ---
 
-## ⏭ Next — PR3a (T020–T023) ~190 LOC
+## ✅ PR3a complete (T020–T023, 30 new cases, 148/148 green)
 
-Code-action helpers: `run-check-sandbox.sh` + `run-postcheck.sh`. Depends on PR0 (the
-`check-prerequisites.sh --feature-dir` flag). Both run on every code-action stage
-(`implement`, `codereview`, `audit`):
+| Commit | Tasks | What landed |
+|---|---|---|
+| `39ff1fc` / `1b49733` | T020, T021 | `run-check-sandbox.sh` + `test_check_sandbox.bats` (15 cases) |
+| `caf2c30` / `cc91ba3` | T022, T023 | `run-postcheck.sh` + `test_postcheck.bats` (15 cases) |
 
-- `run-check-sandbox.sh` audits `git diff` against the FR-020 allowlist (no `main`
-  mutations, no `.gitignore` / `.github/` / `.claude/settings*.json` / `.env*`).
-  Exit 1 ⇒ permission failure halt.
-- `run-postcheck.sh` runs the existing linters (`check-adr-crossrefs.sh`,
-  `check-prerequisites.sh --feature-dir`) + claimed-test-files cross-check for
-  `implement`. Clean exit MUST emit the literal line `postcheck: no findings`
-  (no iconography — LOG-013 normative MUST). Exit 1 produces `halt:postcheck-failed`.
+`run-check-sandbox.sh`: diffs `git diff <pre-dispatch-head>..HEAD` + uncommitted changes against
+FR-020 allowlist (`.gitignore`, `.github/`, `.claude/settings*.json`, `.claude/hooks/`, `.env*`,
+main/master branch mutation). Pre-dispatch HEAD stored in `.run/pre-dispatch-head`.
 
-Per-helper TDD ordering inside the PR (test commit, then helper commit, ×2).
+`run-postcheck.sh`: invokes `check-adr-crossrefs.sh` + `check-prerequisites.sh --feature-dir`;
+for `implement` adds `--require-tasks`; for `implement` also cross-checks claimed test files
+(.bats, test_*, *_test.*, paths under tests/) in latest subagent-record against `git ls-files`.
+Clean exit emits exactly `postcheck: no findings` (LOG-013 normative).
 
-After PR3a: PR3b-i (slash command + 250-LOC cap) → PR3b-ii (static-grep guard +
-integration tests) → Phase 4/5/6.
+## ⏭ Next — PR3b-i (T024–T025) ~255 LOC
 
 ---
 
@@ -114,7 +113,17 @@ integration tests) → Phase 4/5/6.
 
 1. Read this file first.
 2. `git log --oneline -12` — confirm the last commit matches "Done" table tail.
-3. `bats tests/unit/` — confirm 137/137 still green (or the new total once
-   PR3a's tests land).
+3. `bats tests/unit/` — confirm 148/148 still green (or the new total once
+   PR3b's tests land).
 4. Resume from "⏭ Next" section. Do not skip TDD ordering even when picking up
    mid-PR.
+
+---
+
+## ⚠ Pre-dispatch HEAD protocol
+
+`run-check-sandbox.sh` reads `.run/pre-dispatch-head` (a file written by the
+orchestrator before each subagent dispatch). This file must be written by the
+slash command markdown (`speckit.run.md`) immediately before each code-action
+subagent dispatch. PR3b-i must include this step in the per-stage invocation
+sequence.
