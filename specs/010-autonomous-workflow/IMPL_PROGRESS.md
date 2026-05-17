@@ -1,7 +1,7 @@
 # Implementation Progress — `/speckit.run` (Spec 010)
 
 **Branch**: `010-autonomous-workflow`
-**Last update**: 2026-05-17 (PR3b-i complete — speckit.run.md + test_command_loc.bats, 149/149 green)
+**Last update**: 2026-05-17 (PR3b-ii complete — integration + static-grep tests, 159/159 green)
 
 This file is the cross-session handoff for `/speckit.implement` on spec 010. It exists
 because the implementation is multi-PR and a `/clear` between segments otherwise
@@ -76,16 +76,27 @@ Task dispatch → sandbox+postcheck → run-route.sh → advance); TERMINATE pro
 (run-serialize → run-lock release on every path); self-contained halt messages for all
 FR-019 failure classes. `run-route.sh` handles routing atomically (ADR-022 rev.1).
 
-## ⏭ Next — PR3b-ii (T026, T027, T029, T030) ~120 LOC
+## ✅ PR3b-ii complete (T026–T030, 10 new cases, 159/159 green)
+
+| Commit | Tasks | What landed |
+|---|---|---|
+| `6536d87` | T026, T027, T029, T030 | 4 test files (10 cases) + speckit.run.md skip-path fix |
+
+Bug found + fixed: speckit.run.md completeness-skip path was calling `run-route.sh`
+on an empty log. run-route.sh reads decisions-log.md to derive verdict; a `stage-skip`
+entry must be written FIRST. Fix added the `printf ...` write step before
+`run-route.sh ... stage= criterion=` in the skip branch. T027 test 5 exposed this.
+
+## ⏭ Next — Phase 4 + Phase 5 (T033–T036) then PR4 (T037–T042)
 
 ---
 
-## ⏭ After PR3b-i — remaining roadmap
+## ⏭ After PR3b-ii — remaining roadmap
 
 | PR | Tasks | LOC | Notes |
 |---|---|---|---|
 | ~~PR3b-i~~ | ~~T024–T025~~ | ~~255~~ | ✅ done |
-| PR3b-ii | T026, T027, T029, T030 | ~120 | static-grep guard + integration tests (FR-022, FR-023) |
+| ~~PR3b-ii~~ | ~~T026–T030~~ | ~~120~~ | ✅ done |
 | Phase 4 | T033, T034 | small | US-2 audit-trail tests against canned fixtures |
 | Phase 5 | T035, T036 | small | US-4 resume tests (covers all three FR-019 failure classes) |
 | PR4 | T037–T042 | ~300 | smoke fixtures + harness, CLAUDE.md "Recent Changes" update |
@@ -115,9 +126,10 @@ FR-019 failure classes. `run-route.sh` handles routing atomically (ADR-022 rev.1
 - **`run-postcheck.sh` postcheck-banner** (LOG-013): clean exit MUST emit
   exactly the line `postcheck: no findings`. No iconography. No "✓".
   Static-grep test in PR3b-ii will assert this.
-- **PR3b-ii scope** (T026, T027, T029, T030): static-grep guard + integration tests.
-  The static-grep test (T026) should assert `run-route.sh` (not `run-decide-next.sh`) —
-  the task body cites the pre-redesign name; contracts/helper-contracts.md is authoritative.
+- **Phase 4 + 5 (T033–T036)**: test-only tasks (bats against fixture logs). No new helpers.
+  T033/T034 = audit-trail tests (chronological order + completeness).
+  T035/T036 = resume tests (FR-019 failure classes).
+- **PR4 (T037–T042)**: smoke fixtures + harness + CLAUDE.md update.
 - **Trailing-newline detection** in bash: `$()` strips trailing newlines, so
   use the printf-sentinel idiom: `[[ "$(tail -c 1 file; printf x)" == $'\nx' ]]`.
 
