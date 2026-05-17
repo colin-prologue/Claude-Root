@@ -1,7 +1,7 @@
 # Implementation Progress — `/speckit.run` (Spec 010)
 
 **Branch**: `010-autonomous-workflow`
-**Last update**: 2026-05-17 (Phase 4 complete — US-2 audit-trail tests, 168/168 green)
+**Last update**: 2026-05-17 (Phase 5 complete — US-4 resume tests, 183/183 green)
 
 This file is the cross-session handoff for `/speckit.implement` on spec 010. It exists
 because the implementation is multi-PR and a `/clear` between segments otherwise
@@ -41,7 +41,7 @@ the overrun). Six redesign commits landed on top of the original PR2b commits.
 | `caf2c30` / `cc91ba3` | PR3a | T022, T023 | `run-postcheck.sh` + `test_postcheck.bats` (15 cases). |
 
 **bats install**: `brew install bats-core` (v1.13.0+).
-**Smoke check**: `bats /Users/colindwan/Developer/Claude-Root/tests/unit/` → 168/168 ok.
+**Smoke check**: `bats /Users/colindwan/Developer/Claude-Root/tests/unit/` → 183/183 ok.
 The `cd /tmp` guard from earlier handoffs is stale — each test mktemps its own
 fixture, so bats works from any CWD.
 
@@ -102,7 +102,23 @@ entries (Scenario 1 — autonomous skip); verifies all three audit-trail compone
 (originating review halt, specify revision, second review success) are present in a
 route-back-to-specify fixture log (Scenario 2).
 
-## ⏭ Next — Phase 5 (T035–T036) then PR4 (T037–T042)
+## ✅ Phase 5 complete (T035–T036, 15 new cases, 183/183 green)
+
+| Commit | Tasks | What landed |
+|---|---|---|
+| (this session) | T035, T036 | `test_resume_skip_complete_artifacts.bats` (5 cases); `test_resume_scan_filter.bats` (10 cases) |
+
+`test_resume_skip_complete_artifacts.bats`: verifies run-completeness.sh detects complete
+spec.md + plan.md (FR-026) and incomplete tasks.md (next stage to dispatch); SC-003
+artifact mtime unchanged by completeness read.
+
+`test_resume_scan_filter.bats`: FR-023 canonical-exception filter (pipeline-incomplete
+and verdict-mismatch skipped as resume anchors); Scenario 2 mid-stage interruption
+(stage-start present, plan.md absent → incomplete); Scenario 3 all three FR-019
+failure classes (temporal/semantic/permission) return halt verdict + failure_class in
+log + static grep verifies speckit.run.md documents all three halt message paths.
+
+## ⏭ Next — PR4 (T037–T042)
 
 ---
 
