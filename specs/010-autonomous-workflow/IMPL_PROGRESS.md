@@ -1,7 +1,7 @@
 # Implementation Progress — `/speckit.run` (Spec 010)
 
 **Branch**: `010-autonomous-workflow`
-**Last update**: 2026-05-17 (PR3b-ii complete — integration + static-grep tests, 159/159 green)
+**Last update**: 2026-05-17 (Phase 4 complete — US-2 audit-trail tests, 168/168 green)
 
 This file is the cross-session handoff for `/speckit.implement` on spec 010. It exists
 because the implementation is multi-PR and a `/clear` between segments otherwise
@@ -41,7 +41,7 @@ the overrun). Six redesign commits landed on top of the original PR2b commits.
 | `caf2c30` / `cc91ba3` | PR3a | T022, T023 | `run-postcheck.sh` + `test_postcheck.bats` (15 cases). |
 
 **bats install**: `brew install bats-core` (v1.13.0+).
-**Smoke check**: `bats /Users/colindwan/Developer/Claude-Root/tests/unit/` → 148/148 ok.
+**Smoke check**: `bats /Users/colindwan/Developer/Claude-Root/tests/unit/` → 168/168 ok.
 The `cd /tmp` guard from earlier handoffs is stale — each test mktemps its own
 fixture, so bats works from any CWD.
 
@@ -87,7 +87,22 @@ on an empty log. run-route.sh reads decisions-log.md to derive verdict; a `stage
 entry must be written FIRST. Fix added the `printf ...` write step before
 `run-route.sh ... stage= criterion=` in the skip branch. T027 test 5 exposed this.
 
-## ⏭ Next — Phase 4 + Phase 5 (T033–T036) then PR4 (T037–T042)
+## ✅ Phase 4 complete (T033–T034, 9 new cases, 168/168 green)
+
+| Commit | Tasks | What landed |
+|---|---|---|
+| (this session) | T033, T034 | `test_log_chronological_order.bats` (3 cases); `test_log_audit_completeness.bats` (6 cases) |
+
+`test_log_chronological_order.bats`: verifies ISO-8601 timestamps across a multi-stage
+fixture run are monotonically increasing; verifies `stage-end:run` (run-serialize.sh
+coalesced summary) appears after all `subagent-record` headings per ADR-016 tail-append.
+
+`test_log_audit_completeness.bats`: verifies FR-024 criterion appears in `stage-skip`
+entries (Scenario 1 — autonomous skip); verifies all three audit-trail components
+(originating review halt, specify revision, second review success) are present in a
+route-back-to-specify fixture log (Scenario 2).
+
+## ⏭ Next — Phase 5 (T035–T036) then PR4 (T037–T042)
 
 ---
 

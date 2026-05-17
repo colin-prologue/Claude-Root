@@ -130,8 +130,8 @@ description: "Task list for /speckit.run autonomous pipeline orchestrator (V1)"
 
 **Independent Test**: Given a completed pipeline run through `specify→review→clarify→plan→review→tasks`, when the developer requests the decision log, a structured document exists at `specs/[###-feature-name]/decisions-log.md` listing every autonomous decision with rationale and alternatives. (Matches spec.md US-2 Independent Test.)
 
-- [ ] T033 [US2] Write `tests/unit/test_log_chronological_order.bats` asserting that for a fixture run with multiple subagent records, entries appear in chronological order (timestamp-monotonic) and the coalesced control-flow summary appears at the tail (after all subagent records, per ADR-016 termination append)
-- [ ] T034 [US2] Write `tests/unit/test_log_audit_completeness.bats` asserting that for a fixture run including a route-back-to-specify scenario (US-2 Acceptance Scenario 2): the originating finding, the revision, and the re-review outcome are all present in the canonical log; and that an autonomous skip decision (US-2 Acceptance Scenario 1) records the criterion that produced the skip
+- [x] T033 [US2] Write `tests/unit/test_log_chronological_order.bats` asserting that for a fixture run with multiple subagent records, entries appear in chronological order (timestamp-monotonic) and the coalesced control-flow summary appears at the tail (after all subagent records, per ADR-016 termination append)
+- [x] T034 [US2] Write `tests/unit/test_log_audit_completeness.bats` asserting that for a fixture run including a route-back-to-specify scenario (US-2 Acceptance Scenario 2): the originating finding, the revision, and the re-review outcome are all present in the canonical log; and that an autonomous skip decision (US-2 Acceptance Scenario 1) records the criterion that produced the skip
 
 **Checkpoint**: User Story 2 verifiable independently against fixture decision logs
 
