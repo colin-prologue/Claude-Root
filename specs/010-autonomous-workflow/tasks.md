@@ -154,12 +154,12 @@ description: "Task list for /speckit.run autonomous pipeline orchestrator (V1)"
 
 **Purpose**: Close the LLM-call boundary per ADR-017 Tier 2 + ADR-021 fixture budget. Two synthetic fixtures (one green-path, one halt-path) at a 50K token per-run / 100K per-merge cap.
 
-- [ ] T037 [P] Write `tests/smoke/fixtures/feature-min-path.txt` — synthetic feature description producing a green-path `specify→plan` run (ADR-021 Fixture 1)
-- [ ] T038 [P] Write `tests/smoke/fixtures/feature-halt-on-specify.txt` — synthetic feature description where the spec subagent emits `halt_directive=true` (ADR-021 Fixture 2; verifies MUST-coalesce + verdict-receipt on halt path)
-- [ ] T039 Write `tests/smoke/fixture_min_path.bats` invoking `/speckit.run` against fixture 1 with real subagent dispatches; asserts artifacts produced + canonical-log conformance + sidecar-canonical reconciliation
-- [ ] T040 Write `tests/smoke/fixture_halt_on_specify.bats` invoking `/speckit.run` against fixture 2; asserts halt presented + coalesced summary appended on halt + verdict-receipt consumed
-- [ ] T041 Implement smoke harness inside the two bats files (per-run token-cost reading + per-merge cap enforcement, exit non-zero on cap breach per ADR-021)
-- [ ] T042 Update `CLAUDE.md` Recent Changes section to record `/speckit.run` shipping; add `tests/` to Directory Structure; add bats-core as a soft dependency note (not a runtime requirement — only required to run Tier 1 tests locally)
+- [x] T037 [P] Write `tests/smoke/fixtures/feature-min-path.txt` — synthetic feature description producing a green-path `specify→plan` run (ADR-021 Fixture 1)
+- [x] T038 [P] Write `tests/smoke/fixtures/feature-halt-on-specify.txt` — synthetic feature description where the spec subagent emits `halt_directive=true` (ADR-021 Fixture 2; verifies MUST-coalesce + verdict-receipt on halt path)
+- [x] T039 Write `tests/smoke/fixture_min_path.bats` invoking `/speckit.run` against fixture 1 with real subagent dispatches; asserts artifacts produced + canonical-log conformance + sidecar-canonical reconciliation
+- [x] T040 Write `tests/smoke/fixture_halt_on_specify.bats` invoking `/speckit.run` against fixture 2; asserts halt presented + coalesced summary appended on halt + verdict-receipt consumed
+- [x] T041 Implement smoke harness inside the two bats files (per-run token-cost reading + per-merge cap enforcement, exit non-zero on cap breach per ADR-021)
+- [x] T042 Update `CLAUDE.md` Recent Changes section to record `/speckit.run` shipping; add `tests/` to Directory Structure; add bats-core as a soft dependency note (not a runtime requirement — only required to run Tier 1 tests locally)
 
 ---
 

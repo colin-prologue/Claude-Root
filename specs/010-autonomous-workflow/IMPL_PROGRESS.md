@@ -1,7 +1,7 @@
 # Implementation Progress — `/speckit.run` (Spec 010)
 
 **Branch**: `010-autonomous-workflow`
-**Last update**: 2026-05-17 (Phase 5 complete — US-4 resume tests, 183/183 green)
+**Last update**: 2026-05-17 (PR4 complete — smoke harness + CLAUDE.md, all tasks done)
 
 This file is the cross-session handoff for `/speckit.implement` on spec 010. It exists
 because the implementation is multi-PR and a `/clear` between segments otherwise
@@ -118,7 +118,30 @@ and verdict-mismatch skipped as resume anchors); Scenario 2 mid-stage interrupti
 failure classes (temporal/semantic/permission) return halt verdict + failure_class in
 log + static grep verifies speckit.run.md documents all three halt message paths.
 
-## ⏭ Next — PR4 (T037–T042)
+## ✅ PR4 complete (T037–T042, smoke harness + CLAUDE.md)
+
+| Commit | Tasks | What landed |
+|---|---|---|
+| (this session) | T037–T042 | 2 fixture text files; `fixture_min_path.bats` (11 cases); `fixture_halt_on_specify.bats` (9 cases); CLAUDE.md update |
+
+`fixture_min_path.bats`: skips cleanly if `SMOKE_FEATURE_DIR` not set; when set asserts
+spec.md + plan.md produced, canonical-log has subagent-record:specify/plan, specify
+halt=false, stage-end:run at tail, sidecar has route event, JSONL is valid, per-run
+token cap ≤50K (skips if token-cost.txt absent).
+
+`fixture_halt_on_specify.bats`: skips if `SMOKE_HALT_FEATURE_DIR` not set; asserts
+halt path (halt=true, no plan.md, coalesced summary mentions halt), per-run cap, and
+combined per-merge cap (≤100K) reading both cost files.
+
+`feature-min-path.txt`: ~250-word CLI feature (structured audit log writer) —
+unambiguous, produces mandatory sections in spec.md + plan.md.
+`feature-halt-on-specify.txt`: ~200-word feature (user preference sync) with
+four deliberate ambiguities that the spec subagent must surface as [NEEDS CLARIFICATION].
+
+CLAUDE.md: updated Recent Changes to record /speckit.run shipped; added tests/ subtree
+to Directory Structure; added bats-core soft dependency note.
+
+## ✅ IMPLEMENTATION COMPLETE — all 42 tasks done (T001–T042)
 
 ---
 

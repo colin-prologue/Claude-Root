@@ -20,7 +20,7 @@ Keep it lean — detailed rules live in `.claude/rules/`.
 
 ```
 .claude/
-  commands/             # Spec-Kit slash commands
+  commands/             # Spec-Kit slash commands (including speckit.run)
   agents/               # Agent personas for /speckit.review and /speckit.audit
   rules/                # Modular instruction files (loaded automatically)
   skills/               # Reusable skills (adr-crossref-check, writing-decision-records)
@@ -32,12 +32,18 @@ Keep it lean — detailed rules live in `.claude/rules/`.
     LOG_*.md            # Challenges, questions, updates
   templates/            # Document templates
   scripts/
-    bash/               # check-adr-crossrefs.sh and other helpers
+    bash/               # check-adr-crossrefs.sh, run-*.sh orchestrator helpers
 specs/                  # Feature specifications (one folder per feature)
+tests/
+  unit/                 # Tier 1 bats tests (pre-commit, deterministic, no LLM calls)
+  smoke/                # Tier 2 bats tests (pre-merge, real subagent dispatches, cost-capped)
+    fixtures/           # Synthetic feature descriptions for smoke runs
 benchmarks/             # Persistent benchmark fixtures (re-run to track improvement over time)
   review-panel/         # Panel efficiency benchmark — fixture + key + runs/
 docs/                   # Long-form documentation
 ```
+
+**bats-core** is a soft dependency — only required to run Tier 1 unit tests locally. Install with `brew install bats-core` (macOS) or `sudo apt-get install bats` (Linux). Not required to use the template or run the orchestrator.
 
 ## Key Conventions
 
@@ -48,6 +54,6 @@ docs/                   # Long-form documentation
 - See `.specify/memory/constitution.md` for full governing principles
 
 ## Recent Changes
-- 010-autonomous-workflow: `/speckit.run` orchestrator (in progress) — slash command + bash helpers (`.specify/scripts/bash/run-*.sh`); canonical `decisions-log.md` + JSONL sidecar at `.run/control-flow.log`; bats unit + smoke tiers; V1 BLOCKING-everywhere
+- 010-autonomous-workflow: `/speckit.run` orchestrator shipped — slash command + 9 bash helpers (`run-lock`, `run-completeness`, `run-target`, `run-route`, `run-emit-event`, `run-validate-entry`, `run-check-sandbox`, `run-postcheck`, `run-serialize`); canonical `decisions-log.md` + JSONL sidecar; 183 Tier 1 unit tests + 20-case Tier 2 smoke harness (pre-merge, cost-capped); V1 BLOCKING-everywhere
 - 009-remove-memory-server: Extracted memory server to `archive/memory-server` branch + `v1.0-with-memory` tag; template now ships without MCP server dependency
 - skill-plugin-optimization: `adr-crossref-check` skill + helper script, ADR-055 filter-predicate helpers, guardrail against `.decisions/` vocabulary drift
