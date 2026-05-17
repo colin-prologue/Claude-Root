@@ -1,7 +1,7 @@
 # Implementation Progress — `/speckit.run` (Spec 010)
 
 **Branch**: `010-autonomous-workflow`
-**Last update**: 2026-05-16 (PR3a complete — run-check-sandbox.sh + run-postcheck.sh, 148/148 green)
+**Last update**: 2026-05-17 (PR3b-i complete — speckit.run.md + test_command_loc.bats, 149/149 green)
 
 This file is the cross-session handoff for `/speckit.implement` on spec 010. It exists
 because the implementation is multi-PR and a `/clear` between segments otherwise
@@ -63,15 +63,28 @@ for `implement` adds `--require-tasks`; for `implement` also cross-checks claime
 (.bats, test_*, *_test.*, paths under tests/) in latest subagent-record against `git ls-files`.
 Clean exit emits exactly `postcheck: no findings` (LOG-013 normative).
 
-## ⏭ Next — PR3b-i (T024–T025) ~255 LOC
+## ✅ PR3b-i complete (T024–T025, 1 new case, 149/149 green)
+
+| Commit | Tasks | What landed |
+|---|---|---|
+| `346133a` | T024 | `test_command_loc.bats` (1 case: speckit.run.md ≤ 250 lines) |
+| `bdfc29d` | T025 | `.claude/commands/speckit.run.md` (173 LOC) |
+
+`speckit.run.md`: Parses `--target` / `--checkpoints` / `--force` / `--break-lock`; full
+per-stage loop (completeness → stage-start → pre-dispatch HEAD → code-gate BLOCKING →
+Task dispatch → sandbox+postcheck → run-route.sh → advance); TERMINATE protocol
+(run-serialize → run-lock release on every path); self-contained halt messages for all
+FR-019 failure classes. `run-route.sh` handles routing atomically (ADR-022 rev.1).
+
+## ⏭ Next — PR3b-ii (T026, T027, T029, T030) ~120 LOC
 
 ---
 
-## ⏭ After PR3a — remaining roadmap
+## ⏭ After PR3b-i — remaining roadmap
 
 | PR | Tasks | LOC | Notes |
 |---|---|---|---|
-| PR3b-i | T024–T025 | ~255 | `.claude/commands/speckit.run.md` (≤250 LOC hard cap) + `test_command_loc.bats` |
+| ~~PR3b-i~~ | ~~T024–T025~~ | ~~255~~ | ✅ done |
 | PR3b-ii | T026, T027, T029, T030 | ~120 | static-grep guard + integration tests (FR-022, FR-023) |
 | Phase 4 | T033, T034 | small | US-2 audit-trail tests against canned fixtures |
 | Phase 5 | T035, T036 | small | US-4 resume tests (covers all three FR-019 failure classes) |
@@ -102,8 +115,9 @@ Clean exit emits exactly `postcheck: no findings` (LOG-013 normative).
 - **`run-postcheck.sh` postcheck-banner** (LOG-013): clean exit MUST emit
   exactly the line `postcheck: no findings`. No iconography. No "✓".
   Static-grep test in PR3b-ii will assert this.
-- **Plan.md PR3b-i scope** (M-7): that PR adds `speckit.run.md` and
-  `test_command_loc.bats` ONLY.
+- **PR3b-ii scope** (T026, T027, T029, T030): static-grep guard + integration tests.
+  The static-grep test (T026) should assert `run-route.sh` (not `run-decide-next.sh`) —
+  the task body cites the pre-redesign name; contracts/helper-contracts.md is authoritative.
 - **Trailing-newline detection** in bash: `$()` strips trailing newlines, so
   use the printf-sentinel idiom: `[[ "$(tail -c 1 file; printf x)" == $'\nx' ]]`.
 
