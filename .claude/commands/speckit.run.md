@@ -38,8 +38,12 @@ Repeat until `STAGE = __END__`. On any failure, jump to §TERMINATE with the app
 run-completeness.sh "$FEATURE_DIR" "$STAGE"
 ```
 
-If output = `complete`:
-```
+If output = `complete`: write a `stage-skip` entry to `decisions-log.md`, then route:
+```bash
+ts=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+run_id=$(grep '^run_id=' "$FEATURE_DIR/.run/run-lock" | cut -d= -f2-)
+printf '## stage-skip:%s · %s\n\n- author: orchestrator\n- status: success\n- run_id: %s\n\nArtifact present.\n\n' \
+    "$STAGE" "$ts" "$run_id" >> "$FEATURE_DIR/decisions-log.md"
 run-route.sh "$FEATURE_DIR" stage="$STAGE" criterion="artifact already present"
 ```
 Advance: `STAGE = run-target.sh next "$TARGET" "$STAGE"`. Continue loop.
