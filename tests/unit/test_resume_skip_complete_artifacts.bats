@@ -22,11 +22,11 @@ teardown() {
 
 write_complete_spec() {
     cat > "$FEATURE/spec.md" <<'EOF'
-## User Stories
+## User Scenarios & Testing
 
 At least one story.
 
-## Functional Requirements
+## Requirements
 
 At least one requirement.
 

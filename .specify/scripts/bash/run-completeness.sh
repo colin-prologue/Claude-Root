@@ -32,7 +32,7 @@ has_section_with_body() {
     [[ -f "$file" ]] || return 1
     awk -v h="## $heading" '
         BEGIN { found=0; in_section=0; has_body=0 }
-        $0 == h { in_section=1; next }
+        $0 ~ ("^" h) { in_section=1; next }
         in_section && /^## / { exit }
         in_section && /[^[:space:]]/ { has_body=1 }
         END { exit (has_body ? 0 : 1) }
@@ -42,7 +42,7 @@ has_section_with_body() {
 predicate_specify() {
     [[ -f "$spec" ]] || { echo incomplete; return 0; }
     if grep -qF '[NEEDS CLARIFICATION]' "$spec"; then echo incomplete; return 0; fi
-    for h in "User Stories" "Functional Requirements" "Success Criteria"; do
+    for h in "User Scenarios & Testing" "Requirements" "Success Criteria"; do
         if ! has_section_with_body "$spec" "$h"; then echo incomplete; return 0; fi
     done
     echo complete

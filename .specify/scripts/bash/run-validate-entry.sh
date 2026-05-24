@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # run-validate-entry.sh — FR-006 schema validation for canonical decisions-log entries.
 #
-# Source of truth: contracts/decision-log-entry.md §Validation contract.
+# Source of truth: .specify/contracts/decision-log-entry.md §Validation contract.
 #
 # Usage:
 #   run-validate-entry.sh <decisions-log.md> <byte-offset>

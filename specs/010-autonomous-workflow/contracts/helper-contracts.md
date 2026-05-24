@@ -172,7 +172,7 @@ run-emit-event.sh <feature-dir> <event-name> [key=value]...
 
 **Implements**: FR-006.
 
-**Contract**: see `decision-log-entry.md` § Validation contract.
+**Contract**: see `.specify/contracts/decision-log-entry.md` § Validation contract.
 
 ---
 

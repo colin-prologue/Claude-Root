@@ -24,7 +24,7 @@ Helper prefix: `.specify/scripts/bash/`. Invoke each helper from the repo root.
    - Ask: "Confirm prior session is dead and lock can be cleared? (yes/no)." On "no": stop.
 4. FR-023 guard (skip if `--force`): if `$FEATURE_DIR/spec.md` exists and `$FEATURE_DIR/decisions-log.md` absent — halt with: "spec.md exists but no decisions-log.md found. Re-invoke with `--force` to start a fresh run."
 5. Run `run-lock.sh acquire "$FEATURE_DIR"`. On exit ≠ 0 — halt (§Halt: lock-conflict).
-6. Set `STAGE` = first stage in `--target`. Set `PREV_STAGE` = "".
+6. Set `STAGE` = first stage in `--target`.
 
 ---
 
@@ -74,18 +74,31 @@ Wait for user input. On `abort`: TERMINATE(abort).
 
 ### e. Dispatch subagent
 
+```
+LOG_OFFSET=$(wc -c < "$FEATURE_DIR/decisions-log.md" 2>/dev/null | tr -d ' ' || echo 0)
+```
+
 Use the **Task tool**. Pass the following to the subagent:
 
 > Feature directory: `$FEATURE_DIR` (absolute path)
 > Stage: `$STAGE`
 >
 > Run `/speckit.$STAGE` for this feature. Then write a FR-006-conforming record
-> to `$FEATURE_DIR/decisions-log.md`. Schema: `specs/010-autonomous-workflow/contracts/decision-log-entry.md`.
-> The record MUST include `halt: true` or `halt: false`. If halting, include
-> `halt-reason: <subagent-halt-directive | schema-violation | unspecified>`.
+> to `$FEATURE_DIR/decisions-log.md`. Schema: `.specify/contracts/decision-log-entry.md`.
+> The halt_directive block MUST include:
+> - `halt: true` or `halt: false`
+> - `reason: <required when halt=true>`
+> - `failure_class: <required when halt=true — one of: temporal, semantic, permission>`
 > Do NOT skip writing the canonical log entry.
 
 Wait for Task completion before proceeding.
+
+**Schema validation:**
+```
+run-validate-entry.sh "$FEATURE_DIR/decisions-log.md" "$LOG_OFFSET"
+```
+
+On exit 1 or 2: TERMINATE(halt) — schema-violation.
 
 ### f. Post-dispatch checks (code-action stages only)
 
@@ -114,6 +127,7 @@ On `abort`: TERMINATE(abort).
 ### g. Route
 
 ```
+NEXT_STAGE=$(run-target.sh next "$TARGET" "$STAGE")
 run-route.sh "$FEATURE_DIR" from="$STAGE" to="$NEXT_STAGE" reason="subagent complete"
 ```
 
@@ -128,7 +142,7 @@ Read stdout:
 | `abort` | TERMINATE(abort) |
 | `skip:<stage>` | Advance STAGE → continue loop |
 
-Advance: `PREV_STAGE = STAGE`, then `STAGE = run-target.sh next "$TARGET" "$STAGE"`.
+Advance: `STAGE = NEXT_STAGE`.
 
 When `run-target.sh next` outputs `__END__`: TERMINATE(clean).
 

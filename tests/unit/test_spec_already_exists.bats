@@ -27,11 +27,11 @@ teardown() {
 
 @test "FR-023 resume: spec.md complete → run-completeness specify returns complete" {
     cat > "$FEATURE/spec.md" <<'EOF'
-## User Stories
+## User Scenarios & Testing
 
 content
 
-## Functional Requirements
+## Requirements
 
 content
 

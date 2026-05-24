@@ -50,9 +50,14 @@ teardown() {
 
 # ----- review-contiguity grammar (data-model E-6) -----
 
-@test "validate accepts review between two non-code stages" {
-    run "$TARGET" validate "specify→review→plan"
+@test "validate accepts review between two adjacent non-code stages" {
+    run "$TARGET" validate "specify→review→clarify"
     [ "$status" -eq 0 ]
+}
+
+@test "validate rejects review bridging non-adjacent stages" {
+    run "$TARGET" validate "specify→review→plan"
+    [ "$status" -eq 1 ]
 }
 
 @test "validate accepts review in multiple gaps" {
@@ -94,7 +99,7 @@ teardown() {
 }
 
 @test "next returns next stage skipping over review (review is meta)" {
-    run "$TARGET" next "specify→review→plan" "specify"
+    run "$TARGET" next "specify→review→clarify" "specify"
     [ "$status" -eq 0 ]
     [ "$output" = "review" ]
 }

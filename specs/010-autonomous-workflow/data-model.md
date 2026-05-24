@@ -63,7 +63,7 @@ created_at=2026-04-26T20:00:00Z
 ## E-4 — Decision-Log Entry (Canonical)
 
 **Location**: `specs/[###]/decisions-log.md` (markdown, append-only within a run)
-**Format**: One entry per markdown section. Section heading carries the type and stage; key-value pairs and named sub-blocks carry the FR-006 fields. See `contracts/decision-log-entry.md` for the wire format.
+**Format**: One entry per markdown section. Section heading carries the type and stage; key-value pairs and named sub-blocks carry the FR-006 fields. See `.specify/contracts/decision-log-entry.md` for the wire format.
 
 **Required fields per FR-006**:
 | Field | Type | Notes |

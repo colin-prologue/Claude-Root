@@ -87,10 +87,10 @@ validate_target() {
         fi
     done
 
-    # Canonical-ordering rule: stripped tokens must be strictly increasing in
-    # canonical index (no reordering). A `review` token bridging two non-review
-    # tokens lets them skip canonical stages — without a bridging review,
-    # consecutive non-review tokens must be canonical-adjacent.
+    # The stripped tokens (after removing `review`) must form a CONTIGUOUS canonical
+    # subrange — consecutive stripped tokens must differ by exactly one in canonical
+    # index. `review` inserts a review step between two adjacent canonical stages; it
+    # does not allow skipping stages.
     canon_idx() {
         local stage="$1" k
         for ((k=0; k<${#CANONICAL[@]}; k++)); do
@@ -99,32 +99,18 @@ validate_target() {
         return 1
     }
 
-    # 1. Strictly-increasing canonical index across stripped tokens.
-    local prev_idx=-1 idx s
+    local prev_idx=-1 prev_stage="" idx s
     for s in "${stripped[@]}"; do
         if ! idx=$(canon_idx "$s"); then
             echo "ERROR: '$s' is not a canonical stage" >&2
             exit 1
         fi
-        if (( idx <= prev_idx )); then
-            echo "ERROR: target reorders canonical stages at '$s'" >&2
+        if [[ -n "$prev_stage" ]] && (( idx != prev_idx + 1 )); then
+            echo "ERROR: stages must be contiguous — '$prev_stage'→'$s' skips one or more canonical stages" >&2
             exit 1
         fi
         prev_idx=$idx
-    done
-
-    # 2. Consecutive non-review pairs in TOKENS must be canonical-adjacent.
-    local i
-    for ((i=0; i+1<${#TOKENS[@]}; i++)); do
-        local a="${TOKENS[$i]}" b="${TOKENS[$i+1]}"
-        [[ "$a" == "review" || "$b" == "review" ]] && continue
-        local ai bi
-        ai=$(canon_idx "$a")
-        bi=$(canon_idx "$b")
-        if (( bi - ai != 1 )); then
-            echo "ERROR: '$a'→'$b' is not a contiguous canonical pair (insert 'review' to bridge non-adjacent stages)" >&2
-            exit 1
-        fi
+        prev_stage="$s"
     done
     return 0
 }

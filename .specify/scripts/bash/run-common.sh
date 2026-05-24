@@ -90,9 +90,7 @@ _utc_now() {
 # Exit codes: 0 — anchor found; 1 — no anchor (missing/empty log or all
 # entries filtered); 2 — usage error.
 #
-# Used by run-decide-next.sh (to mint receipt input_hash) and run-emit-event.sh
-# (to recompute input_hash for receipt validation). Sharing a single recipe
-# guarantees both helpers compute the same hash from the same log state.
+# Used by run-route.sh for resume-anchor computation.
 _latest_routable_anchor() {
     local feature_dir="$1"
     [[ -n "$feature_dir" ]] || { echo "ERROR: _latest_routable_anchor requires <feature-dir>" >&2; return 2; }

@@ -22,11 +22,11 @@ write_complete_spec() {
     cat > "$FEATURE/spec.md" <<'EOF'
 # Feature
 
-## User Stories
+## User Scenarios & Testing
 
 US-1 ...
 
-## Functional Requirements
+## Requirements
 
 FR-001 ...
 
@@ -96,7 +96,7 @@ EOF
 @test "specify: incomplete when spec.md missing a mandatory section" {
     cat > "$FEATURE/spec.md" <<'EOF'
 # Feature
-## User Stories
+## User Scenarios & Testing
 x
 EOF
     run "$COMP" "$FEATURE" specify

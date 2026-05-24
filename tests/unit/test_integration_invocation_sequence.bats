@@ -69,11 +69,11 @@ EOF
 @test "specify stage complete → write stage-skip entry + route emits stage-skip event in sidecar" {
     # Write a complete spec.md (all mandatory sections present)
     cat > "$FEATURE/spec.md" <<'EOF'
-## User Stories
+## User Scenarios & Testing
 
 content
 
-## Functional Requirements
+## Requirements
 
 content
 
