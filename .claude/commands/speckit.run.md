@@ -101,6 +101,17 @@ Use the **Task tool**. Pass the following to the subagent:
 
 Wait for Task completion before proceeding.
 
+**Per-stage diff capture:**
+```bash
+pre_head=$(cat "$FEATURE_DIR/.run/pre-dispatch-head" 2>/dev/null || true)
+if [[ -n "$pre_head" ]]; then
+    git diff "$pre_head"..HEAD --name-only > "$FEATURE_DIR/.run/stage-diff-${STAGE}.files"
+    git diff "$pre_head"..HEAD             > "$FEATURE_DIR/.run/stage-diff-${STAGE}.patch"
+fi
+```
+
+Produces `stage-diff-<stage>.files` (changed file list, always shown) and `stage-diff-<stage>.patch` (full diff, read on request). Both live in `$FEATURE_DIR/.run/` and are swept by the next `run-lock.sh acquire`.
+
 **Schema validation:**
 ```
 run-validate-entry.sh "$FEATURE_DIR/decisions-log.md" "$LOG_OFFSET"

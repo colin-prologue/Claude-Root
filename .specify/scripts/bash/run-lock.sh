@@ -56,6 +56,8 @@ acquire() {
     rm -f "$verdict_file" 2>/dev/null || true
     # LOG-012: orphan tmp sweep on acquire.
     _sweep_tmp "$run_dir"
+    # sweep stage-diff artifacts from prior run.
+    rm -f "$run_dir"/stage-diff-*.files "$run_dir"/stage-diff-*.patch 2>/dev/null || true
 }
 
 release() {
