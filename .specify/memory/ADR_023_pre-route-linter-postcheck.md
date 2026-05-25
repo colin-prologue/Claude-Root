@@ -20,7 +20,7 @@ Scope boundary (locked at plan-gate): V1 applies the postcheck to **code-action 
 
 ## Decision
 
-V1 ships a `run-postcheck.sh` helper invoked **after** every code-action subagent dispatch and **before** `run-decide-next.sh`:
+V1 ships a `run-postcheck.sh` helper invoked **after** every code-action subagent dispatch and **before** `run-route.sh`:
 
 1. **Inputs**: `<feature-dir> <stage>`. Reads the just-written subagent record, the post-dispatch git index, and the affected files.
 2. **Checks** (all already in the project):
@@ -61,13 +61,13 @@ The orchestrator's value over plain manual stage-by-stage invocation is **integr
 
 Code-action scoping aligns with V1's risk model: code stages mutate the repository and produce the records future audits will reason from. A claimed-but-missing test in `tasks.md` is a contaminating signal; a claimed-but-vague rationale in `spec.md` is a quality issue but not a structural one. The line is intentional and documented in LOG-010 for V2 reconsideration.
 
-The postcheck running before `run-decide-next.sh` (rather than after) is load-bearing: a halt verdict from postcheck gives the developer the failures inline; a halt after route would force the developer to read both the route summary and the postcheck output as separate surfaces.
+The postcheck running before `run-route.sh` (rather than after) is load-bearing: a halt verdict from postcheck gives the developer the failures inline; a halt after route would force the developer to read both the route summary and the postcheck output as separate surfaces.
 
 ## Consequences
 
 **Positive**: BLOCKING checkpoints carry concrete pre-checked findings, not just "review the diff." Audit-substrate contamination from code-action stages is reduced to "developer overrode an explicit warning" — observable in the canonical log, not silent. Reuse of existing linters keeps the helper surface small.
 
-**Negative / Trade-offs**: One additional helper invocation per code-action stage. The slash-command markdown's invocation order is now: dispatch → record validate → postcheck (code-action only) → decide-next → emit-event. Documented in `helper-contracts.md`; covered by Tier 1.
+**Negative / Trade-offs**: One additional helper invocation per code-action stage. The slash-command markdown's invocation order is now: sentinel-check → dispatch → diff-capture → record-validate → postcheck (code-action only) → route (`run-route.sh`). Documented in `helper-contracts.md`; covered by Tier 1.
 
 **Risks**:
 - False-positive linter findings produce checkpoint friction — mitigation: developers can `proceed` past warnings; the override is captured in the canonical log (FR-006 `entry_type=route` with `reason=postcheck-override`); a pattern of overrides on the same check is an LOG signal to retune the linter.
@@ -81,3 +81,4 @@ The postcheck running before `run-decide-next.sh` (rather than after) is load-be
 | Date | Change | Author |
 |---|---|---|
 | 2026-04-26 | Initial record (post-plan-review revision; closes F-09 BLOCKING-rubber-stamping blocker for code-action stages) | Claude (synthesis-judge for spec 010 plan-gate) |
+| 2026-05-25 | Audit cleanup (LOG-026 follow-through): replaced all `run-decide-next.sh` references with `run-route.sh`; updated invocation sequence to include sentinel-check and diff-capture steps added post-implementation. | Claude (consistency-auditor) |

@@ -2,7 +2,7 @@
 
 **File**: `specs/[###]/.run/control-flow.log`
 **Format**: JSONL — one JSON object per line, UTF-8, `\n`-terminated.
-**Writer**: orchestrator only, via `run-emit-event.sh`.
+**Writer**: orchestrator only. Non-routing events (`stage-start`, `break-lock`, `budget-exhausted`) via `run-emit-event.sh`; routing events (`route`, `stage-skip`, `abort`) via `run-route.sh`.
 **Source of truth**: ADR-020.
 
 ---

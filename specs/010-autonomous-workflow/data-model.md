@@ -14,8 +14,8 @@ The orchestrator's "data model" is filesystem-only — there is no database. Thi
 **Identity**: `run_id` — generated at lock-acquire time as `run-<ISO8601-UTC>-<6-hex>` (e.g., `run-2026-04-26T20:00:00Z-a1b2c3`). Stored in `run-lock` and stamped on every sidecar event for traceability.
 
 **Lifecycle**:
-1. `acquire` — `run-lock` created; `run_id` minted; `stage-start` event emitted to sidecar; `.run/last-verdict` and `.run/*.tmp` swept (ADR-022, LOG-012).
-2. Per-stage iteration — subagent dispatch → entry append to `decisions-log.md` → record validate → (code-action only) postcheck → route decision (writes verdict receipt) → emit-event (validates receipt) → next stage or halt.
+1. `acquire` — `run-lock` created; `run_id` minted; `stage-start` event emitted to sidecar; `.run/*.tmp` swept (LOG-012).
+2. Per-stage iteration — sentinel check → subagent dispatch → entry append to `decisions-log.md` → record validate → (code-action only) postcheck → route decision via `run-route.sh` → next stage or halt.
 3. `release` — terminates the run. **On every termination path** (halt, abort, permission-failure, clean), orchestrator MUST append a coalesced control-flow summary to `decisions-log.md` via stage-then-rename idiom (ADR-016 amended; LOG-012). `run-lock` is removed atomically with abort-sentinel cleanup.
 
 **Constraints**:
@@ -85,7 +85,6 @@ created_at=2026-04-26T20:00:00Z
 **Writers**:
 - Subagent appends its per-stage record (`entry_type=subagent-record`) before exit. (ADR-013)
 - Orchestrator appends control-flow entries (`stage-start`, `stage-skip`, `route`, `abort`, `escalate`) as a single coalesced summary **at every termination path** — clean, halt, abort, permission-failure (ADR-016 MUST-coalesce, amended 2026-04-26). The append uses the stage-then-rename idiom (write temp file, `mv -f` over canonical) for atomic-on-same-filesystem semantics; partial-write protection per LOG-012.
-- A `verdict-mismatch` entry MAY be written by `run-emit-event.sh` if the LLM attempts to emit a route event without a fresh verdict receipt (ADR-022). The entry follows the same FR-006 schema as a semantic-failure halt.
 - During a run, the canonical log has a **single writer at a time** — no locking required.
 
 **Validation**: `run-validate-entry.sh` enforces the FR-006 schema on every appended entry. A malformed entry triggers a semantic-failure halt per FR-019.

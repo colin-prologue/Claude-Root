@@ -34,13 +34,10 @@ V1 implementation:
 - Orchestrator records control-flow events (stage-start, stage-skip-criterion, routing-choice, abort-reason) to the sidecar at `specs/[###]/.run/control-flow.log` during the run.
 - On every termination (halt, abort, permission-failure, clean), the orchestrator MUST append a single coalesced summary entry to `decisions-log.md` via stage-then-rename. The sidecar persists either way until the next run begins.
 
-**Exception — orchestrator-authored canonical entries during stage execution**: the verdict-receipt protocol (ADR-022) requires `run-emit-event.sh` and `run-serialize.sh` to write semantic-failure entries directly to `decisions-log.md` at the moment a protocol violation is detected, not at termination. Four entry types are exempt from "subagent is the only canonical writer during stage execution":
-- `verdict-mismatch` — written by `run-emit-event.sh` when the asserted event does not match the receipt (forgery detection, ADR-022 step 3).
-- `verdict-omitted` — written by `run-decide-next.sh` when a prior verdict is unconsumed at start of next invocation (omission detection, ADR-022 step 5).
-- `pipeline-incomplete` — written by `run-serialize.sh` when a stage record lacks a sidecar routing event at termination (completeness invariant, ADR-022 step 6).
+**Exception — orchestrator-authored canonical entries during stage execution**: one entry type is written by the orchestrator directly to `decisions-log.md` during stage execution (not at termination):
 - `stage-skip` — written by the orchestrator when `run-completeness.sh` returns `complete` for a stage (artifact already present; FR-026). No subagent is dispatched; the orchestrator records the skip and the criterion directly. This is a routing anchor, not bookkeeping: `_latest_routable_anchor` in `run-common.sh` uses `stage-skip` entries to determine resume position on restart.
 
-These exceptions exist because the audit substrate's value depends on detected protocol violations being durable, not just observable. They share the canonical-write path (`_emit_canonical_entry` in `run-common.sh`) and inherit its stage-then-rename atomicity. Concurrency is not a concern: each fires only when no subagent is dispatched (between stages or at termination).
+*(ADR-022 rev.1 / LOG-026 eliminated three additional exception types — `verdict-mismatch`, `verdict-omitted`, `pipeline-incomplete` — that were part of the now-removed verdict-receipt protocol. Those entry types are no longer writable.)*
 
 This protocol is locking-free: only one writer holds `decisions-log.md` at any given moment (the active subagent during dispatch; the orchestrator only at termination, when no subagent is running). The MUST-coalesce strengthening ensures the canonical log carries the orchestrator's reasoning at the moment a developer needs to retrigger — the original MAY-coalesce left halt/abort terminations with reasoning split across two surfaces.
 
@@ -90,3 +87,4 @@ Option A's terminal-sentinel protocol becomes appropriate only when the system g
 | 2026-04-26 | Strengthened MAY-coalesce → MUST-coalesce on halt/abort/permission-failure terminations; specified stage-then-rename idiom; cross-referenced LOG-012 for the partial-write tradeoff | Claude (synthesis-judge for spec 010 plan-gate revision) |
 | 2026-04-26 | Plan-gate re-review (S-2 / Principle VII drift): documented orchestrator-authored canonical-entry exceptions (`verdict-mismatch`, `verdict-omitted`, `pipeline-incomplete`) introduced by ADR-022's expanded protocol | Claude (synthesis-judge for spec 010 plan-gate re-review) |
 | 2026-05-22 | Code-review fix (F-05): added `stage-skip` as fourth canonical orchestrator-authored exception type; clarified routing-anchor role in `_latest_routable_anchor` | Claude (code-reviewer post-implement) |
+| 2026-05-25 | Audit cleanup (LOG-026 follow-through): removed three now-unwritable exception types (`verdict-mismatch`, `verdict-omitted`, `pipeline-incomplete`) from the exception list; only `stage-skip` remains. Added tombstone note for historical context. | Claude (consistency-auditor) |
