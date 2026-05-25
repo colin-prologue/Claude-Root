@@ -2,8 +2,7 @@
 # run-lock.sh — atomic lock + abort-sentinel cleanup for /speckit.run.
 #
 # Implements FR-027 (atomic remove of lock + sentinel), FR-028 (one run per
-# feature dir), ADR-018 (--break-lock recovery), ADR-022 (verdict-receipt
-# wipe on acquire/release), LOG-012 (.run/*.tmp sweep on acquire).
+# feature dir), ADR-018 (--break-lock recovery), LOG-012 (.run/*.tmp sweep on acquire).
 #
 # Usage:
 #   run-lock.sh acquire        <feature-dir>
@@ -34,7 +33,6 @@ esac
 run_dir="$(_run_lock_dir "$feature_dir")"
 lock_file="$run_dir/run-lock"
 abort_file="$run_dir/abort"
-verdict_file="$run_dir/last-verdict"
 
 acquire() {
     mkdir -p "$run_dir" || { echo "ERROR: could not create $run_dir" >&2; exit 3; }
@@ -52,8 +50,6 @@ acquire() {
         exit 1
     fi
 
-    # ADR-022: stale receipt wipe on acquire.
-    rm -f "$verdict_file" 2>/dev/null || true
     # LOG-012: orphan tmp sweep on acquire.
     _sweep_tmp "$run_dir"
     # sweep stage-diff artifacts from prior run.
@@ -67,7 +63,6 @@ release() {
     # perspective), then sentinel + verdict.
     rm -f "$lock_file" 2>/dev/null || true
     rm -f "$abort_file" 2>/dev/null || true
-    rm -f "$verdict_file" 2>/dev/null || true
 }
 
 break_lock() {

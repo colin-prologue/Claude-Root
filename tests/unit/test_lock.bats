@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 # T006 — run-lock.sh: acquire | release | break | check-sentinel
-# Source of truth: helper-contracts.md §run-lock.sh, FR-027/FR-028, ADR-018, ADR-022, LOG-012.
+# Source of truth: helper-contracts.md §run-lock.sh, FR-027/FR-028, ADR-018, LOG-012.
 
 setup() {
     REPO_ROOT_FIXTURE="$(mktemp -d)"
@@ -41,13 +41,6 @@ teardown() {
     [ ! -e "$FEATURE/.run/abort" ]
 }
 
-@test "release also wipes last-verdict (ADR-022 cleanup)" {
-    "$LOCK" acquire "$FEATURE"
-    printf 'continue\trun-x\thash\t2026-04-26T20:00:00Z' > "$FEATURE/.run/last-verdict"
-    "$LOCK" release "$FEATURE"
-    [ ! -e "$FEATURE/.run/last-verdict" ]
-}
-
 @test "break tolerates absence of active session and emits break-lock event" {
     # No prior lock; break should still succeed.
     run "$LOCK" break "$FEATURE"
@@ -59,13 +52,6 @@ teardown() {
     run "$LOCK" break "$FEATURE"
     [ "$status" -eq 0 ]
     [ ! -e "$FEATURE/.run/run-lock" ]
-}
-
-@test "acquire wipes stale last-verdict (ADR-022 step 6)" {
-    mkdir -p "$FEATURE/.run"
-    printf 'stale\trun-old\thash\tts' > "$FEATURE/.run/last-verdict"
-    "$LOCK" acquire "$FEATURE"
-    [ ! -s "$FEATURE/.run/last-verdict" ] || [ ! -e "$FEATURE/.run/last-verdict" ]
 }
 
 @test "acquire sweeps orphan .tmp files (LOG-012)" {
