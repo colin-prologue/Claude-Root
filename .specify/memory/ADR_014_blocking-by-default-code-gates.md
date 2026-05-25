@@ -1,7 +1,7 @@
 # ADR-014: BLOCKING-by-Default at Code-Action Gates in V1
 
 **Date**: 2026-04-26
-**Status**: Proposed (amended 2026-04-26 post-second-spec-review for non-code BLOCKING UX)
+**Status**: Accepted (amended 2026-04-26 post-second-spec-review for non-code BLOCKING UX)
 **Decision Made In**: specs/010-autonomous-workflow/spec.md § (post-spec-review revision); supersedes FR-014 in its current form
 **Related Logs**: LOG-005 (stage-pair runner fallback)
 

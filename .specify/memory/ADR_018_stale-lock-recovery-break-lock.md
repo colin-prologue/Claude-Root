@@ -1,7 +1,7 @@
 # ADR-018: Stale-Lock Recovery — `--break-lock` Only in V1
 
 **Date**: 2026-04-26
-**Status**: Proposed
+**Status**: Accepted
 **Decision Made In**: specs/010-autonomous-workflow/ (plan-phase resolution of LOG-009)
 **Related ADRs**: ADR-012 (branch-scoped sandbox; `.run/` placement), ADR-015 (V1 scope boundary), ADR-016 (canonical/derivative model)
 **Related Logs**: LOG-009 (closes)

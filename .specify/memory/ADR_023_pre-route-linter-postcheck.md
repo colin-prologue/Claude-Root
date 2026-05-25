@@ -1,7 +1,7 @@
 # ADR-023: Pre-Route Linter Postcheck on Subagent Artifacts
 
 **Date**: 2026-04-26
-**Status**: Proposed
+**Status**: Accepted
 **Decision Made In**: specs/010-autonomous-workflow/plan.md § Project Structure (post-plan-review revision)
 **Related ADRs**: ADR-019 (deterministic core boundary), ADR-013 (subagent direct-write), ADR-014 (BLOCKING-by-default at code-action gates)
 **Related Logs**: LOG-010 (non-code-stage claimed-vs-actual artifact validation deferred), LOG-011 (BLOCKING-gate rubber-stamping risk)

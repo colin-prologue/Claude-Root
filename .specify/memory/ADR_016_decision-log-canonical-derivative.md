@@ -1,7 +1,7 @@
 # ADR-016: Decision-Log Canonical/Derivative Model
 
 **Date**: 2026-04-26
-**Status**: Proposed
+**Status**: Accepted
 **Decision Made In**: specs/010-autonomous-workflow/spec.md § (post-second-spec-review revision); refines and amends ADR-013
 **Related Logs**: LOG-009 (stale-lock recovery)
 

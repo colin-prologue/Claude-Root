@@ -1,7 +1,7 @@
 # ADR-015: V1 Scope Boundary — Trust First, Defer Learning Loop and Temporal Auto-Resume
 
 **Date**: 2026-04-26
-**Status**: Proposed (amended 2026-04-26 post-second-spec-review for SC-008 + partial-write deferral)
+**Status**: Accepted (amended 2026-04-26 post-second-spec-review for SC-008 + partial-write deferral)
 **Decision Made In**: specs/010-autonomous-workflow/spec.md § (post-spec-review revision)
 **Related Logs**: LOG-005 (stage-pair runner fallback), LOG-008 (decision-log unbounded growth), LOG-009 (stale-lock recovery)
 

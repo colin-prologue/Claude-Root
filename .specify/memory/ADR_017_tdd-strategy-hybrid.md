@@ -1,7 +1,7 @@
 # ADR-017: Hybrid Test Strategy for Non-Deterministic Dispatcher
 
 **Date**: 2026-04-26
-**Status**: Proposed
+**Status**: Accepted
 **Decision Made In**: specs/010-autonomous-workflow/ (plan-phase resolution of LOG-006)
 **Related ADRs**: ADR-009 (subagent-per-stage execution), ADR-013 (subagent writes decision-log directly), ADR-016 (canonical/derivative model)
 **Related Logs**: LOG-006 (closes)

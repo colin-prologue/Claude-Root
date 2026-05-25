@@ -1,7 +1,7 @@
 # ADR-021: Smoke-Tier Fixture Selection and Cost Cap
 
 **Date**: 2026-04-26
-**Status**: Proposed
+**Status**: Accepted
 **Decision Made In**: specs/010-autonomous-workflow/plan.md § Project Structure (closes ADR-017 follow-on)
 **Related ADRs**: ADR-017 (hybrid TDD strategy)
 **Related Logs**: LOG-007 (codereview model-class diversity — smoke fixture is the substrate)

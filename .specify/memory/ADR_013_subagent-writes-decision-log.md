@@ -1,7 +1,7 @@
 # ADR-013: Subagent Writes Decision-Log Entry Directly to Disk
 
 **Date**: 2026-04-26
-**Status**: Proposed (amended 2026-04-26 post-second-spec-review)
+**Status**: Accepted (amended 2026-04-26 post-second-spec-review)
 **Decision Made In**: specs/010-autonomous-workflow/spec.md § (post-spec-review revision); supersedes the synthesis half of ADR-010 Option B
 **Related ADRs**: ADR-016 (canonical/derivative model — refines write protocol)
 **Related Logs**: LOG-006 (TDD strategy), LOG-009 (stale-lock recovery)

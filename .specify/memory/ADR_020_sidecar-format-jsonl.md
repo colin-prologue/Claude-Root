@@ -1,7 +1,7 @@
 # ADR-020: Sidecar Format — JSONL for `.run/control-flow.log`
 
 **Date**: 2026-04-26
-**Status**: Proposed
+**Status**: Accepted
 **Decision Made In**: specs/010-autonomous-workflow/plan.md § Technical Context
 **Related ADRs**: ADR-016 (canonical/derivative model — defines the sidecar's role)
 **Related Logs**: None

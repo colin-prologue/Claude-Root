@@ -1,7 +1,7 @@
 # ADR-019: Bash-Helper-Driven Deterministic Orchestrator Core
 
 **Date**: 2026-04-26
-**Status**: Proposed
+**Status**: Accepted
 **Decision Made In**: specs/010-autonomous-workflow/plan.md § Project Structure
 **Related ADRs**: ADR-013 (subagent writes decision-log directly), ADR-016 (canonical/derivative model), ADR-017 (hybrid TDD strategy)
 **Related Logs**: None
