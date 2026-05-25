@@ -72,7 +72,15 @@ Only if `STAGE ∈ {implement, codereview, audit}`:
 
 Wait for user input. On `abort`: TERMINATE(abort).
 
-### e. Dispatch subagent
+### e. Pre-dispatch sentinel check
+
+```
+run-lock.sh check-sentinel "$FEATURE_DIR"
+```
+
+On exit 1 (abort file present): TERMINATE(abort).
+
+### f. Dispatch subagent
 
 ```
 LOG_OFFSET=$(wc -c < "$FEATURE_DIR/decisions-log.md" 2>/dev/null | tr -d ' ' || echo 0)
@@ -100,7 +108,7 @@ run-validate-entry.sh "$FEATURE_DIR/decisions-log.md" "$LOG_OFFSET"
 
 On exit 1 or 2: TERMINATE(halt) — schema-violation.
 
-### f. Post-dispatch checks (code-action stages only)
+### g. Post-dispatch checks (code-action stages only)
 
 Only if `STAGE ∈ {implement, codereview, audit}`:
 
@@ -114,17 +122,17 @@ On exit ≠ 0: TERMINATE(permission-failure) — include violation list in halt 
 ```
 run-postcheck.sh "$FEATURE_DIR" "$STAGE"
 ```
-On exit 0 (`postcheck: no findings`): continue to step g.
+On exit 0 (`postcheck: no findings`): continue to step h.
 On exit ≠ 0: present findings, then prompt:
 
 ```
 postcheck findings above — type `proceed` to override (recorded) or `abort` to stop
 ```
 
-On `proceed`: proceed to step g with `POSTCHECK_OVERRIDE=true`.
+On `proceed`: proceed to step h with `POSTCHECK_OVERRIDE=true`.
 On `abort`: TERMINATE(abort).
 
-### g. Route
+### h. Route
 
 ```
 NEXT_STAGE=$(run-target.sh next "$TARGET" "$STAGE")
