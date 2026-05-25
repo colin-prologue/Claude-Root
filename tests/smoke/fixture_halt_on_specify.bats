@@ -4,7 +4,7 @@
 #
 # Prerequisites (manual — run before invoking this file):
 #   1. In Claude Code, invoke:
-#        /speckit.run --target specify,plan
+#        /speckit.run --target specify→plan
 #      using tests/smoke/fixtures/feature-halt-on-specify.txt as the feature description.
 #   2. Export SMOKE_HALT_FEATURE_DIR=<path to the feature directory used in step 1>.
 #
