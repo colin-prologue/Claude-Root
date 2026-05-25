@@ -54,7 +54,7 @@ Advance: `STAGE = run-target.sh next "$TARGET" "$STAGE"`. Continue loop.
 run-emit-event.sh "$FEATURE_DIR" stage-start stage="$STAGE"
 ```
 
-### c. Store pre-dispatch HEAD
+### c. Store pre-dispatch HEAD (ADR-030)
 
 ```
 git rev-parse HEAD > "$FEATURE_DIR/.run/pre-dispatch-head"

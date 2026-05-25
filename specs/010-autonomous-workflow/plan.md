@@ -29,6 +29,7 @@ V1 ships single-mode BLOCKING-everywhere (ADR-014, ADR-015), single-session life
 | ADR-021 | Decision | ADR_021_smoke-tier-fixture-budget.md | Smoke-tier fixture selection and cost cap | Proposed (this plan; closes ADR-017 follow-on; revised post-plan-review) |
 | ADR-022 | Decision | ADR_022_verdict-receipt-enforcement.md | Verdict-receipt enforcement between decide-next and emit-event | Proposed (post-plan-review revision; closes F-01 helper-bypass) |
 | ADR-023 | Decision | ADR_023_pre-route-linter-postcheck.md | Pre-route linter postcheck on subagent artifacts | Proposed (post-plan-review revision; closes F-09 BLOCKING-rubber-stamping for code-action stages) |
+| ADR-030 | Decision | ADR_030_pre-dispatch-head-baseline.md | Pre-dispatch HEAD as per-stage diff baseline for independent auditing | Accepted (post-audit addition) |
 | LOG-004 | Question | LOG_004_per-stage-context-overhead-breakdown.md | Granular per-stage context overhead breakdown | Open (deferred to V2) |
 | LOG-005 | Challenge | LOG_005_stage-pair-runner-fallback.md | Stage-pair runner as V1.5 fallback | Open |
 | LOG-006 | Question | LOG_006_tdd-strategy-non-deterministic-dispatcher.md | TDD strategy for non-deterministic LLM dispatcher | Resolved → ADR-017 |
