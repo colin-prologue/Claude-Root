@@ -54,6 +54,6 @@ docs/                   # Long-form documentation
 - See `.specify/memory/constitution.md` for full governing principles
 
 ## Recent Changes
-- 010-autonomous-workflow: `/speckit.run` orchestrator shipped — slash command + 9 bash helpers (`run-lock`, `run-completeness`, `run-target`, `run-route`, `run-emit-event`, `run-validate-entry`, `run-check-sandbox`, `run-postcheck`, `run-serialize`); canonical `decisions-log.md` + JSONL sidecar; 183 Tier 1 unit tests + 20-case Tier 2 smoke harness (pre-merge, cost-capped); V1 BLOCKING-everywhere
+- 010-autonomous-workflow: `/speckit.run` orchestrator shipped — slash command + 9 bash helpers (`run-lock`, `run-completeness`, `run-target`, `run-route`, `run-emit-event`, `run-validate-entry`, `run-check-sandbox`, `run-postcheck`, `run-serialize`); canonical `decisions-log.md` + JSONL sidecar; 184 Tier 1 unit tests + 20-case Tier 2 smoke harness (pre-merge, cost-capped); V1 BLOCKING-everywhere
 - 009-remove-memory-server: Extracted memory server to `archive/memory-server` branch + `v1.0-with-memory` tag; template now ships without MCP server dependency
 - skill-plugin-optimization: `adr-crossref-check` skill + helper script, ADR-055 filter-predicate helpers, guardrail against `.decisions/` vocabulary drift
