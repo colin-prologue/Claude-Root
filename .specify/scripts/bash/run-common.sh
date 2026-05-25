@@ -8,6 +8,9 @@
 # Per ADR-019 single-purpose convention, run-common.sh has no dedicated bats file —
 # it is covered indirectly through the helpers that source it.
 
+# -u omitted intentionally: sourced files inherit the calling shell's environment;
+# adding -u here would trip on the caller's unset variables before it sets its own.
+# Callers (run-*.sh) all set -uo pipefail themselves.
 set -o pipefail
 
 # _run_lock_dir <feature-dir> — print the canonical .run/ directory path.
