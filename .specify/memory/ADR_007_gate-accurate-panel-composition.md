@@ -3,7 +3,7 @@
 **Date**: 2026-04-03
 **Status**: Accepted
 **Supersedes**: ADR-001 (for benchmark execution — ADR-001's STANDARD definition is superseded by gate-accurate composition)
-**Decision Made In**: specs/000-review-benchmark/plan.md § Validity Model
+**Decision Made In**: benchmarks/review-panel/plan.md § Validity Model
 **Related Logs**: None
 
 ---

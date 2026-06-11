@@ -1,0 +1,33 @@
+Feature: Structured Audit Log Writer
+
+Build a small CLI tool that appends structured audit events to a local log file.
+
+## Requirements
+
+The tool accepts a single subcommand `append` with the following flags:
+
+- `--event-type <string>` — required; one of: `login`, `logout`, `change`, `error`
+- `--actor <string>` — required; the username or system identity that triggered the event
+- `--detail <string>` — optional; free-text description of the event
+- `--log-file <path>` — optional; defaults to `./audit.log`
+
+Each call appends one JSON line to the log file. The JSON object must include:
+- `ts` — ISO-8601 UTC timestamp of the write, generated at write time
+- `event_type` — value from `--event-type`
+- `actor` — value from `--actor`
+- `detail` — value from `--detail`, or `null` if omitted
+
+The tool must be idempotent with respect to the log file: if the file does not exist it is created; if it exists the new entry is appended without modifying existing lines.
+
+## Constraints
+
+- Written in Python 3.9+, no third-party dependencies
+- Output is NDJSON (newline-delimited JSON, one object per line)
+- Concurrent writes from multiple processes are not required in V1
+- `--event-type` is validated; unknown values exit 1 with a clear error message
+
+## Out of Scope
+
+- Log rotation
+- Remote log shipping
+- Authentication of the caller

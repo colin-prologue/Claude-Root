@@ -32,14 +32,14 @@ Otherwise: proceed with **Branch A — Review Mode**.
 
 ### Step 1: Validate Prerequisites
 
-Check that `specs/000-review-benchmark/fixture/` exists and contains the artifact for the
+Check that `benchmarks/review-panel/fixture/` exists and contains the artifact for the
 requested gate:
-- `spec` gate: `specs/000-review-benchmark/fixture/spec.md`
-- `plan` gate: `specs/000-review-benchmark/fixture/spec.md` and `fixture/plan.md`
-- `task` gate: `specs/000-review-benchmark/fixture/spec.md`, `fixture/plan.md`, and `fixture/tasks.md`
+- `spec` gate: `benchmarks/review-panel/fixture/spec.md`
+- `plan` gate: `benchmarks/review-panel/fixture/spec.md` and `fixture/plan.md`
+- `task` gate: `benchmarks/review-panel/fixture/spec.md`, `fixture/plan.md`, and `fixture/tasks.md`
 
 If the fixture directory is missing:
-> Error: "Benchmark fixture not found at specs/000-review-benchmark/fixture/. Run the benchmark setup tasks first."
+> Error: "Benchmark fixture not found at benchmarks/review-panel/fixture/. Run the benchmark setup tasks first."
 
 ### Step 2: Load Constitution
 
@@ -70,7 +70,7 @@ Spawn all panel agents (excluding synthesis-judge) simultaneously. Each agent re
 ```
 You are the [AGENT_NAME] reviewer for a benchmark review of a fictional
 "User Notification Preferences" feature. Review ONLY the artifacts listed below —
-do not read any other files in specs/000-review-benchmark/.
+do not read any other files in benchmarks/review-panel/.
 
 Artifacts for [gate] gate:
 [List fixture artifact paths for this gate]
@@ -85,7 +85,7 @@ IMPORTANT — Phase A protocol:
 - Tag each finding row with your agent name in this format:
   [agent-name] | SEVERITY | category | location | finding
   (e.g., [product-strategist] | HIGH | Missing persona | User Stories §1 | No admin story)
-- Do NOT read specs/000-review-benchmark/benchmark-key.md — it is not an artifact for review.
+- Do NOT read benchmarks/review-panel/benchmark-key.md — it is not an artifact for review.
 ```
 
 Wait for ALL Phase A agents to complete before proceeding.
@@ -159,7 +159,7 @@ and skip the table. Do not fail the run.
 
 **benchmark-key.md is read HERE for the first time. It was never in any agent's context.**
 
-Read `specs/000-review-benchmark/benchmark-key.md`.
+Read `benchmarks/review-panel/benchmark-key.md`.
 
 **a. Gate filter**: Filter benchmark-key.md to rows where `applicable_gate = [current gate]`.
 Issues in other gates are excluded from the denominator entirely — NOT counted as Missed.
@@ -190,7 +190,7 @@ that raised it WITH hedging, or did not raise it, do not count as false positive
 table produced in Step 6). If the table is absent, log: "⚠️ No overlap cluster table in
 synthesis output — skipping overlap section."
 
-**e. Determine run number**: Look for existing files in `specs/000-review-benchmark/runs/`
+**e. Determine run number**: Look for existing files in `benchmarks/review-panel/runs/`
 matching `YYYY-MM-DD-[gate]-[RIGOR]-run*.md` where YYYY-MM-DD is today's date. If none
 exist, run_number = 1. If one or more exist, run_number = highest existing N + 1.
 
@@ -256,7 +256,7 @@ variance rather than panel differences, not panel quality differences.
 Save the complete output (synthesis report + Panel Efficiency Report) to:
 
 ```
-specs/000-review-benchmark/runs/YYYY-MM-DD-[gate]-[RIGOR]-run[N].md
+benchmarks/review-panel/runs/YYYY-MM-DD-[gate]-[RIGOR]-run[N].md
 ```
 
 where N is the run number determined in Step 7e.
@@ -282,7 +282,7 @@ Extract `gate` from `$ARGUMENTS` (token after `--compare`).
 ### Step 2: Locate Run Files
 
 For each rigor level (FULL, STANDARD, LIGHTWEIGHT), find the most recent run file at the
-specified gate in `specs/000-review-benchmark/runs/`:
+specified gate in `benchmarks/review-panel/runs/`:
 
 Pattern: `*-[gate]-[RIGOR]-run*.md`
 

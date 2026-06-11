@@ -3,7 +3,7 @@
 **Date**: 2026-04-03
 **Type**: QUESTION
 **Status**: Resolved
-**Raised In**: specs/000-review-benchmark/spec.md — spec gate review (CF-1)
+**Raised In**: benchmarks/review-panel/spec.md — spec gate review (CF-1)
 **Related ADRs**: None
 
 ---
@@ -63,7 +63,7 @@ scored.
 
 ## Impact
 
-- [x] Spec updated: `specs/000-review-benchmark/spec.md` — FR-003 (added contamination check), Edge Cases (updated isolation edge case)
+- [x] Spec updated: `benchmarks/review-panel/spec.md` — FR-003 (added contamination check), Edge Cases (updated isolation edge case)
 - [ ] Plan updated: N/A (pre-planning)
 - [ ] ADR created/updated: None
 - [ ] Tasks revised: N/A

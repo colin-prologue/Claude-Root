@@ -10,6 +10,10 @@ worktrees/
 # Oracle artifacts — meta-patterns belong in oracle bank, not this repo
 .decisions/
 
+# /speckit.run runtime artifacts (sentinels, run-lock, control-flow sidecar — per ADR-012, ADR-016)
+# Declared once at template-setup time so the orchestrator never modifies .gitignore at runtime (FR-020).
+specs/*/.run/
+
 # Python
 __pycache__/
 *.pyc

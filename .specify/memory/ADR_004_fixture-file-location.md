@@ -2,14 +2,14 @@
 
 **Date**: 2026-04-03
 **Status**: Accepted
-**Decision Made In**: specs/000-review-benchmark/plan.md § Phase 0 Research
+**Decision Made In**: benchmarks/review-panel/plan.md § Phase 0 Research
 **Related Logs**: None
 
 ---
 
 ## Context
 
-The `specs/000-review-benchmark/` directory serves dual purpose: it holds the real Spec-Kit
+The `benchmarks/review-panel/` directory serves dual purpose: it holds the real Spec-Kit
 planning artifacts for the Review Panel Benchmark feature (spec.md, plan.md, tasks.md) AND
 must also contain the synthetic "user notification preferences" benchmark artifacts that
 review agents will analyze. The 001 plan assumed the synthetic artifacts would live at the
@@ -17,7 +17,7 @@ folder root, but this creates a naming collision with the real spec-kit artifact
 
 ## Decision
 
-Synthetic fixture artifacts live in `specs/000-review-benchmark/fixture/` — a subdirectory
+Synthetic fixture artifacts live in `benchmarks/review-panel/fixture/` — a subdirectory
 dedicated to benchmark test data. The `benchmark-key.md` scoring instrument lives at the
 000 root (one level above `fixture/`) to emphasize its separation from reviewed artifacts.
 
@@ -51,8 +51,8 @@ Principle II (Simplicity) favors the least structural change that solves the pro
 ## Consequences
 
 **Positive**: No naming collision; clear test data boundary.
-**Negative / Trade-offs**: The 001 plan references `specs/000-review-benchmark/spec.md` etc.
-as the artifact paths — all references must use `specs/000-review-benchmark/fixture/spec.md`.
+**Negative / Trade-offs**: The 001 plan references `benchmarks/review-panel/spec.md` etc.
+as the artifact paths — all references must use `benchmarks/review-panel/fixture/spec.md`.
 **Risks**: If a command accidentally passes the wrong path (real spec.md vs fixture/spec.md),
 agents review the wrong artifact. Mitigated by the clear directory separation.
 **Follow-on decisions required**: None.

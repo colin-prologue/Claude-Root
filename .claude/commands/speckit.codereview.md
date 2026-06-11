@@ -57,6 +57,7 @@ Read these files and store as `DOC_CONTEXT`:
 
 - `specs/[feature]/spec.md` — requirements and acceptance criteria
 - `.specify/memory/ADR_*.md` — all existing ADRs (for compliance checking)
+- `.specify/memory/AGDR_*.md` — agent decision records (verify diff-visible judgments carry citations; surface `pending-review` records in PR scope)
 - `CLAUDE.md` — project conventions (naming, structure, commit format)
 - `.specify/memory/constitution.md` — extract `CALIBRATION_BLOCK` (Project Context + principle rigor levels)
 
@@ -212,6 +213,8 @@ Only review code in `TOUCHED_FILES`. Do not audit the full repository — that's
 ### ADR Compliance is Non-Negotiable
 
 An ADR represents a decided architectural choice. Code that contradicts an ADR is always at least a HIGH finding regardless of rigor level. Do not calibrate this down.
+
+Pivotal judgment calls visible in the diff — foreclosing alternatives, expensive to reverse, interpreting spec/plan ambiguity, or committing money/scope/schedule — MUST carry an `AGDR-NNN` or ADR citation. An uncited pivotal judgment is a HIGH finding. A `pending-review` AGDR inside the PR's scope is a merge-blocking note for the human gate, not a code defect.
 
 ### Correctness Over Style
 

@@ -52,7 +52,7 @@ Default panel: `code-reviewer` + `devils-advocate` (LIGHTWEIGHT). Add `security-
 **Relationship to /speckit.audit**: complementary, not redundant. Run codereview first (catches bugs), then audit (catches drift).
 ### Rigor Selection Guide
 
-Benchmark-validated defaults (`000-review-benchmark`). Rigor is gate-specific — the optimal level differs at each phase.
+Benchmark-validated defaults (`benchmarks/review-panel`). Rigor is gate-specific — the optimal level differs at each phase.
 
 | Gate | Default | Use FULL when | Skip to LIGHTWEIGHT when |
 |---|---|---|---|

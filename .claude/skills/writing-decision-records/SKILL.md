@@ -1,6 +1,6 @@
 ---
 name: writing-decision-records
-description: This skill should be used when the user asks to "write an ADR", "create an ADR", "record this decision", "document this choice", "create a LOG", "log this challenge", "raise an open question", "flag this as a decision", "name it as a decision", or when an architectural choice, technology selection, schema design, integration pattern, or accepted tradeoff is being committed to during planning, implementation, or review. Also applies when any of /speckit.plan, /speckit.implement, /speckit.audit, or /speckit.review surface a decision or unresolved item that requires a cross-referenced memory file. Covers the ADR-vs-LOG rubric, NNN counter scan, template paths, and mandatory back-references (Principle VII — NON-NEGOTIABLE).
+description: This skill should be used when the user asks to "write an ADR", "create an ADR", "record this decision", "document this choice", "create a LOG", "log this challenge", "raise an open question", "flag this as a decision", "name it as a decision", "write an AGDR", "record this judgment call", or when an architectural choice, technology selection, schema design, integration pattern, or accepted tradeoff is being committed to during planning, implementation, or review — including pivotal judgment calls the agent makes autonomously without the project owner in the loop. Also applies when any of /speckit.plan, /speckit.implement, /speckit.audit, or /speckit.review surface a decision or unresolved item that requires a cross-referenced memory file. Covers the ADR-vs-LOG-vs-AgDR rubric, NNN counter scan, template paths, and mandatory back-references (Principle VII — NON-NEGOTIABLE).
 ---
 
 # Writing Decision Records
@@ -21,8 +21,9 @@ Decide ADR or LOG before opening a template.
 | Obstacle forcing reconsideration of a plan or spec | LOG (CHALLENGE) | Open |
 | Revision to earlier understanding, spec section, or ADR | LOG (UPDATE) | Open or Resolved |
 | Review finding accepted as risk without remediation | LOG (CHALLENGE) | Open, marked accepted-risk |
+| Pivotal judgment call made autonomously, project owner not in the loop (forecloses alternatives / expensive to reverse / resolves spec-plan ambiguity by interpretation / commits money, scope, or schedule) | AGDR | pending-review |
 
-**Ambiguity rule**: if a choice is being *made*, write an ADR. If something is being *raised but not resolved*, write a LOG. A LOG may later resolve into an ADR — both records persist; each references the other.
+**Ambiguity rule**: if a choice is being *made*, write an ADR. If something is being *raised but not resolved*, write a LOG. A LOG may later resolve into an ADR — both records persist; each references the other. If the agent is *choosing and proceeding without the project owner*, write an AGDR — it may be promoted to an ADR on ratification.
 
 ## Determine the NNN
 
@@ -34,6 +35,10 @@ ls .specify/memory/ADR_*.md .specify/memory/LOG_*.md 2>/dev/null \
 ```
 
 Never reuse a number. `ADR_001`, `LOG_002`, `ADR_003` is valid; `ADR_004` + `LOG_004` is not.
+
+**AGDR is the exception**: it uses its own independent counter. Scan `.specify/memory/AGDR_*.md` separately and increment within that sequence only.
+
+**Worktree caveat**: unmerged feature branches may hold higher numbers than `main`. Scan ALL active worktrees' (and unmerged branches') `.specify/memory/` before choosing NNN, or collisions land at merge time. Verify a branch is genuinely unmerged first (`git branch --no-merged HEAD`) — stale merged or archive refs can point at retired numbers and inflate the counter.
 
 ## Author the file
 
@@ -54,6 +59,8 @@ Never reuse a number. `ADR_001`, `LOG_002`, `ADR_003` is valid; `ADR_004` + `LOG
 - `Resolution` — leave blank for Open logs
 
 Short titles are kebab-case and descriptive: `ADR_042_bm25-keyword-fallback.md`, not `ADR_042_fallback.md`.
+
+**AGDR**: copy `.specify/templates/agdr-template.md` to `.specify/memory/AGDR_NNN_short-title.md`. Fill every section — `Trigger` (at least one pivotal criterion checked), `Options Considered` (the rejected option steelmanned — its strongest honest case), `Revision Conditions`, `Blast Radius` (what builds on this + unwind cost). Status is `pending-review` at creation; **only the project owner moves it** (verdicts: ratified / ratified-promoted → ADR / overturned-inline / overturned-deferred → LOG / superseded). Cite the AGDR in the implementing commit message (`… per AGDR-NNN`). Do not pause work for review — AGDRs resolve at the PR-merge gate; no PR merges with `pending-review` AGDRs in its scope.
 
 ## Write the back-reference
 
@@ -101,7 +108,7 @@ If implementing a task reveals an unplanned architectural decision — choosing 
 
 ## Resources
 
-- **Templates**: `.specify/templates/adr-template.md`, `.specify/templates/log-template.md`
+- **Templates**: `.specify/templates/adr-template.md`, `.specify/templates/log-template.md`, `.specify/templates/agdr-template.md`
 - **Principle VII**: `.specify/memory/constitution.md` § VII (Decision Transparency)
 - **Naming conventions**: `.specify/memory/constitution.md` § Development Workflow › Decision Records
 - **Memory convention for synthetic summaries**: `.claude/rules/memory-convention.md` (different from ADR/LOG authoring — synthetic chunks summarize, ADRs/LOGs are source-of-truth)

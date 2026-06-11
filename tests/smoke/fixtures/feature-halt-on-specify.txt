@@ -1,0 +1,26 @@
+Feature: User Preference Sync
+
+Build a service that keeps user preferences synchronized across devices.
+
+## Requirements
+
+- Users can set preferences on any device and the changes should appear on all their other devices
+- Preferences should sync in real time when the user is online
+- Offline edits should be merged when connectivity is restored
+
+## Open Questions
+
+This description intentionally leaves several decisions unspecified that the specification
+phase must surface and resolve before planning can proceed:
+
+- What is the conflict resolution strategy when two devices edit the same preference key
+  while offline simultaneously? (last-write-wins, server-authoritative, or manual merge?)
+- What persistence layer backs the service? (relational DB, key-value store, or in-memory
+  with a write-ahead log?)
+- Are preferences scoped per-user globally, or per-user-per-application? The word
+  "preferences" is used without defining the schema or namespace.
+- What does "real time" mean in terms of latency SLO? (sub-second? eventual within 30s?)
+
+The specification subagent should surface these as [NEEDS CLARIFICATION] items and
+emit halt_directive=true, preventing the plan phase from running until the developer
+resolves the ambiguities.
