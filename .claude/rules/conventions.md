@@ -21,11 +21,13 @@ All architectural decisions and significant challenges are tracked in `.specify/
 |---|---|---|
 | ADR | `ADR_NNN_title.md` | Technology choices, system structure, data models |
 | LOG | `LOG_NNN_title.md` | Challenges, open questions, updates |
+| AgDR | `AGDR_NNN_title.md` | Pivotal judgment calls made autonomously by the agent; binding review by the project owner at PR merge (see the project's AgDR adoption ADR) |
 
-Both types share a sequential counter. Cross-references between records and
-spec/plan artifacts are mandatory (Principle VII).
+ADR and LOG share a sequential counter. AGDR uses its own independent counter
+starting at `AGDR_001`. Cross-references between records and spec/plan
+artifacts are mandatory (Principle VII).
 
-**Scope boundary — local vs. oracle memory.** This repo uses **ADR + LOG only**.
+**Scope boundary — local vs. oracle memory.** This repo uses **ADR + LOG + AGDR only**.
 Meta-patterns (cross-project philosophies, architectural wisdom that applies
 beyond Claude-Root) belong in the **oracle bank**, not this repo — capture them
 with `/oracle-observe`. Do not create `.decisions/`, `phi/`, `cdrs/`, or `obs/`
@@ -54,5 +56,7 @@ A feature is done when:
 4. All ADRs and LOGs are written and cross-referenced
 5. `CLAUDE.md` reflects any new commands, dependencies, or structure changes
 6. Adversarial review findings are addressed or documented as accepted risks
-7. `memory_sync()` called to index new ADRs/LOGs into the knowledge base (if memory server is enabled)
-8. Branch is merged and deleted
+7. Zero `pending-review` AGDRs — each PR resolves its AGDRs before merge; feature close re-verifies
+8. `/speckit.retro` run interactively — the project owner approves the `roadmap.md` diff (artifact: a `roadmap.md` commit referencing this feature)
+9. `memory_sync()` called to index new ADRs/LOGs into the knowledge base (if memory server is enabled)
+10. Branch is merged and deleted

@@ -1,32 +1,28 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: 1.1.0 → 1.2.0 (MINOR)
+Version change: 1.2.0 → 1.3.0 (MINOR)
 
 Modified principles:
   - None modified
 
 Added sections:
-  - Principle VII: Decision Transparency
-      Covers ADR files (ADR_NNN_title.md) for architectural decisions and
-      LOG files (LOG_NNN_title.md) for challenges, questions, and updates.
-      Both types must be cross-referenced from the spec or plan where the
-      decision was made, creating a traceable history of reasoning.
   - Development Workflow › Decision Records
-      Naming conventions, storage location, and cross-reference rules.
+      AGDR (Agent Decision Record) added as a third record type for pivotal
+      judgment calls made autonomously by the agent; own independent counter;
+      binding owner review at the PR-merge gate. Adoption rationale: ADR-031.
 
 Removed sections:
   - None
 
 Templates updated:
-  ✅ .specify/templates/adr-template.md — new file
-  ✅ .specify/templates/log-template.md — new file
-  ✅ .specify/templates/constitution-template.md — Principle VII + Decision Records section added
-  ✅ .specify/templates/plan-template.md — ADR/LOG reference table added
-  ✅ .specify/templates/spec-template.md — ADR/LOG reference section added
+  ✅ .specify/templates/agdr-template.md — new file
 
 Follow-up TODOs:
   - None. All placeholders resolved.
+
+Previous (1.1.0 → 1.2.0): Principle VII (Decision Transparency) + Development
+Workflow › Decision Records added; adr/log templates and reference tables created.
 -->
 
 # Claude Project Constitution
@@ -134,16 +130,21 @@ Naming and storage conventions:
 |---|---|---|---|
 | Architectural decision | `ADR_NNN_title.md` | `.specify/memory/` | `adr-template.md` |
 | Challenge / Question / Update | `LOG_NNN_title.md` | `.specify/memory/` | `log-template.md` |
+| Agent judgment call (autonomous) | `AGDR_NNN_title.md` | `.specify/memory/` | `agdr-template.md` |
 
-NNN is a zero-padded three-digit sequence shared across both types (ADR and LOG use the same
+NNN is a zero-padded three-digit sequence shared across ADR and LOG (both use the same
 counter, so `ADR_001`, `LOG_002`, `ADR_003` — no two records share a number). This keeps the
-timeline unambiguous.
+timeline unambiguous. AGDR uses its own independent counter starting at `AGDR_001`; it captures
+pivotal judgment calls made autonomously by the agent, written without pausing work and
+bindingly reviewed by the project owner at the PR-merge gate — adoption rationale and review
+verdicts in [ADR-031](.specify/memory/ADR_031_agent-decision-records.md).
 
 When to create records:
 - **ADR**: at the moment a significant architectural choice is made, before implementation proceeds
 - **LOG (QUESTION)**: as soon as a significant unknown is identified during planning or research
 - **LOG (CHALLENGE)**: when an obstacle is encountered that requires reconsidering a plan or spec
 - **LOG (UPDATE)**: when an earlier understanding, spec section, or ADR needs revision
+- **AGDR**: at the moment the agent makes a pivotal judgment call with the owner not in the loop (forecloses alternatives, expensive to reverse, resolves spec/plan ambiguity by interpretation, or commits money/scope/schedule)
 
 ### PR Policy
 
@@ -171,4 +172,4 @@ All specs and plans MUST verify compliance with these principles before implemen
 Version policy: MAJOR for principle removal/redefinition; MINOR for new or materially expanded guidance;
 PATCH for clarifications, wording, and non-semantic refinements.
 
-**Version**: 1.2.0 | **Ratified**: 2026-03-13 | **Last Amended**: 2026-03-13
+**Version**: 1.3.0 | **Ratified**: 2026-03-13 | **Last Amended**: 2026-06-10
