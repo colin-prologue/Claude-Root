@@ -52,7 +52,9 @@ VIOLATIONS=0
 
 # ----- 1. Heading -----
 HEADING="$(printf '%s\n' "$ENTRY" | head -n1)"
-HEADING_RE="^## (${ENTRY_TYPES}):(${CANONICAL_STAGES}) [·-] ${TS_RE}$"
+# Separator is alternation, not a bracket expression: '·' is multibyte (U+00B7)
+# and bracket expressions match single bytes under LC_CTYPE=C.
+HEADING_RE="^## (${ENTRY_TYPES}):(${CANONICAL_STAGES}) (·|-) ${TS_RE}$"
 if [[ ! "$HEADING" =~ $HEADING_RE ]]; then
     die_violation "heading" "does not match required pattern '## <entry_type>:<stage> [·-] <ISO-8601-UTC>': '$HEADING'"
     # If heading is unparseable, downstream field checks are best-effort.

@@ -48,7 +48,9 @@ commit_file() {
     local path="$1" content="${2:-change}"
     mkdir -p "$(dirname "$path")" 2>/dev/null || true
     printf '%s\n' "$content" > "$path"
-    git add "$path"
+    # -f: the developer's global core.excludesFile may ignore paths like
+    # .claude/settings.local.json; the fixture must commit them regardless.
+    git add -f "$path"
     git commit -m "add $path" --quiet
 }
 
