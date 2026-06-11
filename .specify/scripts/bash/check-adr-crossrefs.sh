@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Report ADR/LOG files in .specify/memory/ that have zero inbound references
-# from any file under specs/.
+# Report ADR/LOG/AGDR files in .specify/memory/ that have zero inbound
+# references from any file under specs/.
 #
 # Principle VII (Decision Transparency, NON-NEGOTIABLE) mandates cross-references
 # between decision records and spec/plan artifacts. This script checks the
@@ -19,11 +19,11 @@ fi
 missing=()
 checked=0
 
-for f in "$MEMORY_DIR"/ADR_*.md "$MEMORY_DIR"/LOG_*.md; do
+for f in "$MEMORY_DIR"/ADR_*.md "$MEMORY_DIR"/LOG_*.md "$MEMORY_DIR"/AGDR_*.md; do
   [[ -e "$f" ]] || continue
   checked=$((checked + 1))
   base=$(basename "$f" .md)
-  key=$(echo "$base" | grep -oE '^(ADR|LOG)_[0-9]+')
+  key=$(echo "$base" | grep -oE '^(ADR|LOG|AGDR)_[0-9]+')
   dashed=${key/_/-}
   # Word-boundary anchors avoid false matches:
   #   - ADR_055 inside ADR_1055 (dormant until 4-digit IDs exist)

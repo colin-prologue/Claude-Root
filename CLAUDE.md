@@ -13,8 +13,8 @@ Keep it lean — detailed rules live in `.claude/rules/`.
 
 | Skill | Trigger | Purpose |
 |---|---|---|
-| `adr-crossref-check` | "check ADR cross-references", "verify Principle VII" | Audits every ADR/LOG in `.specify/memory/` for at least one inbound reference from `specs/` |
-| `writing-decision-records` | "write an ADR", "create a LOG" | Guided authoring of ADR/LOG files with correct format and cross-references |
+| `adr-crossref-check` | "check ADR cross-references", "verify Principle VII" | Audits every ADR/LOG/AGDR in `.specify/memory/` for at least one inbound reference from `specs/` |
+| `writing-decision-records` | "write an ADR", "create a LOG" | Guided authoring of ADR/LOG/AGDR files with correct format and cross-references |
 
 ## Directory Structure
 
@@ -30,6 +30,7 @@ Keep it lean — detailed rules live in `.claude/rules/`.
     constitution.md     # Project principles + context
     ADR_*.md            # Architectural decision records
     LOG_*.md            # Challenges, questions, updates
+    AGDR_*.md           # Agent decision records (autonomous judgment calls, owner-reviewed at PR merge)
   templates/            # Document templates
   scripts/
     bash/               # check-adr-crossrefs.sh, run-*.sh orchestrator helpers
@@ -54,6 +55,6 @@ docs/                   # Long-form documentation
 - See `.specify/memory/constitution.md` for full governing principles
 
 ## Recent Changes
+- agdr-port: Agent Decision Records (AgDR) ported from mini-fax — `agdr-template.md`, own `AGDR_001…` counter, pivotal-only async capture, binding owner review at PR merge; wired into conventions, writing-decision-records skill, crossref check, and `/speckit.codereview` (ADR-031)
 - 010-autonomous-workflow: `/speckit.run` orchestrator shipped — slash command + 9 bash helpers (`run-lock`, `run-completeness`, `run-target`, `run-route`, `run-emit-event`, `run-validate-entry`, `run-check-sandbox`, `run-postcheck`, `run-serialize`); canonical `decisions-log.md` + JSONL sidecar; 182 Tier 1 unit tests + 20-case Tier 2 smoke harness (pre-merge, cost-capped); V1 BLOCKING-everywhere
 - 009-remove-memory-server: Extracted memory server to `archive/memory-server` branch + `v1.0-with-memory` tag; template now ships without MCP server dependency
-- skill-plugin-optimization: `adr-crossref-check` skill + helper script, ADR-055 filter-predicate helpers, guardrail against `.decisions/` vocabulary drift
