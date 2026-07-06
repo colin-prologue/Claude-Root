@@ -202,6 +202,16 @@ The constitution (`.specify/memory/constitution.md`) is created interactively vi
 A solo prototype gets LIGHTWEIGHT governance. A team product handling PII gets FULL.
 The calibration is set once and informs every review panel's intensity.
 
+### Optional: Seed the Knowledge Base
+
+`.specify/templates/knowledge-seed.md` is an optional starter corpus of portable
+engineering principles distilled from prior projects. It is **not** wired into any
+command — adoption is a deliberate, manual step. If you want to start your project's
+knowledge base (constitution, ADR practice, or memory bank) from proven priors rather
+than empty, read the file and retain the entries that fit; its header explains how to
+treat them (as priors to confirm, revise, or retire on local evidence). Skip it
+entirely if you prefer principles to emerge from the project's own decisions.
+
 ## Using This Template
 
 ### New Project (GitHub Template)
